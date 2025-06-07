@@ -47,6 +47,7 @@ DRAM_ATTR int batteryPercentage = 50;
 DRAM_ATTR float batteryVoltage = 3.7;
 //buttons
 DRAM_ATTR bool leftButtonState = false;
+DRAM_ATTR bool middleButtonState = false;
 DRAM_ATTR bool rightButtonState = false;
 DRAM_ATTR bool powerSwitchState = false;
 
@@ -67,8 +68,8 @@ DRAM_ATTR int lastSecond = -1;
 DRAM_ATTR int liveDataTimer = 0;
 
 //item inventory
-DRAM_ATTR int inventory[10] = { 3, 5, 4, 6 };
-DRAM_ATTR int inventoryItems = 4;
+DRAM_ATTR int inventory[10] = { 3, 5, 4, 6, 19 };
+DRAM_ATTR int inventoryItems = 5;
 DRAM_ATTR int placedHomeItems[10] = { 7 };
 DRAM_ATTR int amountItemsPlaced = 1;
 DRAM_ATTR int placedHomeItemsX[10] = { 98 };
@@ -77,8 +78,8 @@ DRAM_ATTR int itemBeingPlaced = -1;
 DRAM_ATTR bool startHandlingPlacing = false;
 
 //food inventory
-DRAM_ATTR int foodInventory[10] = { 18 };
-DRAM_ATTR int foodInventoryItems = 1;
+DRAM_ATTR int foodInventory[10] = { 18, 16, 18, 16 };
+DRAM_ATTR int foodInventoryItems = 4;
 DRAM_ATTR int placedFood[10] = {};
 DRAM_ATTR int amountFoodPlaced = 0;
 DRAM_ATTR int placedFoodX[10] = {};
@@ -102,6 +103,8 @@ DRAM_ATTR bool shouldDrawCursor = false;
 DRAM_ATTR float cursorTimer = 0;
 DRAM_ATTR int cursorBitmap = 14;
 
+DRAM_ATTR int uiTimer = 100;
+
 DRAM_ATTR int petHunger = 49;
 DRAM_ATTR int petFun = 50;
 DRAM_ATTR int petSleep = 50;
@@ -109,6 +112,7 @@ DRAM_ATTR int petX = 64;
 DRAM_ATTR int petY = 32;
 DRAM_ATTR bool showPetMenu = false;
 DRAM_ATTR bool movingPet = false;
+DRAM_ATTR float money = 20;
 
 DRAM_ATTR int petMoveX = 64;
 DRAM_ATTR int petMoveY = 32;
@@ -124,7 +128,7 @@ DRAM_ATTR int messageMaxTime = 0;
 void petMessage(String message) {
   currentPetMessage = message;
   messageDisplayTime = 0;
-  messageMaxTime = currentPetMessage.length() * 20;
+  messageMaxTime = (currentPetMessage.length() * 20) / 1.5;
 }
 
 bool removeFromList(int list[], int& itemCount, int index) {
@@ -287,6 +291,20 @@ const unsigned char item_banana[] PROGMEM = {
   0x61, 0xc0, 0x10, 0x40, 0x0f, 0x80
 };
 
+const unsigned char item_rug [] PROGMEM = {
+	// 'rug, 15x25px
+	0x80, 0x02, 0xaa, 0xaa, 0xaa, 0xaa, 0xff, 0xfe, 0x80, 0x02, 0x88, 0x22, 0x90, 0x12, 0x83, 0x82, 
+	0x8c, 0x62, 0x90, 0x12, 0x90, 0x12, 0x90, 0x12, 0x88, 0x22, 0x90, 0x12, 0x90, 0x12, 0x90, 0x12, 
+	0x8c, 0x62, 0x83, 0x82, 0x90, 0x12, 0x88, 0x22, 0x80, 0x02, 0xff, 0xfe, 0xaa, 0xaa, 0xaa, 0xaa, 
+	0x80, 0x02
+};
+
+const unsigned char item_controller [] PROGMEM = {
+	// 'controller, 15x11px
+	0x30, 0x18, 0x7f, 0xfc, 0x40, 0x04, 0x98, 0x32, 0x9a, 0xb2, 0x80, 0x02, 0x8f, 0xe2, 0x90, 0x12, 
+	0xa0, 0x0a, 0xa0, 0x0a, 0x40, 0x04
+};
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;
@@ -312,7 +330,9 @@ const BitmapInfo bitmaps[] = {
   { ui_cursorMask, 11, 13 },          //15
   { item_apple, 11, 11 },             //16
   { pet_gooseSleep, 24, 39 },         //17
-  { item_banana, 10, 11 }             //18
+  { item_banana, 10, 11 },            //18
+  { item_rug, 15, 25},                //19
+  { item_controller, 15, 11}          //20
 };
 
 String displayNames[] = {
@@ -334,7 +354,9 @@ String displayNames[] = {
   { "cursorMask" },     //15
   { "apple" },          //16
   { "goose" },          //17
-  { "banana" }          //18
+  { "banana" },         //18
+  { "rug" },            //19
+  { "controller "}      //20
 };
 
 String idleLines[] = {
@@ -347,7 +369,11 @@ String idleLines[] = {
   "heheheha",
   "what to say",
   "hello",
-  "a red spy is in the base"
+  "a red spy is in the base!",
+  "protect the briefcase",
+  "wahoo"
+  "are you in class",
+  "sudo rm -rf /"
 };
 
 String beingCarriedLines[] = {
@@ -618,6 +644,8 @@ void drawBottomUI() {
               drawBottomBar();
               display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
               display.drawBitmap(58, 116, item_apple, 11, 11, SH110X_WHITE);
+              const BitmapInfo& bmp = bitmaps[20];
+              display.drawBitmap(102, 115, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
 
               if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
                 if (rightButtonState) {
@@ -639,6 +667,11 @@ void drawBottomUI() {
                   display.drawFastVLine(43, 115, 11, SH110X_WHITE);
                   display.drawFastVLine(84, 115, 11, SH110X_WHITE);
                 }
+              }
+
+              if (detectCursorTouch(86, 113, 41, 15)) {  //shop button check
+                display.drawFastVLine(88, 115, 11, SH110X_WHITE);
+                display.drawFastVLine(125, 115, 11, SH110X_WHITE);
               }
             }
         }
@@ -707,9 +740,17 @@ void drawInventory() {
   display.print("/10");
 
   for (int i = 0; i < inventoryItems; i++) {
+    int itemW = 60;  // You can fine-tune this depending on longest item length
     int itemX = 4;
     int itemY = 76 + (i * 8);
-    int itemW = 60;  // You can fine-tune this depending on longest item length
+
+    if (i > 3) {
+      int itemX = 4 + itemW;
+      int itemY = 76 + (i - 4 * 8);
+    }
+    
+    
+    
     int itemH = 8;
 
     bool hovered = detectCursorTouch(itemX, itemY, itemW, itemH);
@@ -782,12 +823,16 @@ void drawFoodInventory() {
 void drawEmotionUI() {
   display.setCursor(0, 0);
   display.setTextSize(1);
+  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
   display.print("HUN: ");
   display.println(petHunger);
   display.print("FUN: ");
   display.println(petFun);
   display.print("SLP: ");
   display.println(petSleep);
+  display.print("$");
+  display.print(money);
+  display.setTextColor(SH110X_WHITE);
 }
 
 void drawHomeItems() {
@@ -796,6 +841,9 @@ void drawHomeItems() {
   for (int i = 0; i < amountItemsPlaced; i++) {
     const BitmapInfo& bmp = bitmaps[placedHomeItems[i]];
     display.drawBitmap(placedHomeItemsX[i], placedHomeItemsY[i], bmp.data, bmp.width, bmp.height, SH110X_WHITE);
+    if (placedHomeItems[i] == 5) {
+      display.fillRect(placedHomeItemsX[i] + 6, placedHomeItemsY[i], 3, -27, SH110X_WHITE);
+    }
   }
 
   for (int i = 0; i < amountFoodPlaced; i++) {
@@ -815,7 +863,12 @@ void handleItemPlacing() {
   placedCount = amountItemsPlaced;
   addToList(placedHomeItemsX, placedCount, 10, cursorX);
   placedCount = amountItemsPlaced;
-  addToList(placedHomeItemsY, placedCount, 10, cursorY);
+  if (itemBeingPlaced == 5) {
+    addToList(placedHomeItemsY, placedCount, 10, 27);
+  } else {
+    addToList(placedHomeItemsY, placedCount, 10, cursorY);
+  }
+  
 
   Serial.print("Placing item: ");
   Serial.println(itemBeingPlaced);
@@ -865,6 +918,7 @@ void handleFoodPlacingLogic() {
 
 void updateButtonStates() {
   leftButtonState = digitalRead(leftButton) == LOW;
+  middleButtonState = digitalRead(middleButton) == LOW;
   rightButtonState = digitalRead(rightButton) == LOW;
   powerSwitchState = digitalRead(SWITCH_PIN) == LOW;
 }
@@ -905,6 +959,7 @@ void updatePetNeeds() {
 }
 
 void drawLiveData() {
+  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
   now = rtc.now();
   display.setCursor(55, 0);
   if (liveDataTimer < 100) {
@@ -917,16 +972,16 @@ void drawLiveData() {
       display.print(now.minute());
     }
   } else {
-    display.print(batteryPercentage); display.print("%");
-    display.setCursor(55, 10);
-    display.print(batteryVoltage); display.print("v");
+    display.print(now.day()); display.print("/"); display.print(now.month()); display.print("/"); display.print(now.year());
   }
   
   liveDataTimer++;
-  if (liveDataTimer > 200) {liveDataTimer = 0; setBatteryLevel();}
-}
-
-void setPetBehaviour() {
+  if (liveDataTimer > 200) {
+    liveDataTimer = 0; 
+    //setBatteryLevel();
+  }
+  
+  display.setTextColor(SH110X_WHITE);
 }
 
 // void drawPetMessage() {
@@ -971,20 +1026,38 @@ void setPetBehaviour() {
 // }
 
 void drawPetMessage() {
-  const int maxCharsPerLine = 7;  // Adjust based on display width
-  const int charWidth = 6;
-  const int lineHeight = 8;
+  const int charWidth = 6;  // width of a character in pixels
+  const int lineHeight = 11; // height of a line in pixels
+  const int maxCharsPerLine = 8;  // max characters per line before wrapping
 
-  // 1. Split the message into lines
+  // Split currentPetMessage into wrapped lines
   std::vector<String> lines;
-  for (int i = 0; i < currentPetMessage.length(); i += maxCharsPerLine) {
-    lines.push_back(currentPetMessage.substring(i, i + maxCharsPerLine));
+  String remaining = currentPetMessage;
+  while (remaining.length() > 0) {
+    int wrapAt = maxCharsPerLine;
+    if (remaining.length() <= maxCharsPerLine) {
+      lines.push_back(remaining);
+      break;
+    }
+
+    // Try to break at the last space before wrap limit
+    int lastSpace = remaining.lastIndexOf(' ', maxCharsPerLine);
+    if (lastSpace == -1) lastSpace = maxCharsPerLine;  // no space, hard break
+
+    lines.push_back(remaining.substring(0, lastSpace));
+    remaining = remaining.substring(lastSpace);
+    remaining.trim(); // remove leading space
   }
 
-  int numLines = lines.size();
-  int bubbleWidth = min(maxCharsPerLine, (int)currentPetMessage.length()) * charWidth + 4;
-  int bubbleHeight = numLines * lineHeight + 4;
+  int lineCount = lines.size();
+  int bubbleHeight = lineCount * lineHeight + 4;
+  int bubbleWidth = 0;
+  for (String& line : lines) {
+    bubbleWidth = max(bubbleWidth, (int)line.length());
+  }
+  bubbleWidth = bubbleWidth * charWidth + 4;
 
+  // Position bubble relative to pet
   int bubbleX;
   int bubbleDirection;
   if (petX < 64) {
@@ -994,33 +1067,52 @@ void drawPetMessage() {
     bubbleX = petX;
     bubbleDirection = -1;
   }
-
   int bubbleY = petY - 3;
 
-  // 2. Draw the bubble
-  int topLeftX = (bubbleDirection == 1) ? bubbleX : bubbleX - bubbleWidth;
-  int topLeftY = bubbleY - bubbleHeight;
-
-  display.drawRect(topLeftX, topLeftY, bubbleWidth, bubbleHeight, SH110X_WHITE);
-
-  // Tail
-  display.drawLine(bubbleX - 2 * bubbleDirection, bubbleY + 2, bubbleX - 2 * bubbleDirection, bubbleY, SH110X_WHITE);
-  display.drawLine(bubbleX - 2 * bubbleDirection, bubbleY + 2, bubbleX, bubbleY - 2, SH110X_WHITE);
-  //display.drawFastHLine(bubbleX + 5 * bubbleDirection, bubbleY - 5, -5 * bubbleDirection, SH110X_WHITE);
-
-  // 3. Draw each line of text
+  // Draw text
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
-  for (int i = 0; i < numLines; i++) {
-    int cursorX = topLeftX + 2;
-    int cursorY = topLeftY + 2 + i * lineHeight;
-    display.setCursor(cursorX, cursorY);
+
+  display.fillRect(
+  bubbleDirection == 1 ? bubbleX : bubbleX - bubbleWidth,
+  bubbleY - bubbleHeight,
+  bubbleWidth,
+  bubbleHeight - 3, // leave space for the tail
+  SH110X_BLACK
+);
+
+  for (int i = 0; i < lineCount; i++) {
+    int lineX = (bubbleDirection == 1)
+                  ? bubbleX + 2
+                  : bubbleX - (2 + lines[i].length() * charWidth);
+    int lineY = bubbleY - bubbleHeight + 2 + i * lineHeight;
+    display.setCursor(lineX, lineY);
     display.print(lines[i]);
   }
-  display.setTextColor(SH110X_WHITE);
+
+  display.setTextColor(SH110X_WHITE); // restore default
+
+  // Draw bubble
+int edgeX = bubbleX;
+int edgeW = bubbleWidth * bubbleDirection;
+
+// Left vertical line (adjusted -1 pixel in height)
+display.drawFastVLine(edgeX, bubbleY, -bubbleHeight + 1, SH110X_WHITE);
+
+// Right vertical line (adjusted -1 pixel in height)
+display.drawFastVLine(edgeX + edgeW, bubbleY - bubbleHeight + 1, bubbleHeight - 4, SH110X_WHITE);
+
+// Top horizontal line (adjusted -1 pixel in length)
+display.drawFastHLine(edgeX, bubbleY - bubbleHeight, edgeW - bubbleDirection, SH110X_WHITE);
+
+// Bottom portion of bubble (unchanged)
+display.drawFastHLine(edgeX + 5 * bubbleDirection, bubbleY - 5, (bubbleWidth - 6) * bubbleDirection, SH110X_WHITE);
+display.drawLine(edgeX, bubbleY, edgeX + 5 * bubbleDirection, bubbleY - 5, SH110X_WHITE);
+
 
   messageDisplayTime++;
 }
+
 
 
 int convertBatteryPercent(float voltage) {
@@ -1148,12 +1240,14 @@ public:
 class Idle : public Node {
 public:
   NodeStatus tick() override {
-    //1% chance to yap
-    if (random(0, 100) == 1) {
-      int messageRandomiser = random(0, 10);
+    //0.8% chance to yap
+    if (messageDisplayTime >= messageMaxTime) {
+    if (random(0, 200) == 1) {
+      int messageRandomiser = random(0, (sizeof(idleLines) / sizeof(idleLines[0])));
       petMessage(idleLines[messageRandomiser]);
     }
     return SUCCESS;
+  }
   }
 };
 
@@ -1200,7 +1294,7 @@ public:
 
     int lastFoodIndex = amountFoodPlaced - 1;    
     int lastFoodX = placedFoodX[lastFoodIndex];
-    int lastFoodY = placedFoodY[lastFoodIndex];
+    int lastFoodY = placedFoodY[lastFoodIndex] - 8;
 
     if (lastFoodX == petX && lastFoodY == petY) {
       removeFromList(placedFood, lastFoodIndex, lastFoodIndex);
@@ -1264,6 +1358,12 @@ void loop() {
 
   display.clearDisplay();
 
+  if (middleButtonState) {
+    uiTimer = 100;
+  }
+
+  
+
   if (!leftButtonState) {
     angleX = 0;
     angleY = 0;
@@ -1276,7 +1376,11 @@ void loop() {
     }
   } else {
     cursorX = constrain(angleX + 64, 0, 126);
-    cursorY = constrain(angleY + 64, 0, 126);
+    if (itemBeingPlaced == 5) {
+      cursorY = 27;
+    } else {
+      cursorY = constrain(angleY + 64, 0, 126);
+    }
     shouldDrawCursor = true;
     cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
   }
@@ -1302,11 +1406,6 @@ void loop() {
   //   petMessage("hello world");
   // }
 
-  drawEmotionUI();
-
-  drawLiveData();
-
-  drawBottomUI();
 
   updateButtonStates();
   //Serial.println(startHandlingPlacing);
@@ -1317,6 +1416,18 @@ void loop() {
 
   if (itemBeingPlaced != -1 && rightButtonState && handleFoodPlacing) {
     handleFoodPlacingLogic();
+  }
+
+  if (uiTimer > 0) {
+    if (detectCursorTouch(0, 113, 128, 15)) {
+      uiTimer = 100;
+    }
+    uiTimer--; 
+    drawEmotionUI();
+
+    drawLiveData();
+
+    drawBottomUI();
   }
 
   if (showPetMenu) {
@@ -1349,7 +1460,7 @@ void loop() {
     rgb.show();
     mpu9250_sleep();
     DateTime timeWhenSlept = rtc.now();
-    esp_deep_sleep_enable_gpio_wakeup(1 << SWITCH_PIN, ESP_GPIO_WAKEUP_GPIO_HIGH);  // enable waking up from deep sleep when switch is turned on / pulled high absoulute nerd
+    esp_deep_sleep_enable_gpio_wakeup(1 << SWITCH_PIN, ESP_GPIO_WAKEUP_GPIO_HIGH); // enable waking up from deep sleep when switch is turned on / pulled high absoulute nerd
 
     esp_light_sleep_start();  //yoo he said the thing
 
@@ -1362,6 +1473,8 @@ void loop() {
     int32_t minutesSinceSlept = seconds / 60;
 
     petSleep += minutesSinceSlept;
+    petHunger -= minutesSinceSlept / 10;
+    
     constrain(petSleep, 0, 100);
 
     display.clearDisplay();
@@ -1375,8 +1488,11 @@ void loop() {
     display.setCursor(17, 70);
     display.print("my SLP is at ");
     display.print(petSleep);
+    display.setCursor(17, 80);
+    display.print("my HUN is at ");
+    display.print(petHunger);
     const BitmapInfo& bmp2 = bitmaps[1];
-    display.drawBitmap(55, 82, bmp2.data, bmp2.width, bmp2.height, SH110X_WHITE);
+    display.drawBitmap(55, 90, bmp2.data, bmp2.width, bmp2.height, SH110X_WHITE);
     display.display();
     delay(1000);
   }
