@@ -7,6 +7,7 @@
 #include <Adafruit_NeoPixel.h>
 #include "esp_sleep.h"
 #include "driver/rtc_io.h"
+#include "vector"
 
 #define SDA_ALT 20
 #define SCL_ALT 9
@@ -38,7 +39,7 @@ const int middleButton = 6;
 const int rightButton = 7;
 
 DRAM_ATTR unsigned long previousMillis = 0;
-const long interval = 1000;  // 1 second
+const long interval = 50;  
 
 DRAM_ATTR DateTime now;
 
@@ -101,13 +102,18 @@ DRAM_ATTR bool shouldDrawCursor = false;
 DRAM_ATTR float cursorTimer = 0;
 DRAM_ATTR int cursorBitmap = 14;
 
-DRAM_ATTR int petHunger = 50;
+DRAM_ATTR int petHunger = 49;
 DRAM_ATTR int petFun = 50;
 DRAM_ATTR int petSleep = 50;
 DRAM_ATTR int petX = 64;
 DRAM_ATTR int petY = 32;
 DRAM_ATTR bool showPetMenu = false;
 DRAM_ATTR bool movingPet = false;
+
+DRAM_ATTR int petMoveX = 64;
+DRAM_ATTR int petMoveY = 32;
+DRAM_ATTR int petMoveSpeed = 0;
+DRAM_ATTR bool movePet = false;
 
 DRAM_ATTR unsigned long lastUpdate = 0;
 
@@ -118,7 +124,7 @@ DRAM_ATTR int messageMaxTime = 0;
 void petMessage(String message) {
   currentPetMessage = message;
   messageDisplayTime = 0;
-  messageMaxTime = currentPetMessage.length() * 200;
+  messageMaxTime = currentPetMessage.length() * 20;
 }
 
 bool removeFromList(int list[], int& itemCount, int index) {
@@ -341,7 +347,15 @@ String idleLines[] = {
   "heheheha",
   "what to say",
   "hello",
-  "gagaga"
+  "a red spy is in the base"
+};
+
+String beingCarriedLines[] = {
+  "put me down!",
+  "bro stop",
+  "i hate this",
+  "stop it",
+  "omg why"
 };
 
 void mpu9250_sleep() {
@@ -518,6 +532,7 @@ void drawPet(int petNumber, int drawX, int drawY) {
 }
 
 void drawBottomBar() {
+  display.fillRect(0, 113, 128, 15, SH110X_BLACK);
   display.drawRect(0, 113, 128, 15, SH110X_WHITE);
   display.drawFastVLine(41, 113, 15, SH110X_WHITE);
   display.drawFastVLine(86, 113, 15, SH110X_WHITE);
@@ -914,10 +929,64 @@ void drawLiveData() {
 void setPetBehaviour() {
 }
 
+// void drawPetMessage() {
+//   int bubbleX;
+//   int bubbleDirection;
+
+//   if (petX < 64) {
+//     bubbleX = petX + 17;
+//     bubbleDirection = 1;
+//   } else {
+//     bubbleX = petX;
+//     bubbleDirection = -1;
+//   }
+
+//   int bubbleY = petY - 3;
+//   int messageLength = currentPetMessage.length();
+
+//   if (bubbleDirection == 1) {
+//     display.setCursor(bubbleX + 2, bubbleY - 13);
+//   } else {
+//     display.setCursor(bubbleX - (2 + messageLength * 6), bubbleY - 13);
+//   }
+
+//   display.setTextSize(1);
+//   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+//   display.print(currentPetMessage);
+//   display.setTextColor(SH110X_WHITE);
+
+//   display.drawFastVLine(bubbleX, bubbleY, -14, SH110X_WHITE);
+//   if (bubbleDirection == -1) {
+//     display.drawFastVLine(bubbleX + ((messageLength * 6 + 3) * bubbleDirection), bubbleY - 15, 11, SH110X_WHITE);
+//   } else {
+//     display.drawFastVLine(bubbleX + ((messageLength * 6 + 2) * bubbleDirection), bubbleY - 15, 11, SH110X_WHITE);
+//   }
+//   //jesus christ what are these goofy calculations
+//   display.drawFastHLine(bubbleX, bubbleY - 15, (messageLength * 6 + 2) * bubbleDirection, SH110X_WHITE);
+//   display.drawFastHLine(bubbleX + 5 * bubbleDirection, bubbleY - 5, (messageLength * 6 - 3) * bubbleDirection, SH110X_WHITE);
+//   display.drawLine(bubbleX, bubbleY, bubbleX + 5 * bubbleDirection, bubbleY - 5, SH110X_WHITE);
+
+
+//   messageDisplayTime++;
+// }
+
 void drawPetMessage() {
+  const int maxCharsPerLine = 7;  // Adjust based on display width
+  const int charWidth = 6;
+  const int lineHeight = 8;
+
+  // 1. Split the message into lines
+  std::vector<String> lines;
+  for (int i = 0; i < currentPetMessage.length(); i += maxCharsPerLine) {
+    lines.push_back(currentPetMessage.substring(i, i + maxCharsPerLine));
+  }
+
+  int numLines = lines.size();
+  int bubbleWidth = min(maxCharsPerLine, (int)currentPetMessage.length()) * charWidth + 4;
+  int bubbleHeight = numLines * lineHeight + 4;
+
   int bubbleX;
   int bubbleDirection;
-
   if (petX < 64) {
     bubbleX = petX + 17;
     bubbleDirection = 1;
@@ -927,33 +996,32 @@ void drawPetMessage() {
   }
 
   int bubbleY = petY - 3;
-  int messageLength = currentPetMessage.length();
 
-  if (bubbleDirection == 1) {
-    display.setCursor(bubbleX + 2, bubbleY - 13);
-  } else {
-    display.setCursor(bubbleX - (2 + messageLength * 6), bubbleY - 13);
-  }
+  // 2. Draw the bubble
+  int topLeftX = (bubbleDirection == 1) ? bubbleX : bubbleX - bubbleWidth;
+  int topLeftY = bubbleY - bubbleHeight;
 
+  display.drawRect(topLeftX, topLeftY, bubbleWidth, bubbleHeight, SH110X_WHITE);
+
+  // Tail
+  display.drawLine(bubbleX - 2 * bubbleDirection, bubbleY + 2, bubbleX - 2 * bubbleDirection, bubbleY, SH110X_WHITE);
+  display.drawLine(bubbleX - 2 * bubbleDirection, bubbleY + 2, bubbleX, bubbleY - 2, SH110X_WHITE);
+  //display.drawFastHLine(bubbleX + 5 * bubbleDirection, bubbleY - 5, -5 * bubbleDirection, SH110X_WHITE);
+
+  // 3. Draw each line of text
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
-  display.print(currentPetMessage);
-  display.setTextColor(SH110X_WHITE);
-
-  display.drawFastVLine(bubbleX, bubbleY, -14, SH110X_WHITE);
-  if (bubbleDirection == -1) {
-    display.drawFastVLine(bubbleX + ((messageLength * 6 + 3) * bubbleDirection), bubbleY - 15, 11, SH110X_WHITE);
-  } else {
-    display.drawFastVLine(bubbleX + ((messageLength * 6 + 2) * bubbleDirection), bubbleY - 15, 11, SH110X_WHITE);
+  for (int i = 0; i < numLines; i++) {
+    int cursorX = topLeftX + 2;
+    int cursorY = topLeftY + 2 + i * lineHeight;
+    display.setCursor(cursorX, cursorY);
+    display.print(lines[i]);
   }
-  //jesus christ what are these goofy calculations
-  display.drawFastHLine(bubbleX, bubbleY - 15, (messageLength * 6 + 2) * bubbleDirection, SH110X_WHITE);
-  display.drawFastHLine(bubbleX + 5 * bubbleDirection, bubbleY - 5, (messageLength * 6 - 3) * bubbleDirection, SH110X_WHITE);
-  display.drawLine(bubbleX, bubbleY, bubbleX + 5 * bubbleDirection, bubbleY - 5, SH110X_WHITE);
-
+  display.setTextColor(SH110X_WHITE);
 
   messageDisplayTime++;
 }
+
 
 int convertBatteryPercent(float voltage) {
   if (voltage > 4.2) voltage = 4.2;
@@ -978,6 +1046,48 @@ void setBatteryLevel() {
 
   batteryPercentage = convertBatteryPercent(batteryVoltage);
   Serial.println(raw);
+}
+
+void startMovingPet(int x, int y, int speed) {
+  petMoveX = x;
+  petMoveY = y;
+  petMoveSpeed = speed;
+  movePet = true;
+}
+
+void updatePetMovement() {
+  int xDiff = petMoveX - petX;
+  xDiff = xDiff / abs(xDiff);
+
+  int yDiff = petMoveY - petY;
+  yDiff = yDiff / abs(yDiff);
+  
+  petX += xDiff * petMoveSpeed;
+  petY += yDiff * petMoveSpeed;
+
+  if (xDiff == 1) {
+    if (petX > petMoveX) {
+      petX = petMoveX;
+    }
+  } else {
+    if (petX < petMoveX) {
+      petX = petMoveX;
+    }
+  }
+
+  if (yDiff == 1) {
+    if (petY > petMoveY) {
+      petY = petMoveY;
+    }
+  } else {
+    if (petY < petMoveY) {
+      petY = petMoveY;
+    }
+  }
+  
+  if (petX == petMoveX && petY == petMoveY) {
+    movePet = false;
+  }
 }
 
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
@@ -1032,14 +1142,15 @@ public:
   NodeStatus tick() override {
     petMessage("am hungry");
     return SUCCESS;
-  }
+  } 
 };
 
 class Idle : public Node {
 public:
   NodeStatus tick() override {
-    if (random(10) == 10) {
-      int messageRandomiser = random(9);
+    //1% chance to yap
+    if (random(0, 100) == 1) {
+      int messageRandomiser = random(0, 10);
       petMessage(idleLines[messageRandomiser]);
     }
     return SUCCESS;
@@ -1058,37 +1169,76 @@ public:
   }
 };
 
+class BeingCarried : public Node {
+public:
+  NodeStatus tick() override {
+
+    if (movingPet) {
+      return SUCCESS;
+    } else {
+      return FAILURE;
+    }
+  }
+};
+
+class ComplainAboutBeingCarried : public Node {
+public:
+  NodeStatus tick() override {
+
+    if (messageDisplayTime >= messageMaxTime) {
+      int messageRandomiser = random(0, 6);
+      petMessage(beingCarriedLines[messageRandomiser]);
+    }
+
+    return SUCCESS;
+  }
+};
+
 class EatFood : public Node {
 public:
   NodeStatus tick() override {
 
-    removeFromList(placedFood, amountFoodPlaced, amountFoodPlaced - 1);
-    removeFromList(placedFoodX, amountFoodPlaced, amountFoodPlaced - 1);
-    removeFromList(placedFoodY, amountFoodPlaced, amountFoodPlaced - 1);
-    amountFoodPlaced--;
-    petHunger += 30;
+    int lastFoodIndex = amountFoodPlaced - 1;    
+    int lastFoodX = placedFoodX[lastFoodIndex];
+    int lastFoodY = placedFoodY[lastFoodIndex];
 
-    return SUCCESS;
+    if (lastFoodX == petX && lastFoodY == petY) {
+      removeFromList(placedFood, lastFoodIndex, lastFoodIndex);
+      removeFromList(placedFoodX, lastFoodIndex, lastFoodIndex);
+      removeFromList(placedFoodY, lastFoodIndex, lastFoodIndex);
+      amountFoodPlaced--;
+      petHunger += 30;
+      movePet = false;
+      return SUCCESS;
+    } else {
+      startMovingPet(lastFoodX, lastFoodY, 2);
+      return RUNNING;
+    }
   }
 };
 
 
 DRAM_ATTR Node* tree = new Selector({ new Sequence({ new IsFoodAvailable(), new EatFood() }),
                                       new Sequence({ new IsHungry(), new AskForFood() }),
+                                      new Sequence({ new BeingCarried(), new ComplainAboutBeingCarried() }),
                                       new Idle() });
 
 void loop() {
   mpu.gyroUpdate();
   
-  // unsigned long currentMillis = millis();
+  unsigned long currentMillis = millis();
 
-  // if (currentMillis - previousMillis >= interval) {
-  //   previousMillis = currentMillis;
-  //   setBatteryLevel();
-  // }
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;     //interval passed
+    
+    if (movePet) {
+      updatePetMovement();
+    }
+  }
 
   tree->tick();  //behaviour tree update
 
+  
   DateTime now = rtc.now();
 
   //Serial.println(now.second());
