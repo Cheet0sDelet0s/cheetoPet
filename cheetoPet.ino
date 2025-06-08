@@ -584,7 +584,7 @@ void drawFoodInventory() {
         Serial.println("starting placement handling");
         Serial.print("set itemBeingPlaced to: ");
         Serial.println(itemBeingPlaced);
-        startHandlingPlacing = true;
+        handleFoodPlacing = true;
       }
     }
 
