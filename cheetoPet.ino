@@ -399,8 +399,14 @@ void drawBottomUI() {
               }
 
               if (detectCursorTouch(86, 113, 41, 15)) {  //shop button check
-                display.drawFastVLine(88, 115, 11, SH110X_WHITE);
-                display.drawFastVLine(125, 115, 11, SH110X_WHITE);
+                if (rightButtonState) {
+                  secondOption = 2;
+                  depth = 2;
+                  waitForSelectRelease();
+                } else {
+                  display.drawFastVLine(88, 115, 11, SH110X_WHITE);
+                  display.drawFastVLine(125, 115, 11, SH110X_WHITE);
+                }
               }
               break;
             }
@@ -444,48 +450,73 @@ void drawBottomUI() {
       }
     case 2:
       {
-        switch (secondOption) {
-          case 1:
-            {  //inventory
-              updateButtonStates();
-              if (!startHandlingPlacing) {
-                drawInventory();
-              }
-              drawBottomBar();
-              display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-
-              if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
-                if (rightButtonState) {
-                  firstOption = 1;
-                  depth = 1;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+        switch (firstOption) {
+          case 1: {  //inventory
+            switch (secondOption) {
+              case 1: {
+                updateButtonStates();
+                if (!startHandlingPlacing) {
+                  drawInventory();
                 }
+                drawBottomBar();
+                display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
+
+                if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
+                  if (rightButtonState) {
+                    firstOption = 1;
+                    depth = 1;
+                    waitForSelectRelease();
+                  } else {
+                    display.drawFastVLine(2, 115, 11, SH110X_WHITE);
+                    display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+                  }
+                }
+                break;
               }
-              break;
+              case 2: { //shop
+                updateButtonStates();
+                if (!startHandlingPlacing) {
+                  drawShop();
+                }
+                drawBottomBar();
+                display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
+
+                if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
+                  if (rightButtonState) {
+                    firstOption = 1;
+                    depth = 1;
+                    waitForSelectRelease();
+                  } else {
+                    display.drawFastVLine(2, 115, 11, SH110X_WHITE);
+                    display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+                  }
+                }
+                break;
+              }
             }
-          case 2:
-            {  //feed menu
-              updateButtonStates();
-              if (!handleFoodPlacing) {
-                drawFoodInventory();
-              }
-              drawBottomBar();
-              display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-
-              if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
-                if (rightButtonState) {
-                  firstOption = 2;
-                  depth = 1;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+            break;
+            }
+            case 2: {  //feed menu
+              switch (secondOption) {
+                updateButtonStates();
+                if (!handleFoodPlacing) {
+                  drawFoodInventory();
                 }
+                drawBottomBar();
+                display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
+
+                if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
+                  if (rightButtonState) {
+                    firstOption = 2;
+                    depth = 1;
+                    waitForSelectRelease();
+                  } else {
+                    display.drawFastVLine(2, 115, 11, SH110X_WHITE);
+                    display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+                  }
+                }
+                break;
               }
-              break;
             }
         }
         break;
@@ -960,6 +991,15 @@ void updatePetMovement() {
   if (petX == petMoveX && petY == petMoveY) {
     movePet = false;
   }
+}
+
+void drawShop() {
+  display.fillRect(0, 0, 127, 112, SH110X_BLACK);
+  display.setCursor(0,0);
+  display.setTextSize(1);
+  display.setTextColor(SH110X_WHITE);
+  display.print("shop");
+  display.drawFastHLine(0, 8, 127, SH110X_WHITE);
 }
 
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)

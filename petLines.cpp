@@ -13,7 +13,7 @@ DRAM_ATTR String idleLines[] = {
   "hello",
   "a red spy is in the base!",
   "protect the briefcase",
-  "wahoo"
+  "wahoo",
   "are you in class",
   "sudo rm -rf /"
 };
