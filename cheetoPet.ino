@@ -68,7 +68,7 @@ DRAM_ATTR int lastSecond = -1;
 DRAM_ATTR int liveDataTimer = 0;
 
 //item inventory
-DRAM_ATTR int inventory[10] = { 3, 5, 4, 6, 19 };
+DRAM_ATTR int inventory[8] = { 3, 5, 4, 6, 19 };
 DRAM_ATTR int inventoryItems = 5;
 DRAM_ATTR int placedHomeItems[10] = { 7 };
 DRAM_ATTR int amountItemsPlaced = 1;
@@ -78,7 +78,7 @@ DRAM_ATTR int itemBeingPlaced = -1;
 DRAM_ATTR bool startHandlingPlacing = false;
 
 //food inventory
-DRAM_ATTR int foodInventory[10] = { 18, 16, 18, 16 };
+DRAM_ATTR int foodInventory[8] = { 18, 16, 18, 16 };
 DRAM_ATTR int foodInventoryItems = 4;
 DRAM_ATTR int placedFood[10] = {};
 DRAM_ATTR int amountFoodPlaced = 0;
@@ -384,6 +384,15 @@ String beingCarriedLines[] = {
   "omg why"
 };
 
+String hungryLines[] = {
+  "stomach is a lil empty",
+  "anything in the fridge?",
+  "*rumble*",
+  "food...",
+  "hubgry :((",
+  "feed?"
+};
+
 void mpu9250_sleep() {
   Wire.beginTransmission(0x68);  // Default MPU9250 I2C address
   Wire.write(0x6B);              // PWR_MGMT_1 register
@@ -491,6 +500,7 @@ void waitForSelectRelease() {
       lastStableTime = millis();
     }
   }
+  updateButtonStates();
 }
 
 
@@ -737,46 +747,50 @@ void drawInventory() {
   display.setTextColor(SH110X_WHITE);
   display.print("inventory: ");
   display.print(inventoryItems);
-  display.print("/10");
+  display.print("/8");
+
+  int charWidth = 6;     // Approximate width of one character
+  int lineHeight = 8;    // Height of one text line
+  int lineSpacing = 10;  // Reduce this for tighter layout
+  int itemBoxWidth = 60;
+  int maxCharsPerLine = itemBoxWidth / charWidth;
 
   for (int i = 0; i < inventoryItems; i++) {
-    int itemW = 60;  // You can fine-tune this depending on longest item length
-    int itemX = 4;
-    int itemY = 76 + (i * 8);
+    int col = (i > 3) ? 1 : 0;
+    int row = (i > 3) ? i - 4 : i;
+    int itemX = 4 + col * 64;
+    int itemY = 76 + row * lineSpacing;
 
-    if (i > 3) {
-      int itemX = 4 + itemW;
-      int itemY = 76 + (i - 4 * 8);
-    }
-    
-    
-    
-    int itemH = 8;
+    String name = displayNames[inventory[i]];
+    int lineLen = min((int)name.length(), maxCharsPerLine);
 
-    bool hovered = detectCursorTouch(itemX, itemY, itemW, itemH);
+    bool hovered = detectCursorTouch(itemX, itemY, itemBoxWidth, lineHeight * 2);
+    display.setTextColor(hovered ? SH110X_BLACK : SH110X_WHITE,
+                        hovered ? SH110X_WHITE : SH110X_BLACK);
 
-    if (hovered) {
-      // Highlight the item with inverse color
-      //display.fillRect(itemX, itemY, itemW, itemH, SH110X_WHITE);
-      display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-      if (rightButtonState) {
-        if (itemBeingPlaced == -1) {  //start placing item
-          itemBeingPlaced = inventory[i];
-          waitForSelectRelease();
-          Serial.println("starting placement handling");
-          Serial.print("set itemBeingPlaced to: ");
-          Serial.println(itemBeingPlaced);
-          startHandlingPlacing = true;
-        }
+    if (hovered && rightButtonState) {
+      if (itemBeingPlaced == -1) {
+        itemBeingPlaced = inventory[i];
+        waitForSelectRelease();
+        Serial.println("starting placement handling");
+        Serial.print("set itemBeingPlaced to: ");
+        Serial.println(itemBeingPlaced);
+        startHandlingPlacing = true;
       }
-    } else {
-      display.setTextColor(SH110X_WHITE);
     }
 
+    // First line
     display.setCursor(itemX, itemY);
-    display.println(displayNames[inventory[i]]);
+    display.println(name.substring(0, lineLen));
+
+    // Optional second line if needed (check room)
+    if (name.length() > maxCharsPerLine && itemY + lineHeight < 127) {
+      display.setCursor(itemX, itemY + lineHeight);
+      display.println(name.substring(maxCharsPerLine));
+    }
   }
 }
+
 
 void drawFoodInventory() {
   display.fillRect(0, 64, 128, 64, SH110X_BLACK);
@@ -787,7 +801,7 @@ void drawFoodInventory() {
   display.setTextColor(SH110X_WHITE);
   display.print("food: ");
   display.print(foodInventoryItems);
-  display.print("/10");
+  display.print("/8");
 
   for (int i = 0; i < foodInventoryItems; i++) {
     int itemX = 4;
@@ -1232,8 +1246,18 @@ public:
 class AskForFood : public Node {
 public:
   NodeStatus tick() override {
-    petMessage("am hungry");
-    return SUCCESS;
+    if (messageDisplayTime >= messageMaxTime) {
+    if (random(0, 50) == 1) {
+      int messageRandomiser = random(0, (sizeof(hungryLines) / sizeof(hungryLines[0])));
+      petMessage(hungryLines[messageRandomiser]);
+      return SUCCESS;
+    } else {
+      return RUNNING;
+    }
+    } else {
+      return RUNNING;
+    }
+    
   } 
 };
 
@@ -1247,6 +1271,8 @@ public:
       petMessage(idleLines[messageRandomiser]);
     }
     return SUCCESS;
+  } else {
+    return RUNNING;
   }
   }
 };
@@ -1303,6 +1329,7 @@ public:
       amountFoodPlaced--;
       petHunger += 30;
       movePet = false;
+      petMessage("yum!");
       return SUCCESS;
     } else {
       startMovingPet(lastFoodX, lastFoodY, 2);
@@ -1402,13 +1429,7 @@ void loop() {
     drawPetMessage();
   }
 
-  // if (rightButtonState) {
-  //   petMessage("hello world");
-  // }
-
-
   updateButtonStates();
-  //Serial.println(startHandlingPlacing);
 
   if (itemBeingPlaced != -1 && rightButtonState && startHandlingPlacing) {
     handleItemPlacing();
@@ -1473,9 +1494,10 @@ void loop() {
     int32_t minutesSinceSlept = seconds / 60;
 
     petSleep += minutesSinceSlept;
+    
     petHunger -= minutesSinceSlept / 10;
     
-    constrain(petSleep, 0, 100);
+    petSleep = constrain(petSleep, 0, 120);
 
     display.clearDisplay();
     display.setCursor(40, 10);
