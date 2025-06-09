@@ -56,6 +56,7 @@ DRAM_ATTR bool powerSwitchState = false;
 //menu system
 DRAM_ATTR int firstOption = 0;
 DRAM_ATTR int secondOption = 0;
+DRAM_ATTR int thirdOption = 0;
 DRAM_ATTR int depth = 0;
 
 //debug
@@ -126,6 +127,14 @@ DRAM_ATTR unsigned long lastUpdate = 0;
 DRAM_ATTR String currentPetMessage;
 DRAM_ATTR int messageDisplayTime = 0;
 DRAM_ATTR int messageMaxTime = 0;
+
+DRAM_ATTR int constructionShopItems[] = { 3, 4, 5, 6, 7, 19 };
+DRAM_ATTR float constructionShopPrices[] = { 5, 2.50, 7.50, 10, 12.50, 4 };
+DRAM_ATTR int constructionShopLength = sizeof(constructionShopItems) / sizeof(constructionShopItems[0]);
+
+DRAM_ATTR int foodShopItems[] = { 16, 18 };
+DRAM_ATTR float foodShopPrices[] = { 1.50, 1.50};
+DRAM_ATTR int foodShopLength = sizeof(foodShopItems) / sizeof(foodShopItems[0]);
 
 void petMessage(String message) {
   currentPetMessage = message;
@@ -401,6 +410,7 @@ void drawBottomUI() {
               if (detectCursorTouch(86, 113, 41, 15)) {  //shop button check
                 if (rightButtonState) {
                   secondOption = 2;
+                  thirdOption = 1;
                   depth = 2;
                   waitForSelectRelease();
                 } else {
@@ -431,7 +441,7 @@ void drawBottomUI() {
 
               if (detectCursorTouch(41, 113, 45, 15)) {  //apple button check
                 if (rightButtonState) {
-                  secondOption = 2;
+                  secondOption = 1;
                   depth = 2;
                   waitForSelectRelease();
                 } else {
@@ -496,27 +506,30 @@ void drawBottomUI() {
             }
             break;
             }
-            case 2: {  //feed menu
+            case 2: {  
               switch (secondOption) {
-                updateButtonStates();
-                if (!handleFoodPlacing) {
-                  drawFoodInventory();
-                }
-                drawBottomBar();
-                display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-
-                if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
-                  if (rightButtonState) {
-                    firstOption = 2;
-                    depth = 1;
-                    waitForSelectRelease();
-                  } else {
-                    display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                    display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+                case 1: {   //food inventory
+                  updateButtonStates();
+                  if (!handleFoodPlacing) {
+                    drawFoodInventory();
                   }
+                  drawBottomBar();
+                  display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
+
+                  if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
+                    if (rightButtonState) {
+                      firstOption = 2;
+                      depth = 1;
+                      waitForSelectRelease();
+                    } else {
+                      display.drawFastVLine(2, 115, 11, SH110X_WHITE);
+                      display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+                    }
+                  }
+                  break;
                 }
-                break;
               }
+              break;
             }
         }
         break;
@@ -994,12 +1007,58 @@ void updatePetMovement() {
 }
 
 void drawShop() {
+  uiTimer = 100;
   display.fillRect(0, 0, 127, 112, SH110X_BLACK);
   display.setCursor(0,0);
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE);
-  display.print("shop");
+  display.print("shop  $");
+  display.print(money);
   display.drawFastHLine(0, 8, 127, SH110X_WHITE);
+  
+  updateButtonStates();
+
+  if (detectCursorTouch(1, 10, 72, 8) && rightButtonState) {
+    thirdOption = 1;
+  } else if (detectCursorTouch(78, 10, 24, 8) && rightButtonState) {
+    thirdOption = 2;
+  }
+
+  int* currentShopItems;
+  float* currentShopPrices;
+  int currentShopLength;
+
+  if (thirdOption == 1) { //construction tab
+    display.setCursor(1, 10);
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+    display.print("construction");
+    display.setTextColor(SH110X_WHITE);
+    display.print(" food");
+    currentShopItems = constructionShopItems;
+    currentShopPrices = constructionShopPrices;
+    currentShopLength = constructionShopLength;
+  } else { //food tab
+    display.setCursor(1, 10);
+    display.setTextColor(SH110X_WHITE);
+    display.print("construction ");
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+    display.print("food");
+    currentShopItems = foodShopItems;
+    currentShopPrices = foodShopPrices;
+    currentShopLength = foodShopLength;
+  }
+
+  display.setCursor(0, 20);
+  for (int i = 0; i < currentShopLength; i++) {
+    if (detectCursorTouch(0, i * 8 + 20, 127, 8)) {
+      display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+    } else {
+      display.setTextColor(SH110X_WHITE);
+    }
+    display.print(displayNames[currentShopItems[i]]);
+    display.print(" - $");
+    display.println(currentShopPrices[i]);
+  }
 }
 
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
@@ -1075,6 +1134,12 @@ public:
     if (random(0, 200) == 1) {
       int messageRandomiser = random(0, idleLinesCount);
       petMessage(idleLines[messageRandomiser]);
+    }
+
+    if (movePet == false) {
+      if (random(0, 100) == 1) {
+        startMovingPet(random(0, 105), random(35, 100), 1);
+      }
     }
     return SUCCESS;
   } else {
