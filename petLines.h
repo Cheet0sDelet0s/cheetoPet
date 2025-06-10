@@ -12,4 +12,7 @@ extern const size_t beingCarriedLinesCount;
 extern String hungryLines[];
 extern const size_t hungryLinesCount;
 
+extern String boredLines[];
+extern const size_t boredLinesCount;
+
 #endif

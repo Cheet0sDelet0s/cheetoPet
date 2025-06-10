@@ -138,6 +138,27 @@ DRAM_ATTR int foodShopItems[] = { 16, 18 };
 DRAM_ATTR float foodShopPrices[] = { 1.50, 1.50};
 DRAM_ATTR int foodShopLength = sizeof(foodShopItems) / sizeof(foodShopItems[0]);
 
+//pong
+DRAM_ATTR int score = 0;
+DRAM_ATTR int leftPaddlePos = 0;
+DRAM_ATTR float ballX = 10;
+DRAM_ATTR float ballY = 30;
+DRAM_ATTR float ballVX = 2;
+DRAM_ATTR float ballVY = 2;
+DRAM_ATTR int ballSpeed = 5;
+DRAM_ATTR int paddleX = 0;
+DRAM_ATTR int paddleY = 0;
+DRAM_ATTR int paddleHeight = 20;
+DRAM_ATTR bool stopApp = false;
+DRAM_ATTR float friction = 0.998;
+DRAM_ATTR float minHorizontalSpeed = 0.8;
+DRAM_ATTR float maxVerticalSpeed = 3;
+DRAM_ATTR float enemyX = 125;          // Opposite side of player
+DRAM_ATTR float enemyY = 30;           // Starting Y
+DRAM_ATTR int enemyHeight = 20;
+DRAM_ATTR float enemySpeed = 1.5;      // How fast the enemy moves (tweakable)
+DRAM_ATTR int enemyScore = 0;
+
 void petMessage(String message) {
   currentPetMessage = message;
   messageDisplayTime = 0;
@@ -353,8 +374,8 @@ void drawPet(int petNumber, int drawX, int drawY) {
             drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
             drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk, 16, 26, SH110X_WHITE);
           } else {
-            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk2Mask, 19, 26, SH110X_BLACK);
-            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk2, 17, 25, SH110X_WHITE);
+            drawBitmapWithDirection(drawX, drawY+1, petDir, pet_gooseWalk2Mask, 19, 26, SH110X_BLACK);
+            drawBitmapWithDirection(drawX, drawY+1, petDir, pet_gooseWalk2, 17, 25, SH110X_WHITE);
           }
         }
         updateButtonStates();
@@ -487,9 +508,14 @@ void drawBottomUI() {
                 }
               }
 
-              if (detectCursorTouch(86, 113, 41, 15)) {  //shop button check
+              if (detectCursorTouch(86, 113, 41, 15)) {  //controller button check
                 display.drawFastVLine(88, 115, 11, SH110X_WHITE);
                 display.drawFastVLine(125, 115, 11, SH110X_WHITE);
+                if (rightButtonState) {
+                  waitForSelectRelease();
+                  pong();
+                  waitForSelectRelease();
+                }
               }
             }
         }
@@ -1133,6 +1159,152 @@ void drawShop() {
 
 }
 
+void stepBallForward() {
+  ballX += ballVX;
+  ballY += ballVY;
+}
+
+void reEnergizeBall(float amount) {
+  ballVX *= amount;
+  ballVY *= amount;
+}
+
+void pong() { // PONG if you couldnt read
+  
+  while (stopApp == false) {
+      updateGyro();
+      updateButtonStates();
+      if (rightButtonState) {
+        stopApp = true;
+      }
+      if (leftButtonState) {
+        angleY = 0;
+      }
+      constrain(angleY + 64, 0, 126);
+      paddleY = angleY;
+      stepBallForward();
+      
+      if (ballX <= 0) {
+        ballVX *= -1;
+        // reEnergizeBall(1.2);
+        enemyScore += 1;
+        ballX = 40;
+      }
+
+      if (ballX >= 128) {
+        ballVX *= -1;
+        // reEnergizeBall(1.2);
+        score += 1;
+        ballX = 100;
+      }
+
+      if (ballY >= 127 || ballY <= 0) {
+        ballVY *= -1;
+        reEnergizeBall(1.12);
+      }
+
+      if (abs(ballVX) < minHorizontalSpeed) {
+        ballVX = (ballVX < 0 ? -1 : 1) * minHorizontalSpeed;
+        // Optionally scale VY to keep total speed consistent
+        float speed = sqrt(ballVX * ballVX + ballVY * ballVY);
+        float desiredSpeed = 2.5; // or your current base speed
+        float scale = desiredSpeed / speed;
+        ballVX *= scale;
+        ballVY *= scale;
+      }
+
+      if (ballVY > maxVerticalSpeed) {
+        ballVY = ballVY / 1.5;
+        ballVX *= 1.5;
+      }
+
+      // Simple AI: move enemy paddle toward the ball
+      if (ballY < enemyY + enemyHeight / 2) {
+        enemyY -= enemySpeed;
+      }
+      if (ballY > enemyY + enemyHeight / 2) {
+        enemyY += enemySpeed;
+      }
+
+      // Clamp enemy paddle within screen
+      if (enemyY < 0) enemyY = 0;
+      if (enemyY + enemyHeight > 128) enemyY = 128 - enemyHeight;
+
+      if (ballX <= paddleX + 4 && ballY >= paddleY - 2 && ballY <= paddleY + paddleHeight + 2) {
+        ballVX = abs(ballVX); // bounce right
+        // Optionally change VY based on where it hit the paddle
+        float offset = (ballY - (paddleY + paddleHeight / 2)) / (paddleHeight / 2) + random(-5, 5);
+        ballVY += offset * 1.5; // add a bit of vertical variation
+        reEnergizeBall(1.1);
+      }
+
+      if (ballX >= enemyX - 2 && 
+        ballY >= enemyY && ballY <= enemyY + enemyHeight) {
+        ballVX = -abs(ballVX); // bounce left
+       
+        // Optional: add angle based on hit position
+        float offset = (ballY - (enemyY + enemyHeight / 2)) / (enemyHeight / 2);
+        ballVY += offset;
+      }
+
+      if (ballY <= 0) {
+        ballY = 0;
+        ballVY = abs(ballVY); // Bounce down
+      }
+      if (ballY >= 127) {
+        ballY = 127;
+        ballVY = -abs(ballVY); // Bounce up
+      }
+
+      
+      float speed = sqrt(ballVX * ballVX + ballVY * ballVY);
+      
+      if (speed > 4) {
+        ballVX *= friction / 1.5;
+        ballVY *= friction / 1.5;
+      } else if (speed > 3) {
+        ballVX *= friction;
+        ballVY *= friction;
+      } else {
+        reEnergizeBall(2);
+      }
+      
+
+      display.clearDisplay();
+      display.fillCircle(ballX, ballY, 2, SH110X_WHITE);
+      display.fillRect(paddleX, paddleY, 2, paddleHeight, SH110X_WHITE);
+      display.fillRect(enemyX, enemyY, 2, enemyHeight, SH110X_WHITE);
+      display.setCursor(0, 0);
+      display.setTextSize(1);
+      display.print(score);
+      display.setCursor(120, 0);
+      display.print(enemyScore);
+      display.display();
+      delay(20);
+  }
+  stopApp = false;
+  petFun += score + enemyScore;
+  score = 0;
+  enemyScore = 0;
+}
+
+void updateGyro() {
+  mpu.gyroUpdate();
+
+  int gyroX = round(mpu.gyroX() + gyroXOffset) * -3;  //multiply gyro values by 2 for easier use, -2 to invert the angle
+  int gyroY = round(mpu.gyroY() + gyroYOffset) * 4;
+  int gyroZ = round(mpu.gyroZ() + gyroZOffset) * 3;
+
+  unsigned long updateNow = millis();
+  float deltaTime = (updateNow - lastUpdate) / 1000.0;
+  lastUpdate = updateNow;
+
+  angleX += gyroX * deltaTime;
+  angleY += gyroY * deltaTime;
+  angleZ += gyroZ * deltaTime;
+
+}
+
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
 DRAM_ATTR enum NodeStatus { SUCCESS,
                             FAILURE,
@@ -1180,6 +1352,13 @@ public:
   }
 };
 
+class IsBored : public Node {
+public:
+  NodeStatus tick() override {
+    return (petFun < 50) ? SUCCESS : FAILURE;
+  }
+};
+
 class AskForFood : public Node {
 public:
   NodeStatus tick() override {
@@ -1187,6 +1366,24 @@ public:
     if (random(0, 50) == 1) {
       int messageRandomiser = random(0, hungryLinesCount);
       petMessage(hungryLines[messageRandomiser]);
+      return SUCCESS;
+    } else {
+      return RUNNING;
+    }
+    } else {
+      return RUNNING;
+    }
+    
+  } 
+};
+
+class AskForPlay : public Node {
+public:
+  NodeStatus tick() override {
+    if (messageDisplayTime >= messageMaxTime) {
+    if (random(0, 50) == 1) {
+      int messageRandomiser = random(0, boredLinesCount);
+      petMessage(boredLines[messageRandomiser]);
       return SUCCESS;
     } else {
       return RUNNING;
@@ -1282,13 +1479,14 @@ public:
 };
 
 
-DRAM_ATTR Node* tree = new Selector({ new Sequence({ new IsFoodAvailable(), new EatFood() }),
+DRAM_ATTR Node* tree = new Selector({ new Sequence({ new BeingCarried(), new ComplainAboutBeingCarried() }),
+                                      new Sequence({ new IsFoodAvailable(), new EatFood() }),
                                       new Sequence({ new IsHungry(), new AskForFood() }),
-                                      new Sequence({ new BeingCarried(), new ComplainAboutBeingCarried() }),
+                                      new Sequence({ new IsBored(), new AskForPlay() }),
                                       new Idle() });
 
 void loop() {
-  mpu.gyroUpdate();
+  
   
   unsigned long currentMillis = millis();
 
@@ -1309,17 +1507,7 @@ void loop() {
 
   updatePetNeeds();
 
-  int gyroX = round(mpu.gyroX() + gyroXOffset) * -3;  //multiply gyro values by 2 for easier use, -2 to invert the angle
-  int gyroY = round(mpu.gyroY() + gyroYOffset) * 4;
-  int gyroZ = round(mpu.gyroZ() + gyroZOffset) * 3;
-
-  unsigned long updateNow = millis();
-  float deltaTime = (updateNow - lastUpdate) / 1000.0;
-  lastUpdate = updateNow;
-
-  angleX += gyroX * deltaTime;
-  angleY += gyroY * deltaTime;
-  angleZ += gyroZ * deltaTime;
+  
 
   rgb.setPixelColor(0, rgb.Color(angleX, angleY, angleZ));  // set led color to angle of device
   rgb.show();
@@ -1332,7 +1520,7 @@ void loop() {
     uiTimer = 100;
   }
 
-  
+  updateGyro();
 
   if (!leftButtonState) {
     angleX = 0;

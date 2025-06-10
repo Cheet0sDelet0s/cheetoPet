@@ -50,3 +50,12 @@ DRAM_ATTR String hungryLines[] = {
 };
 
 const size_t hungryLinesCount = sizeof(hungryLines) / sizeof(hungryLines[0]);
+
+DRAM_ATTR String boredLines[] = {
+  "so bored",
+  "play with me!",
+  "give me attention",
+  "please pong"
+};
+
+const size_t boredLinesCount = sizeof(boredLines) / sizeof(boredLines[0]);
