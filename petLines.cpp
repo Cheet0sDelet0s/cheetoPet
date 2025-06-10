@@ -15,7 +15,11 @@ DRAM_ATTR String idleLines[] = {
   "protect the briefcase",
   "wahoo",
   "are you in class",
-  "sudo rm -rf /"
+  "sudo rm -rf /",
+  "gold gold gold",
+  "gonna play GooseStrike 2",
+  "fatty fatty",
+  "x formerly twitter"
 };
 
 const size_t idleLinesCount = sizeof(idleLines) / sizeof(idleLines[0]);
@@ -36,7 +40,13 @@ DRAM_ATTR String hungryLines[] = {
   "*rumble*",
   "food...",
   "hubgry :((",
-  "feed?"
+  "feed?",
+  "BRO FEED ME",
+  "IM ACTUALLY GONNA DIE",
+  "SERIOUSLY I WILL DIE",
+  "GIVE ME FOOD.",
+  "you suck man give me food",
+  "FOOD. IN. MY. MOUTH."
 };
 
 const size_t hungryLinesCount = sizeof(hungryLines) / sizeof(hungryLines[0]);

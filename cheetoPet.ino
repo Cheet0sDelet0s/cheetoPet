@@ -73,10 +73,10 @@ DRAM_ATTR int liveDataTimer = 0;
 //item inventory
 DRAM_ATTR int inventory[8] = { 3, 5, 4, 6, 19 };
 DRAM_ATTR int inventoryItems = 5;
-DRAM_ATTR int placedHomeItems[10] = { 7 };
+DRAM_ATTR int placedHomeItems[30] = { 7 };
 DRAM_ATTR int amountItemsPlaced = 1;
-DRAM_ATTR int placedHomeItemsX[10] = { 98 };
-DRAM_ATTR int placedHomeItemsY[10] = { 4 };
+DRAM_ATTR int placedHomeItemsX[30] = { 98 };
+DRAM_ATTR int placedHomeItemsY[30] = { 4 };
 DRAM_ATTR int itemBeingPlaced = -1;
 DRAM_ATTR bool startHandlingPlacing = false;
 
@@ -121,6 +121,8 @@ DRAM_ATTR int petMoveX = 64;
 DRAM_ATTR int petMoveY = 32;
 DRAM_ATTR int petMoveSpeed = 0;
 DRAM_ATTR bool movePet = false;
+DRAM_ATTR int petMoveAnim = 0;
+DRAM_ATTR int petDir = 1;
 
 DRAM_ATTR unsigned long lastUpdate = 0;
 
@@ -156,6 +158,30 @@ bool removeFromList(int list[], int& itemCount, int index) {
 }
 
 //bitmaps and voice lines are in made external in bitmaps.h, defined in bitmaps.cpp
+
+void drawBitmapWithDirection(int16_t x, int16_t y, int dir, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color) {
+  if (dir == 1) {
+    display.drawBitmap(x, y, bitmap, w, h, color);
+  } else {
+    drawBitmapFlippedX(x, y, bitmap, w, h, color);
+  }
+}
+
+void drawBitmapFlippedX(int16_t x, int16_t y,
+                                const uint8_t *bitmap, int16_t w, int16_t h,
+                                uint16_t color) {
+  int byteWidth = (w + 7) / 8; // Bitmap width in bytes
+
+  for (int16_t j = 0; j < h; j++) {
+    for (int16_t i = 0; i < w; i++) {
+      int16_t flipped_i = w - 1 - i;
+      uint8_t byte = pgm_read_byte(bitmap + j * byteWidth + (flipped_i / 8));
+      if (byte & (0x80 >> (flipped_i % 8))) {
+        display.drawPixel(x + i, y + j, color);
+      }
+    }
+  }
+}
 
 void mpu9250_sleep() {
   Wire.beginTransmission(0x68);  // Default MPU9250 I2C address
@@ -319,13 +345,24 @@ void drawPet(int petNumber, int drawX, int drawY) {
   switch (petNumber) {
     case 0:
       {
-        display.drawBitmap(drawX, drawY, pet_gooseStillBigMask, 17, 26, SH110X_BLACK);
-        display.drawBitmap(drawX, drawY, pet_gooseStillBig, 16, 26, SH110X_WHITE);
+        if (movePet == false) {
+          drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBigMask, 17, 26, SH110X_BLACK);
+          drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBig, 16, 26, SH110X_WHITE);
+        } else {
+          if (petMoveAnim < 2) {
+            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
+            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk, 16, 26, SH110X_WHITE);
+          } else {
+            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk2Mask, 19, 26, SH110X_BLACK);
+            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk2, 17, 25, SH110X_WHITE);
+          }
+        }
         updateButtonStates();
         if (detectCursorTouch(drawX, drawY, 16, 26) && rightButtonState) {
-          showPetMenu = !showPetMenu;
-          waitForSelectRelease();
-        }
+            showPetMenu = !showPetMenu;
+            waitForSelectRelease();
+          }
+        
         break;
       }
   }
@@ -683,16 +720,15 @@ void handleItemPlacing() {
   handleItemsGotThrough++;
   startHandlingPlacing = false;
   int placedCount = amountItemsPlaced;
-  addToList(placedHomeItems, placedCount, 10, itemBeingPlaced);
+  addToList(placedHomeItems, placedCount, 30, itemBeingPlaced);
   placedCount = amountItemsPlaced;
-  addToList(placedHomeItemsX, placedCount, 10, cursorX);
+  addToList(placedHomeItemsX, placedCount, 30, cursorX);
   placedCount = amountItemsPlaced;
   if (itemBeingPlaced == 5) {
-    addToList(placedHomeItemsY, placedCount, 10, 27);
+    addToList(placedHomeItemsY, placedCount, 30, 27);
   } else {
-    addToList(placedHomeItemsY, placedCount, 10, cursorY);
+    addToList(placedHomeItemsY, placedCount, 30, cursorY);
   }
-  
 
   Serial.print("Placing item: ");
   Serial.println(itemBeingPlaced);
@@ -968,12 +1004,15 @@ void startMovingPet(int x, int y, int speed) {
   petMoveX = x;
   petMoveY = y;
   petMoveSpeed = speed;
+  petMoveAnim = 0;
   movePet = true;
 }
 
 void updatePetMovement() {
   int xDiff = petMoveX - petX;
   xDiff = xDiff / abs(xDiff);
+
+  petDir = xDiff;
 
   int yDiff = petMoveY - petY;
   yDiff = yDiff / abs(yDiff);
@@ -1004,6 +1043,10 @@ void updatePetMovement() {
   if (petX == petMoveX && petY == petMoveY) {
     movePet = false;
   }
+  petMoveAnim++;
+  if (petMoveAnim > 4) {
+    petMoveAnim = 0;
+  }
 }
 
 void drawShop() {
@@ -1026,6 +1069,8 @@ void drawShop() {
 
   int* currentShopItems;
   float* currentShopPrices;
+  int* currentInventory;
+  //int* currentInventoryItems;
   int currentShopLength;
 
   if (thirdOption == 1) { //construction tab
@@ -1037,6 +1082,8 @@ void drawShop() {
     currentShopItems = constructionShopItems;
     currentShopPrices = constructionShopPrices;
     currentShopLength = constructionShopLength;
+    currentInventory = inventory;
+    //currentInventoryItems = &inventoryItems;
   } else { //food tab
     display.setCursor(1, 10);
     display.setTextColor(SH110X_WHITE);
@@ -1046,12 +1093,36 @@ void drawShop() {
     currentShopItems = foodShopItems;
     currentShopPrices = foodShopPrices;
     currentShopLength = foodShopLength;
+    currentInventory = foodInventory;
+    //currentInventoryItems = &foodInventoryItems;
   }
 
   display.setCursor(0, 20);
+
   for (int i = 0; i < currentShopLength; i++) {
+    updateButtonStates();
+
     if (detectCursorTouch(0, i * 8 + 20, 127, 8)) {
       display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+      if (rightButtonState) {
+        if (money >= currentShopPrices[i]) {
+          money -= currentShopPrices[i];
+
+          int currentInventoryItems;
+
+          if (thirdOption == 1) {
+            currentInventoryItems = inventoryItems;
+            addToList(inventory, inventoryItems, 8, currentShopItems[i]);
+          } else {
+            currentInventoryItems = foodInventoryItems;
+            addToList(foodInventory, foodInventoryItems, 8, currentShopItems[i]);
+          }
+
+          //addToList(currentInventory, currentInventoryItems, 10, currentShopItems[i]);
+      
+          waitForSelectRelease();
+        }
+      }
     } else {
       display.setTextColor(SH110X_WHITE);
     }
@@ -1059,6 +1130,7 @@ void drawShop() {
     display.print(" - $");
     display.println(currentShopPrices[i]);
   }
+
 }
 
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
