@@ -71,8 +71,8 @@ DRAM_ATTR int lastSecond = -1;
 DRAM_ATTR int liveDataTimer = 0;
 
 //item inventory
-DRAM_ATTR int inventory[8] = { 3, 5, 4, 6, 19 };
-DRAM_ATTR int inventoryItems = 5;
+DRAM_ATTR int inventory[8] = {};
+DRAM_ATTR int inventoryItems = 0;
 DRAM_ATTR int placedHomeItems[30] = { 7 };
 DRAM_ATTR int amountItemsPlaced = 1;
 DRAM_ATTR int placedHomeItemsX[30] = { 98 };
@@ -81,8 +81,8 @@ DRAM_ATTR int itemBeingPlaced = -1;
 DRAM_ATTR bool startHandlingPlacing = false;
 
 //food inventory
-DRAM_ATTR int foodInventory[8] = { 18, 16, 18, 16 };
-DRAM_ATTR int foodInventoryItems = 4;
+DRAM_ATTR int foodInventory[8] = { 18 };
+DRAM_ATTR int foodInventoryItems = 1;
 DRAM_ATTR int placedFood[10] = {};
 DRAM_ATTR int amountFoodPlaced = 0;
 DRAM_ATTR int placedFoodX[10] = {};
@@ -108,14 +108,14 @@ DRAM_ATTR int cursorBitmap = 14;
 
 DRAM_ATTR int uiTimer = 100;
 
-DRAM_ATTR int petHunger = 49;
+DRAM_ATTR int petHunger = 5;
 DRAM_ATTR int petFun = 50;
 DRAM_ATTR int petSleep = 50;
 DRAM_ATTR int petX = 64;
 DRAM_ATTR int petY = 32;
 DRAM_ATTR bool showPetMenu = false;
 DRAM_ATTR bool movingPet = false;
-DRAM_ATTR float money = 20;
+DRAM_ATTR float money = 40;
 
 DRAM_ATTR int petMoveX = 64;
 DRAM_ATTR int petMoveY = 32;
@@ -268,12 +268,17 @@ void setup() {
   display.setTextSize(2);
   display.println("cheetoPet");
   display.setTextSize(1);
-  display.print("loading modules");
+  display.println("welcome to your second life!\n");
+  display.println("loading modules\n\n");
+  display.print("made by Cheet0sDelet0s");
   display.display();
-  delay(500);
+  delay(2000);
   if (!rtc.begin()) {
     Serial.println("Couldn't find RTC");
     Serial.flush();
+    display.clearDisplay();
+    display.println("bro i cant find the rtc module you are screwed");
+    display.display();
     while (1) delay(10);
   }
 
@@ -281,6 +286,10 @@ void setup() {
     Serial.println("RTC lost power, setting time!");
     // Set the RTC to the current date & time
     rtc.adjust(DateTime(2025, 6, 6, 7, 53, 0));
+    display.clearDisplay();
+    display.println("rtc module lost power! time and date has been reset. oh dear. booting in 5 secs");
+    display.display();
+    delay(5000);
   }
 
   mpu.setWire(&Wire);
@@ -1284,8 +1293,48 @@ void pong() { // PONG if you couldnt read
   }
   stopApp = false;
   petFun += score + enemyScore;
+  money += score + enemyScore;
   score = 0;
   enemyScore = 0;
+}
+
+void spiralFill(Adafruit_GFX &d, uint16_t color) {
+  int x0 = 0;
+  int y0 = 0;
+  int x1 = SCREEN_WIDTH - 1;
+  int y1 = SCREEN_HEIGHT - 1;
+
+  while (x0 <= x1 && y0 <= y1) {
+    // Top edge
+    for (int x = x0; x <= x1; x++) {
+      d.drawPixel(x, y0, color);
+    }
+    y0++;
+
+    // Right edge
+    for (int y = y0; y <= y1; y++) {
+      d.drawPixel(x1, y, color);
+    }
+    x1--;
+
+    // Bottom edge
+    if (y0 <= y1) {
+      for (int x = x1; x >= x0; x--) {
+        d.drawPixel(x, y1, color);
+      }
+      y1--;
+    }
+
+    // Left edge
+    if (x0 <= x1) {
+      for (int y = y1; y >= y0; y--) {
+        d.drawPixel(x0, y, color);
+      }
+      x0++;
+    }
+    display.display();
+    delay(5);  // Adjust delay for animation speed
+  }
 }
 
 void updateGyro() {
@@ -1478,8 +1527,61 @@ public:
   }
 };
 
+class ShouldDie : public Node {
+public:
+  NodeStatus tick() override {
 
-DRAM_ATTR Node* tree = new Selector({ new Sequence({ new BeingCarried(), new ComplainAboutBeingCarried() }),
+    if (petHunger < 1 || petSleep < 1) {
+      return SUCCESS;
+    } else {
+      return FAILURE;
+    }
+  }
+};
+
+class Die : public Node {
+public:
+  NodeStatus tick() override {
+
+    spiralFill(display, SH110X_WHITE);
+    delay(500);
+    display.clearDisplay();
+    display.display();
+    delay(1000);
+    const BitmapInfo& bmp = bitmaps[25];
+    display.drawBitmap(49, 80, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
+    display.display();
+    delay(1000);
+    display.setCursor(0,0);
+    display.setTextColor(SH110X_WHITE);
+    display.setTextSize(2);
+    display.println("your pet\ndied");
+    display.display();
+    delay(500);
+    display.setTextSize(1);
+    display.print("after it ");
+    display.display();
+    delay(500);
+    if (petHunger < 1) {
+      display.println("starved to death");
+    } else {
+      display.println("collapsed due to exhaustion");
+    }
+    display.display();
+    delay(500);
+    display.println("we are sorry for your loss.");
+    display.display();
+    delay(500);
+    display.println("press SELECT to restart.");
+    display.display();
+    updateButtonStates();
+    while(!rightButtonState) {updateButtonStates();}
+    esp_restart();
+  }
+};
+
+DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() }),
+                                      new Sequence({ new BeingCarried(), new ComplainAboutBeingCarried() }),
                                       new Sequence({ new IsFoodAvailable(), new EatFood() }),
                                       new Sequence({ new IsHungry(), new AskForFood() }),
                                       new Sequence({ new IsBored(), new AskForPlay() }),
