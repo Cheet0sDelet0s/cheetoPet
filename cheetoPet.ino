@@ -127,6 +127,8 @@ DRAM_ATTR int petMoveSpeed = 0;
 DRAM_ATTR bool movePet = false;
 DRAM_ATTR int petMoveAnim = 0;
 DRAM_ATTR int petDir = 1;
+DRAM_ATTR int petPongXP = 0;
+DRAM_ATTR int petPongLVL = 1;
 
 DRAM_ATTR unsigned long lastUpdate = 0;
 
@@ -190,6 +192,21 @@ void drawBitmapWithDirection(int16_t x, int16_t y, int dir, const uint8_t *bitma
   } else {
     drawBitmapFlippedX(x, y, bitmap, w, h, color);
   }
+}
+
+void drawCenteredText(Adafruit_GFX &display, const String &text, int16_t y) {
+  int16_t x1, y1;
+  uint16_t w, h;
+  
+  // Get the size of the text
+  display.getTextBounds(text, 0, y, &x1, &y1, &w, &h);
+  
+  // Calculate the centered X position
+  int16_t x = (display.width() - w) / 2;
+
+  // Draw the text at the centered X position
+  display.setCursor(x, y);
+  display.print(text);
 }
 
 void drawBitmapFlippedX(int16_t x, int16_t y,
@@ -1157,6 +1174,20 @@ void drawShop() {
 
 }
 
+void drawCheckerboard(uint8_t squareSize = 8) {
+  bool color;
+  for (uint8_t y = 0; y < 128; y += squareSize) {
+    color = (y / squareSize) % 2;  // Alternate row start
+    for (uint8_t x = 0; x < 128; x += squareSize) {
+      display.fillRect(x, y, squareSize, squareSize, color ? SH110X_WHITE : SH110X_BLACK);
+      color = !color;  // Alternate color for each square
+      }
+    display.display();
+  }
+  display.display();
+  delay(300);
+}
+
 void drawSettings() {
   uiTimer = 100;
   display.fillRect(0, 0, 127, 112, SH110X_BLACK);
@@ -1290,6 +1321,88 @@ void reEnergizeBall(float amount) {
   ballVY *= amount;
 }
 
+void updateGyro() {
+  mpu.gyroUpdate();
+
+  int gyroX = round(mpu.gyroX() + gyroXOffset) * -3;  //multiply gyro values by 2 for easier use, -2 to invert the angle
+  int gyroY = round(mpu.gyroY() + gyroYOffset) * 4;
+  int gyroZ = round(mpu.gyroZ() + gyroZOffset) * 3;
+
+  unsigned long updateNow = millis();
+  float deltaTime = (updateNow - lastUpdate) / 1000.0;
+  lastUpdate = updateNow;
+
+  angleX += gyroX * deltaTime;
+  angleY += gyroY * deltaTime;
+  angleZ += gyroZ * deltaTime;
+
+}
+
+void handlePongEnemyAI() {
+  // Basic tracking AI
+  if (petPongLVL >= 1 && petPongLVL <= 3) {
+    enemySpeed = 1.5 + (petPongLVL - 1) * 0.5;  // 1.5 to 2.5
+    enemySpeed = constrain(enemySpeed, 0, 3.5);
+
+    if (ballY < enemyY + enemyHeight / 2) {
+      enemyY -= enemySpeed;
+    } else if (ballY > enemyY + enemyHeight / 2) {
+      enemyY += enemySpeed;
+    }
+  }
+
+  // Intermediate AI: wait until ball is halfway, then react quickly
+  else if (petPongLVL >= 4 && petPongLVL <= 7) {
+    int triggerX = 55 + (petPongLVL - 4) * 3;  // Gets more reactive as level increases
+
+    if (ballX > triggerX) {
+      enemySpeed = 2.5 + (petPongLVL - 4) * 0.5;  // Up to 4.5
+      enemySpeed = constrain(enemySpeed, 0, 5);
+
+      if (ballY < enemyY + enemyHeight / 2) {
+        enemyY -= enemySpeed;
+      } else if (ballY > enemyY + enemyHeight / 2) {
+        enemyY += enemySpeed;
+      }
+    }
+  }
+
+  // Advanced AI: predict where the ball will intersect the enemy paddle line
+  else if (petPongLVL >= 8 && petPongLVL <= 10) {
+    // Predict ballY at enemy paddle X
+    float predictedY = ballY;
+    float tempBallX = ballX;
+    float tempBallY = ballY;
+    float dx = ballVX;
+    float dy = ballVY;
+
+    while (tempBallX < enemyX) {
+      tempBallX += dx;
+      tempBallY += dy;
+
+      // Reflect from top or bottom walls
+      if (tempBallY <= 0 || tempBallY >= 128) {
+        dy *= -1;
+        tempBallY = constrain(tempBallY, 0, 128);
+      }
+    }
+
+    predictedY = tempBallY;
+    enemySpeed = 3.5 + (petPongLVL - 8) * 0.5;  // Up to 4.5
+    enemySpeed = constrain(enemySpeed, 0, 5);
+
+    if (predictedY < enemyY + enemyHeight / 2) {
+      enemyY -= enemySpeed;
+    } else if (predictedY > enemyY + enemyHeight / 2) {
+      enemyY += enemySpeed;
+    }
+  }
+
+  // Clamp enemy paddle within screen bounds
+  enemyY = constrain(enemyY, 0, 128 - enemyHeight);
+}
+
+
 void pong() { // PONG if you couldnt read
   
   while (stopApp == false) {
@@ -1324,6 +1437,8 @@ void pong() { // PONG if you couldnt read
         reEnergizeBall(1.12);
       }
 
+      handlePongEnemyAI();
+
       if (abs(ballVX) < minHorizontalSpeed) {
         ballVX = (ballVX < 0 ? -1 : 1) * minHorizontalSpeed;
         // Optionally scale VY to keep total speed consistent
@@ -1339,17 +1454,7 @@ void pong() { // PONG if you couldnt read
         ballVX *= 1.5;
       }
 
-      // Simple AI: move enemy paddle toward the ball
-      if (ballY < enemyY + enemyHeight / 2) {
-        enemyY -= enemySpeed;
-      }
-      if (ballY > enemyY + enemyHeight / 2) {
-        enemyY += enemySpeed;
-      }
-
-      // Clamp enemy paddle within screen
-      if (enemyY < 0) enemyY = 0;
-      if (enemyY + enemyHeight > 128) enemyY = 128 - enemyHeight;
+      
 
       if (ballX <= paddleX + 4 && ballY >= paddleY - 2 && ballY <= paddleY + paddleHeight + 2) {
         ballVX = abs(ballVX); // bounce right
@@ -1401,14 +1506,72 @@ void pong() { // PONG if you couldnt read
       display.setCursor(120, 0);
       display.print(enemyScore);
       display.display();
+      if (enemyScore == 5 || score == 5) {
+        stopApp = true;
+      }
       delay(20);
   }
   stopApp = false;
   petFun += score + enemyScore;
-  money += score + enemyScore;
+  money += (score + enemyScore) / 3;
+
+  drawPetLeveling("pong", petPongXP, enemyScore, petPongLVL);
+
+  petPongXP += enemyScore;
+
+  if (petPongXP > petPongLVL * 10) {
+    petPongXP -= petPongLVL * 10;
+    petPongLVL++;
+  }
+
   score = 0;
   enemyScore = 0;
 }
+
+void drawPetLeveling(String levelType, int beginningXP, int gainedXP, int beginningLVL) {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.setTextColor(SH110X_WHITE);
+  display.setTextSize(2);
+  display.print("pet "); display.print(levelType); display.print("\nlvl");
+  
+  const BitmapInfo& bmp = bitmaps[1];
+  display.drawBitmap(50, 20, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
+  display.setCursor(70, 26);
+  display.setTextSize(1);
+  display.print("lvl ");
+  int newXP;
+  int newLVL;
+  if (beginningXP + gainedXP > beginningLVL * 10) {
+    display.print(beginningLVL + 1);
+    newXP = (beginningXP + gainedXP) - beginningLVL * 10;
+    newLVL = beginningLVL + 1;
+  } else {
+    display.print(beginningLVL);
+    newXP = beginningXP + gainedXP;
+    newLVL = beginningLVL;
+  }
+
+  int xpPercentage = newXP / newLVL * 10; 
+  
+  display.drawRect(20, 55, 88, 10, SH110X_WHITE);
+  display.fillRect(20, 55, 88 / xpPercentage, 10, SH110X_WHITE);
+  
+  drawCenteredText(display, String((String(newXP) + "/" + String(newLVL * 10))), 70);
+  drawCenteredText(display, "press SELECT", 118);
+  
+  display.display();
+  updateButtonStates();
+  while (!rightButtonState) {updateButtonStates(); delay(20);}
+  
+  drawCheckerboard(newLVL + 1);
+
+
+}
+
+
+
+
 
 void spiralFill(Adafruit_GFX &d, uint16_t color) {
   int x0 = 0;
@@ -1447,23 +1610,6 @@ void spiralFill(Adafruit_GFX &d, uint16_t color) {
     display.display();
     delay(5);  // Adjust delay for animation speed
   }
-}
-
-void updateGyro() {
-  mpu.gyroUpdate();
-
-  int gyroX = round(mpu.gyroX() + gyroXOffset) * -3;  //multiply gyro values by 2 for easier use, -2 to invert the angle
-  int gyroY = round(mpu.gyroY() + gyroYOffset) * 4;
-  int gyroZ = round(mpu.gyroZ() + gyroZOffset) * 3;
-
-  unsigned long updateNow = millis();
-  float deltaTime = (updateNow - lastUpdate) / 1000.0;
-  lastUpdate = updateNow;
-
-  angleX += gyroX * deltaTime;
-  angleY += gyroY * deltaTime;
-  angleZ += gyroZ * deltaTime;
-
 }
 
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
