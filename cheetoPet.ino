@@ -58,11 +58,15 @@ DRAM_ATTR int firstOption = 0;
 DRAM_ATTR int secondOption = 0;
 DRAM_ATTR int thirdOption = 0;
 DRAM_ATTR int depth = 0;
+DRAM_ATTR int settingsOption = 0;
+DRAM_ATTR int selectedField = 0; // 0=year, 1=month, 2=day, 3=hour, 4=minute
+DRAM_ATTR bool editingTime = false;
 
 //debug
 DRAM_ATTR int handleItemsGotThrough = 0;
 
 RTC_DS3231 rtc;
+DateTime tempDateTime;
 MPU9250_asukiaaa mpu(0x69);
 
 DRAM_ATTR char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
@@ -268,9 +272,9 @@ void setup() {
   display.setTextSize(2);
   display.println("cheetoPet");
   display.setTextSize(1);
-  display.println("welcome to your second life!\n");
+  display.println("welcome to your\nsecond life!\n");
   display.println("loading modules\n\n");
-  display.print("made by Cheet0sDelet0s");
+  display.print("made by\nCheet0sDelet0s");
   display.display();
   delay(2000);
   if (!rtc.begin()) {
@@ -436,16 +440,21 @@ void drawBottomUI() {
           }
         }
 
-        if (detectCursorTouch(86, 113, 41, 15)) {  //settings button check
-          display.drawFastVLine(88, 115, 11, SH110X_WHITE);
-          display.drawFastVLine(125, 115, 11, SH110X_WHITE);
+        if (detectCursorTouch(87, 113, 41, 15)) {  //settings button check
+          if (rightButtonState) {
+            firstOption = 3;
+            depth = 1;
+            waitForSelectRelease();
+          } else {
+            display.drawFastVLine(88, 115, 11, SH110X_WHITE);
+            display.drawFastVLine(125, 115, 11, SH110X_WHITE);
+          }
         }
         break;
       }
-    case 1:
-      {
+    case 1: {
         switch (firstOption) {
-          case 1:
+          case 1:     //edit menu inside
             {
               drawBottomBar();
               display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
@@ -526,7 +535,28 @@ void drawBottomUI() {
                   waitForSelectRelease();
                 }
               }
+              break;
             }
+          case 3: {
+          updateButtonStates();
+              if (!startHandlingPlacing) {
+                drawSettings();
+              }
+              drawBottomBar();
+              display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
+
+              if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
+                if (rightButtonState) {
+                  firstOption = 0;
+                  depth = 0;
+                  waitForSelectRelease();
+                } else {
+                  display.drawFastVLine(2, 115, 11, SH110X_WHITE);
+                  display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+                }
+              }
+            break;
+          }
         }
         break;
       }
@@ -879,47 +909,6 @@ void drawLiveData() {
   display.setTextColor(SH110X_WHITE);
 }
 
-// void drawPetMessage() {
-//   int bubbleX;
-//   int bubbleDirection;
-
-//   if (petX < 64) {
-//     bubbleX = petX + 17;
-//     bubbleDirection = 1;
-//   } else {
-//     bubbleX = petX;
-//     bubbleDirection = -1;
-//   }
-
-//   int bubbleY = petY - 3;
-//   int messageLength = currentPetMessage.length();
-
-//   if (bubbleDirection == 1) {
-//     display.setCursor(bubbleX + 2, bubbleY - 13);
-//   } else {
-//     display.setCursor(bubbleX - (2 + messageLength * 6), bubbleY - 13);
-//   }
-
-//   display.setTextSize(1);
-//   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
-//   display.print(currentPetMessage);
-//   display.setTextColor(SH110X_WHITE);
-
-//   display.drawFastVLine(bubbleX, bubbleY, -14, SH110X_WHITE);
-//   if (bubbleDirection == -1) {
-//     display.drawFastVLine(bubbleX + ((messageLength * 6 + 3) * bubbleDirection), bubbleY - 15, 11, SH110X_WHITE);
-//   } else {
-//     display.drawFastVLine(bubbleX + ((messageLength * 6 + 2) * bubbleDirection), bubbleY - 15, 11, SH110X_WHITE);
-//   }
-//   //jesus christ what are these goofy calculations
-//   display.drawFastHLine(bubbleX, bubbleY - 15, (messageLength * 6 + 2) * bubbleDirection, SH110X_WHITE);
-//   display.drawFastHLine(bubbleX + 5 * bubbleDirection, bubbleY - 5, (messageLength * 6 - 3) * bubbleDirection, SH110X_WHITE);
-//   display.drawLine(bubbleX, bubbleY, bubbleX + 5 * bubbleDirection, bubbleY - 5, SH110X_WHITE);
-
-
-//   messageDisplayTime++;
-// }
-
 void drawPetMessage() {
   const int charWidth = 6;  // width of a character in pixels
   const int lineHeight = 11; // height of a line in pixels
@@ -1166,6 +1155,129 @@ void drawShop() {
     display.println(currentShopPrices[i]);
   }
 
+}
+
+void drawSettings() {
+  uiTimer = 100;
+  display.fillRect(0, 0, 127, 112, SH110X_BLACK);
+  display.setCursor(0,0);
+  display.setTextSize(1);
+  display.setTextColor(SH110X_WHITE);
+  display.print("settings");
+  display.drawFastHLine(0, 8, 127, SH110X_WHITE);
+  display.setCursor(0, 10);
+  updateButtonStates();
+
+  switch (settingsOption) {
+    case 0: {    
+      if (detectCursorTouch(0, 10, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          settingsOption = 1;
+        }
+      }
+
+      display.print("set date and time");
+
+      display.setTextColor(SH110X_WHITE);
+      break;
+    }
+    case 1: {
+      static bool dateTimeInitialized = false;
+      static int year, month, day, hour, minute;
+
+      if (!dateTimeInitialized) {
+        DateTime now = rtc.now(); // Get current RTC time once
+        year = now.year();
+        month = now.month();
+        day = now.day();
+        hour = now.hour();
+        minute = now.minute();
+        dateTimeInitialized = true;
+      }
+
+      display.setCursor(0, 10);
+      display.print("edit date & time");
+
+      // Field positions
+      int fieldX[] = {0, 40, 60, 80, 100};
+      int fieldY = 40;
+
+      int *values[] = {&year, &month, &day, &hour, &minute};
+      String labels[] = {
+        String(year), String(month), String(day),
+        String(hour), String(minute)
+      };
+
+      for (int i = 0; i < 5; i++) {
+        int x = fieldX[i];
+
+        // Draw + button
+        display.setCursor(x, fieldY - 10);
+        if (detectCursorTouch(x, fieldY - 10, 20, 10)) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+          if (rightButtonState) {
+            *values[i] += 1;
+            if (i == 1 && *values[i] > 12) *values[i] = 1; // Month max
+            if (i == 2 && *values[i] > 31) *values[i] = 1; // Day max
+            if (i == 3 && *values[i] > 23) *values[i] = 0; // Hour max
+            if (i == 4 && *values[i] > 59) *values[i] = 0; // Minute max
+            waitForSelectRelease();
+          }
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print("+");
+
+        // Draw value
+        display.setCursor(x, fieldY);
+        if (selectedField == i) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print(labels[i]);
+
+        // Draw - button
+        display.setCursor(x, fieldY + 10);
+        if (detectCursorTouch(x, fieldY + 10, 20, 10)) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+          if (rightButtonState) {
+            *values[i] -= 1;
+            if (i == 1 && *values[i] < 1) *values[i] = 12;
+            if (i == 2 && *values[i] < 1) *values[i] = 31;
+            if (i == 3 && *values[i] < 0) *values[i] = 23;
+            if (i == 4 && *values[i] < 0) *values[i] = 59;
+            waitForSelectRelease();
+          }
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print("-");
+      }
+
+      // Confirm button
+      bool confirmPressed = detectCursorTouch(30, 80, 60, 10);
+      display.setCursor(30, 80);
+      if (confirmPressed) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          rtc.adjust(DateTime(year, month, day, hour, minute, 0));
+          settingsOption = 0;
+          selectedField = 0;
+          dateTimeInitialized = false;
+        }
+      } else {
+        display.setTextColor(SH110X_WHITE);
+      }
+      display.print("confirm");
+
+      updateButtonStates();
+      break;
+    }
+
+  }
+  
 }
 
 void stepBallForward() {
