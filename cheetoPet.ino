@@ -1,3 +1,14 @@
+/*
+
+cheetoPet - by olly jeffery / @Cheet0sDelet0s
+
+an esp32 c3 based, feature-rich tamagotchi!
+
+fully open source - do whatever you want with it!
+you dont have to, but it would be great if you could credit me if you use any of this stuff!
+
+*/
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -10,6 +21,7 @@
 #include "vector"
 #include "bitmaps.h"
 #include "petLines.h"
+#include "eepromHandler.h"
 
 #define SDA_ALT 20
 #define SCL_ALT 9
@@ -23,17 +35,19 @@ const float voltageDividerRatio = 2.0;  // R1 + R2 = 2x actual
 
 Adafruit_NeoPixel rgb(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-#define SCREEN_WIDTH 128   // OLED display width, in pixels
-#define SCREEN_HEIGHT 128  // OLED display height, in pixels
+#define SCREEN_WIDTH 128   // display width
+#define SCREEN_HEIGHT 128  // display height
 #define OLED_RESET -1      // can set an oled reset pin if desired
 
-/*FLASH, DRAM AND IRAM
+#define EEPROM_ADDRESS 0x57 // Check your chip
+#define EEPROM_SIZE 4096    // AT24C32 = 4KB
+
+/*FLASH AND DRAM
 anything that is read/written to infrequently should go in flash. (like storage of computer)
 anything that is used quite a bit goes in dram (like ram of computer)
-anything that is used every iteration very frequently should go in iram (like l1 cache of computer).
 this makes things faster and stops the flash of the chip wearing out after lots of use.
 try to upload code as little as possible to prolong lifetime of the chip,
-it can spontaneously die if you arent carefull.
+it can spontaneously die if you arent careful.
 */
 
 const int leftButton = 5;
@@ -98,11 +112,17 @@ Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OL
 DRAM_ATTR float gyroXOffset = -0.40;
 DRAM_ATTR float gyroYOffset = 3;
 DRAM_ATTR float gyroZOffset = 1.5;
+DRAM_ATTR float accelXOffset = 0;
+DRAM_ATTR float accelYOffset = 0;
+DRAM_ATTR float accelZOffset = 0;
 
 DRAM_ATTR float angleX = 0;
 DRAM_ATTR float angleY = 0;
 DRAM_ATTR float angleZ = 0;
-
+DRAM_ATTR float posX = 0;
+DRAM_ATTR float posY = 0;
+DRAM_ATTR float posZ = 0;
+DRAM_ATTR float totalG = 0;
 //cursor stuff
 DRAM_ATTR int cursorX = 500;
 DRAM_ATTR int cursorY = 500;
@@ -127,7 +147,7 @@ DRAM_ATTR int petMoveSpeed = 0;
 DRAM_ATTR bool movePet = false;
 DRAM_ATTR int petMoveAnim = 0;
 DRAM_ATTR int petDir = 1;
-DRAM_ATTR int petPongXP = 0;
+DRAM_ATTR float petPongXP = 0;
 DRAM_ATTR int petPongLVL = 1;
 
 DRAM_ATTR unsigned long lastUpdate = 0;
@@ -165,6 +185,12 @@ DRAM_ATTR int enemyHeight = 20;
 DRAM_ATTR float enemySpeed = 1.5;      // How fast the enemy moves (tweakable)
 DRAM_ATTR int enemyScore = 0;
 
+//settings
+DRAM_ATTR int gyroSensitivityX = 2;
+DRAM_ATTR int gyroSensitivityY = 3;
+DRAM_ATTR int gyroSensitivityZ = 3;
+DRAM_ATTR int loopDelay = 5;
+
 void petMessage(String message) {
   currentPetMessage = message;
   messageDisplayTime = 0;
@@ -184,7 +210,19 @@ bool removeFromList(int list[], int& itemCount, int index) {
   return true;  // Success
 }
 
-//bitmaps and voice lines are in made external in bitmaps.h, defined in bitmaps.cpp
+void drawCheckerboard(uint8_t squareSize = 8) {
+  bool color;
+  for (uint8_t y = 0; y < 128; y += squareSize) {
+    color = (y / squareSize) % 2;  // Alternate row start
+    for (uint8_t x = 0; x < 128; x += squareSize) {
+      display.fillRect(x, y, squareSize, squareSize, color ? SH110X_WHITE : SH110X_BLACK);
+      color = !color;  // Alternate color for each square
+      }
+    display.display();
+  }
+  display.display();
+  delay(300);
+}
 
 void drawBitmapWithDirection(int16_t x, int16_t y, int dir, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color) {
   if (dir == 1) {
@@ -315,14 +353,15 @@ void setup() {
 
   mpu.setWire(&Wire);
   mpu.beginGyro();
+  mpu.beginAccel();
 
   rgb.begin();            // Initialize
   rgb.setBrightness(50);  // Optional: reduce brightness
   rgb.show();             // Initialize all pixels to 'off'
 
-  setBatteryLevel();
-
   lastUpdate = millis();
+
+
 }
 
 void waitForSelectRelease() {
@@ -344,6 +383,38 @@ void waitForSelectRelease() {
   updateButtonStates();
 }
 
+void killPet(String deathReason = "") {
+  spiralFill(display, SH110X_WHITE);
+    delay(500);
+    display.clearDisplay();
+    display.display();
+    delay(1000);
+    const BitmapInfo& bmp = bitmaps[25];
+    display.drawBitmap(49, 94, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
+    display.display();
+    delay(1000);
+    display.setCursor(0,0);
+    display.setTextColor(SH110X_WHITE);
+    display.setTextSize(2);
+    display.println("your pet\ndied");
+    display.display();
+    delay(500);
+    display.setTextSize(1);
+    display.println("after it ");
+    display.display();
+    delay(500);
+    display.println(deathReason);
+    display.display();
+    delay(500);
+    display.println("we are sorry\nfor your loss.");
+    display.display();
+    delay(500);
+    display.println("press SELECT to\nrestart.");
+    display.display();
+    updateButtonStates();
+    while(!rightButtonState) {updateButtonStates();}
+    esp_restart();
+}
 
 void debug() {
   DateTime now = rtc.now();
@@ -400,7 +471,7 @@ void drawPet(int petNumber, int drawX, int drawY) {
           drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBigMask, 17, 26, SH110X_BLACK);
           drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBig, 16, 26, SH110X_WHITE);
         } else {
-          if (petMoveAnim < 2) {
+          if (petMoveAnim < 3) {
             drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
             drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk, 16, 26, SH110X_WHITE);
           } else {
@@ -548,6 +619,7 @@ void drawBottomUI() {
                 display.drawFastVLine(125, 115, 11, SH110X_WHITE);
                 if (rightButtonState) {
                   waitForSelectRelease();
+                  drawCheckerboard(petPongLVL + 1);
                   pong();
                   waitForSelectRelease();
                 }
@@ -768,11 +840,26 @@ void drawEmotionUI() {
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
   display.print("HUN: ");
-  display.println(petHunger);
+  display.print(petHunger);
+  if (petHunger < 50) {
+    display.println("!");
+  } else {
+    display.println("");
+  }
   display.print("FUN: ");
-  display.println(petFun);
+  display.print(petFun);
+  if (petFun < 50) {
+    display.println("!");
+  } else {
+    display.println("");
+  }
   display.print("SLP: ");
-  display.println(petSleep);
+  display.print(petSleep);
+  if (petSleep < 30) {
+    display.println("!");
+  } else {
+    display.println("");
+  }
   display.print("$");
   display.print(money);
   display.setTextColor(SH110X_WHITE);
@@ -895,7 +982,7 @@ void updatePetNeeds() {
     if (now.second() % 60 == 0) {  // Once per minute
       petHunger -= 1;
       petFun -= 1;
-      petSleep -= 1;
+      petSleep -= 5;
     }
   }
 }
@@ -926,7 +1013,7 @@ void drawLiveData() {
   display.setTextColor(SH110X_WHITE);
 }
 
-void drawPetMessage() {
+void drawPetMessage() { 
   const int charWidth = 6;  // width of a character in pixels
   const int lineHeight = 11; // height of a line in pixels
   const int maxCharsPerLine = 8;  // max characters per line before wrapping
@@ -970,17 +1057,23 @@ void drawPetMessage() {
   }
   int bubbleY = petY - 3;
 
+  // Adjust if bubble is off-screen at the top
+  int bubbleTop = bubbleY - bubbleHeight;
+  if (bubbleTop < 0) {
+    bubbleY += -bubbleTop; // Move it down by the amount it's off-screen
+  }
+
   // Draw text
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
 
   display.fillRect(
-  bubbleDirection == 1 ? bubbleX : bubbleX - bubbleWidth,
-  bubbleY - bubbleHeight,
-  bubbleWidth,
-  bubbleHeight - 3, // leave space for the tail
-  SH110X_BLACK
-);
+    bubbleDirection == 1 ? bubbleX : bubbleX - bubbleWidth,
+    bubbleY - bubbleHeight,
+    bubbleWidth,
+    bubbleHeight - 3, // leave space for the tail
+    SH110X_BLACK
+  );
 
   for (int i = 0; i < lineCount; i++) {
     int lineX = (bubbleDirection == 1)
@@ -994,26 +1087,24 @@ void drawPetMessage() {
   display.setTextColor(SH110X_WHITE); // restore default
 
   // Draw bubble
-int edgeX = bubbleX;
-int edgeW = bubbleWidth * bubbleDirection;
+  int edgeX = bubbleX;
+  int edgeW = bubbleWidth * bubbleDirection;
 
-// Left vertical line (adjusted -1 pixel in height)
-display.drawFastVLine(edgeX, bubbleY, -bubbleHeight + 1, SH110X_WHITE);
+  // Left vertical line
+  display.drawFastVLine(edgeX, bubbleY, -bubbleHeight + 1, SH110X_WHITE);
 
-// Right vertical line (adjusted -1 pixel in height)
-display.drawFastVLine(edgeX + edgeW, bubbleY - bubbleHeight + 1, bubbleHeight - 4, SH110X_WHITE);
+  // Right vertical line
+  display.drawFastVLine(edgeX + edgeW, bubbleY - bubbleHeight + 1, bubbleHeight - 4, SH110X_WHITE);
 
-// Top horizontal line (adjusted -1 pixel in length)
-display.drawFastHLine(edgeX, bubbleY - bubbleHeight, edgeW - bubbleDirection, SH110X_WHITE);
+  // Top horizontal line
+  display.drawFastHLine(edgeX, bubbleY - bubbleHeight, edgeW - bubbleDirection, SH110X_WHITE);
 
-// Bottom portion of bubble (unchanged)
-display.drawFastHLine(edgeX + 5 * bubbleDirection, bubbleY - 5, (bubbleWidth - 6) * bubbleDirection, SH110X_WHITE);
-display.drawLine(edgeX, bubbleY, edgeX + 5 * bubbleDirection, bubbleY - 5, SH110X_WHITE);
-
+  // Bottom portion of bubble (tail)
+  display.drawFastHLine(edgeX + 5 * bubbleDirection, bubbleY - 5, (bubbleWidth - 6) * bubbleDirection, SH110X_WHITE);
+  display.drawLine(edgeX, bubbleY, edgeX + 5 * bubbleDirection, bubbleY - 5, SH110X_WHITE);
 
   messageDisplayTime++;
 }
-
 
 
 int convertBatteryPercent(float voltage) {
@@ -1174,20 +1265,6 @@ void drawShop() {
 
 }
 
-void drawCheckerboard(uint8_t squareSize = 8) {
-  bool color;
-  for (uint8_t y = 0; y < 128; y += squareSize) {
-    color = (y / squareSize) % 2;  // Alternate row start
-    for (uint8_t x = 0; x < 128; x += squareSize) {
-      display.fillRect(x, y, squareSize, squareSize, color ? SH110X_WHITE : SH110X_BLACK);
-      color = !color;  // Alternate color for each square
-      }
-    display.display();
-  }
-  display.display();
-  delay(300);
-}
-
 void drawSettings() {
   uiTimer = 100;
   display.fillRect(0, 0, 127, 112, SH110X_BLACK);
@@ -1208,7 +1285,29 @@ void drawSettings() {
         }
       }
 
-      display.print("set date and time");
+      display.println("set date and time");
+
+      display.setTextColor(SH110X_WHITE);
+
+      if (detectCursorTouch(0, 18, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          settingsOption = 2;
+        }
+      }
+
+      display.println("gyro sensitivity");
+
+      display.setTextColor(SH110X_WHITE);
+
+      if (detectCursorTouch(0, 26, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          settingsOption = 3;
+        }
+      }
+
+      display.println("loop delay");
 
       display.setTextColor(SH110X_WHITE);
       break;
@@ -1306,7 +1405,150 @@ void drawSettings() {
       updateButtonStates();
       break;
     }
+    case 2: {
+      static int sensitivityX = gyroSensitivityX;
+      static int sensitivityY = gyroSensitivityY;
+      static int sensitivityZ = gyroSensitivityZ;
 
+      display.setCursor(0, 10);
+      display.print("gyro sensitivity");
+
+      String labels[] = {"X:", "Y:", "Z:"};
+      int *values[] = {&sensitivityX, &sensitivityY, &sensitivityZ};
+      int startY = 30;
+
+      for (int i = 0; i < 3; i++) {
+        int y = startY + i * 20;
+
+        // Label
+        display.setCursor(10, y);
+        display.setTextColor(SH110X_WHITE);
+        display.print(labels[i]);
+
+        // + button
+        display.setCursor(40, y);
+        if (detectCursorTouch(40, y, 10, 10)) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+          if (rightButtonState) {
+            (*values[i])++;
+            if (*values[i] > 100) *values[i] = 100; // Optional upper limit
+            waitForSelectRelease();
+          }
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print("+");
+
+        // Value
+        display.setCursor(60, y);
+        display.setTextColor(SH110X_WHITE);
+        display.print(*values[i]);
+
+        // - button
+        display.setCursor(90, y);
+        if (detectCursorTouch(90, y, 10, 10)) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+          if (rightButtonState) {
+            (*values[i])--;
+            if (*values[i] < 0) *values[i] = 0; // Optional lower limit
+            waitForSelectRelease();
+          }
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print("-");
+      }
+
+      // Confirm button
+      bool confirmPressed = detectCursorTouch(30, 100, 60, 10);
+      display.setCursor(30, 100);
+      if (confirmPressed) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          gyroSensitivityX = sensitivityX;
+          gyroSensitivityY = sensitivityY;
+          gyroSensitivityZ = sensitivityZ;
+          settingsOption = 0;
+          waitForSelectRelease();
+        }
+      } else {
+        display.setTextColor(SH110X_WHITE);
+      }
+      display.print("confirm");
+
+      updateButtonStates();
+      break;
+    }
+    case 3: {
+      static int delayTemp = loopDelay;     
+
+      display.setCursor(0, 10);
+      display.print("loop delay");
+
+      String labels[] = {"delay (ms):"};
+      int *values[] = {&delayTemp};
+      int startY = 50;
+
+      for (int i = 0; i < 1; i++) {
+        int y = startY + i * 20;
+
+        // Label
+        display.setCursor(0, y);
+        display.setTextColor(SH110X_WHITE);
+        display.print(labels[i]);
+
+        // + button
+        display.setCursor(60, y);
+        if (detectCursorTouch(60, y, 10, 10)) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+          if (rightButtonState) {
+            (*values[i])++;
+            if (*values[i] > 100) *values[i] = 100; // Optional upper limit
+            waitForSelectRelease();
+          }
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print("+");
+
+        // Value
+        display.setCursor(80, y);
+        display.setTextColor(SH110X_WHITE);
+        display.print(*values[i]);
+
+        // - button
+        display.setCursor(110, y);
+        if (detectCursorTouch(110, y, 10, 10)) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+          if (rightButtonState) {
+            (*values[i])--;
+            if (*values[i] < 0) *values[i] = 0; // Optional lower limit
+            waitForSelectRelease();
+          }
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print("-");
+      }
+
+      // Confirm button
+      bool confirmPressed = detectCursorTouch(30, 100, 60, 10);
+      display.setCursor(30, 100);
+      if (confirmPressed) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          loopDelay = delayTemp;
+          settingsOption = 0;
+          waitForSelectRelease();
+        }
+      } else {
+        display.setTextColor(SH110X_WHITE);
+      }
+      display.print("confirm");
+
+      updateButtonStates();
+      break;
+    }
   }
   
 }
@@ -1317,16 +1559,25 @@ void stepBallForward() {
 }
 
 void reEnergizeBall(float amount) {
-  ballVX *= amount;
-  ballVY *= amount;
+  ballVX *= amount + petPongLVL / 10;
+  ballVY *= amount + petPongLVL / 10;
 }
 
 void updateGyro() {
   mpu.gyroUpdate();
+  mpu.accelUpdate();
 
-  int gyroX = round(mpu.gyroX() + gyroXOffset) * -3;  //multiply gyro values by 2 for easier use, -2 to invert the angle
-  int gyroY = round(mpu.gyroY() + gyroYOffset) * 4;
-  int gyroZ = round(mpu.gyroZ() + gyroZOffset) * 3;
+  int gyroX = round(mpu.gyroX() + gyroXOffset) * gyroSensitivityX * -1;  //multiply gyro values by user set sensitivity. x value is inverted since gyro is upside down in hardware 
+  int gyroY = round(mpu.gyroY() + gyroYOffset) * gyroSensitivityY;
+  int gyroZ = round(mpu.gyroZ() + gyroZOffset) * gyroSensitivityZ;
+
+  int accelX = round(mpu.accelX() + accelXOffset);
+  int accelY = round(mpu.accelY() + accelYOffset);
+  int accelZ = round(mpu.accelZ() + accelZOffset);
+
+  // Serial.printf("X: %f, Y: %f, Z: %f\n", accelX, accelY, accelZ);
+
+  totalG = sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
 
   unsigned long updateNow = millis();
   float deltaTime = (updateNow - lastUpdate) / 1000.0;
@@ -1336,13 +1587,18 @@ void updateGyro() {
   angleY += gyroY * deltaTime;
   angleZ += gyroZ * deltaTime;
 
+  posX += gyroX * deltaTime;
+  posY += gyroY * deltaTime;
+  posZ += gyroZ * deltaTime;
+  // Serial.printf("TOTAL X: %f, Y: %f, Z: %f\n", posX, posY, posZ);
+  // Serial.printf("total gforce: %f\n", totalG);
 }
 
 void handlePongEnemyAI() {
   // Basic tracking AI
   if (petPongLVL >= 1 && petPongLVL <= 3) {
     enemySpeed = 1.5 + (petPongLVL - 1) * 0.5;  // 1.5 to 2.5
-    enemySpeed = constrain(enemySpeed, 0, 3.5);
+    enemySpeed = constrain(enemySpeed, 0, 3);
 
     if (ballY < enemyY + enemyHeight / 2) {
       enemyY -= enemySpeed;
@@ -1352,7 +1608,7 @@ void handlePongEnemyAI() {
   }
 
   // Intermediate AI: wait until ball is halfway, then react quickly
-  else if (petPongLVL >= 4 && petPongLVL <= 7) {
+  else if (petPongLVL >= 4 && petPongLVL <= 10) {
     int triggerX = 55 + (petPongLVL - 4) * 3;  // Gets more reactive as level increases
 
     if (ballX > triggerX) {
@@ -1364,37 +1620,6 @@ void handlePongEnemyAI() {
       } else if (ballY > enemyY + enemyHeight / 2) {
         enemyY += enemySpeed;
       }
-    }
-  }
-
-  // Advanced AI: predict where the ball will intersect the enemy paddle line
-  else if (petPongLVL >= 8 && petPongLVL <= 10) {
-    // Predict ballY at enemy paddle X
-    float predictedY = ballY;
-    float tempBallX = ballX;
-    float tempBallY = ballY;
-    float dx = ballVX;
-    float dy = ballVY;
-
-    while (tempBallX < enemyX) {
-      tempBallX += dx;
-      tempBallY += dy;
-
-      // Reflect from top or bottom walls
-      if (tempBallY <= 0 || tempBallY >= 128) {
-        dy *= -1;
-        tempBallY = constrain(tempBallY, 0, 128);
-      }
-    }
-
-    predictedY = tempBallY;
-    enemySpeed = 3.5 + (petPongLVL - 8) * 0.5;  // Up to 4.5
-    enemySpeed = constrain(enemySpeed, 0, 5);
-
-    if (predictedY < enemyY + enemyHeight / 2) {
-      enemyY -= enemySpeed;
-    } else if (predictedY > enemyY + enemyHeight / 2) {
-      enemyY += enemySpeed;
     }
   }
 
@@ -1415,7 +1640,19 @@ void pong() { // PONG if you couldnt read
         angleY = 0;
       }
       constrain(angleY + 64, 0, 126);
-      paddleY = angleY;
+
+      float desiredPaddleY = angleY;
+
+      float paddleYDiff = abs(paddleY - desiredPaddleY);
+
+      if (paddleYDiff >= enemySpeed * 1.4 + 2) {
+        if (desiredPaddleY < paddleY + paddleHeight / 2) {
+        paddleY -= enemySpeed * 1.4;
+        } else if (desiredPaddleY > paddleY + paddleHeight / 2) {
+        paddleY += enemySpeed * 1.4;
+        }
+      }
+
       stepBallForward();
       
       if (ballX <= 0) {
@@ -1460,7 +1697,7 @@ void pong() { // PONG if you couldnt read
         ballVX = abs(ballVX); // bounce right
         // Optionally change VY based on where it hit the paddle
         float offset = (ballY - (paddleY + paddleHeight / 2)) / (paddleHeight / 2) + random(-5, 5);
-        ballVY += offset * 1.5; // add a bit of vertical variation
+        ballVY += offset * 2.5; // add a bit of vertical variation
         reEnergizeBall(1.1);
       }
 
@@ -1499,6 +1736,7 @@ void pong() { // PONG if you couldnt read
       display.clearDisplay();
       display.fillCircle(ballX, ballY, 2, SH110X_WHITE);
       display.fillRect(paddleX, paddleY, 2, paddleHeight, SH110X_WHITE);
+      display.fillRect(2, desiredPaddleY - 3, 2, 6, SH110X_WHITE);
       display.fillRect(enemyX, enemyY, 2, enemyHeight, SH110X_WHITE);
       display.setCursor(0, 0);
       display.setTextSize(1);
@@ -1515,20 +1753,28 @@ void pong() { // PONG if you couldnt read
   petFun += score + enemyScore;
   money += (score + enemyScore) / 3;
 
-  drawPetLeveling("pong", petPongXP, enemyScore, petPongLVL);
+  drawPetLeveling("pong", petPongXP, enemyScore + score / 2, petPongLVL);
 
-  petPongXP += enemyScore;
+  petPongXP += enemyScore + score / 2;
 
-  if (petPongXP > petPongLVL * 10) {
-    petPongXP -= petPongLVL * 10;
+  //petPongLVL++;  //for debug
+
+  if (petPongXP > petPongLVL * 5) {
+    petPongXP -= petPongLVL * 5;
     petPongLVL++;
+  }
+
+  if (score > enemyScore) {
+    petMessage("aw dang it ggs");
+  } else {
+    petMessage("LMAO YOU SUCK AT THIS GAME");
   }
 
   score = 0;
   enemyScore = 0;
 }
 
-void drawPetLeveling(String levelType, int beginningXP, int gainedXP, int beginningLVL) {
+void drawPetLeveling(String levelType, float beginningXP, float gainedXP, int beginningLVL) {
   display.clearDisplay();
   display.setCursor(0,0);
   display.setTextColor(SH110X_WHITE);
@@ -1540,11 +1786,11 @@ void drawPetLeveling(String levelType, int beginningXP, int gainedXP, int beginn
   display.setCursor(70, 26);
   display.setTextSize(1);
   display.print("lvl ");
-  int newXP;
+  float newXP;
   int newLVL;
-  if (beginningXP + gainedXP > beginningLVL * 10) {
+  if (beginningXP + gainedXP > beginningLVL * 5) {
     display.print(beginningLVL + 1);
-    newXP = (beginningXP + gainedXP) - beginningLVL * 10;
+    newXP = (beginningXP + gainedXP) - beginningLVL * 5;
     newLVL = beginningLVL + 1;
   } else {
     display.print(beginningLVL);
@@ -1552,12 +1798,12 @@ void drawPetLeveling(String levelType, int beginningXP, int gainedXP, int beginn
     newLVL = beginningLVL;
   }
 
-  int xpPercentage = newXP / newLVL * 10; 
-  
+  float xpPercentage = newXP / (newLVL * 5);
+
   display.drawRect(20, 55, 88, 10, SH110X_WHITE);
-  display.fillRect(20, 55, 88 / xpPercentage, 10, SH110X_WHITE);
+  display.fillRect(20, 55, 88 * xpPercentage, 10, SH110X_WHITE);
   
-  drawCenteredText(display, String((String(newXP) + "/" + String(newLVL * 10))), 70);
+  drawCenteredText(display, String((String(newXP) + "/" + String(newLVL * 5))), 70);
   drawCenteredText(display, "press SELECT", 118);
   
   display.display();
@@ -1565,13 +1811,7 @@ void drawPetLeveling(String levelType, int beginningXP, int gainedXP, int beginn
   while (!rightButtonState) {updateButtonStates(); delay(20);}
   
   drawCheckerboard(newLVL + 1);
-
-
 }
-
-
-
-
 
 void spiralFill(Adafruit_GFX &d, uint16_t color) {
   int x0 = 0;
@@ -1666,6 +1906,20 @@ public:
   }
 };
 
+class IsTired : public Node {
+public:
+  NodeStatus tick() override {
+    return (petSleep < 30) ? SUCCESS : FAILURE;
+  }
+};
+
+class IsBeingShaken : public Node {
+public:
+  NodeStatus tick() override {
+    return (totalG > 2) ? SUCCESS : FAILURE;
+  }
+};
+
 class AskForFood : public Node {
 public:
   NodeStatus tick() override {
@@ -1691,6 +1945,24 @@ public:
     if (random(0, 50) == 1) {
       int messageRandomiser = random(0, boredLinesCount);
       petMessage(boredLines[messageRandomiser]);
+      return SUCCESS;
+    } else {
+      return RUNNING;
+    }
+    } else {
+      return RUNNING;
+    }
+    
+  } 
+};
+
+class AskForSleep : public Node {
+public:
+  NodeStatus tick() override {
+    if (messageDisplayTime >= messageMaxTime) {
+    if (random(0, 50) == 1) {
+      int messageRandomiser = random(0, tiredLinesCount);
+      petMessage(tiredLines[messageRandomiser]);
       return SUCCESS;
     } else {
       return RUNNING;
@@ -1751,10 +2023,22 @@ public:
 class ComplainAboutBeingCarried : public Node {
 public:
   NodeStatus tick() override {
-
     if (messageDisplayTime >= messageMaxTime) {
       int messageRandomiser = random(0, beingCarriedLinesCount);
       petMessage(beingCarriedLines[messageRandomiser]);
+    }
+
+    return SUCCESS;
+  }
+};
+
+class ComplainAboutBeingShaken : public Node {
+public:
+  NodeStatus tick() override {
+
+    if (messageDisplayTime >= messageMaxTime) {
+      int messageRandomiser = random(0, shakenLinesCount);
+      petMessage(shakenLines[messageRandomiser]);
     }
 
     return SUCCESS;
@@ -1779,7 +2063,9 @@ public:
       petMessage("yum!");
       return SUCCESS;
     } else {
-      startMovingPet(lastFoodX, lastFoodY, 2);
+      if (!movePet) {
+        startMovingPet(lastFoodX, lastFoodY, 2);
+      }
       return RUNNING;
     }
   }
@@ -1800,53 +2086,28 @@ public:
 class Die : public Node {
 public:
   NodeStatus tick() override {
-
-    spiralFill(display, SH110X_WHITE);
-    delay(500);
-    display.clearDisplay();
-    display.display();
-    delay(1000);
-    const BitmapInfo& bmp = bitmaps[25];
-    display.drawBitmap(49, 80, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
-    display.display();
-    delay(1000);
-    display.setCursor(0,0);
-    display.setTextColor(SH110X_WHITE);
-    display.setTextSize(2);
-    display.println("your pet\ndied");
-    display.display();
-    delay(500);
-    display.setTextSize(1);
-    display.print("after it ");
-    display.display();
-    delay(500);
     if (petHunger < 1) {
-      display.println("starved to death");
+      killPet("starved to death");
     } else {
-      display.println("collapsed due to exhaustion");
+      killPet("collapsed due to\nexhaustion");
     }
-    display.display();
-    delay(500);
-    display.println("we are sorry for your loss.");
-    display.display();
-    delay(500);
-    display.println("press SELECT to restart.");
-    display.display();
-    updateButtonStates();
-    while(!rightButtonState) {updateButtonStates();}
-    esp_restart();
   }
 };
 
 DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() }),
+                                      new Sequence({ new IsBeingShaken(), new ComplainAboutBeingShaken() }),
                                       new Sequence({ new BeingCarried(), new ComplainAboutBeingCarried() }),
                                       new Sequence({ new IsFoodAvailable(), new EatFood() }),
                                       new Sequence({ new IsHungry(), new AskForFood() }),
+                                      new Sequence({ new IsTired(), new AskForSleep() }),
                                       new Sequence({ new IsBored(), new AskForPlay() }),
                                       new Idle() });
 
 void loop() {
   
+  if (totalG > 11) {   //kinda funny but annoying
+    killPet("got shaken to death"); 
+  }
   
   unsigned long currentMillis = millis();
 
@@ -2010,5 +2271,5 @@ void loop() {
     delay(1000);
   }
 
-  delay(5);
+  delay(loopDelay);
 }

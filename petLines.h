@@ -15,4 +15,10 @@ extern const size_t hungryLinesCount;
 extern String boredLines[];
 extern const size_t boredLinesCount;
 
+extern String tiredLines[];
+extern const size_t tiredLinesCount;
+
+extern String shakenLines[];
+extern const size_t shakenLinesCount;
+
 #endif
