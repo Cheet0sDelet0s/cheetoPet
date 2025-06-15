@@ -59,10 +59,8 @@ const long interval = 50;
 
 DRAM_ATTR DateTime now;
 
-DRAM_ATTR int saveFileVersion = 1
+DRAM_ATTR int saveFileVersion = 1;
 
-DRAM_ATTR int batteryPercentage = 50;
-DRAM_ATTR float batteryVoltage = 3.7;
 //buttons
 DRAM_ATTR bool leftButtonState = false;
 DRAM_ATTR bool middleButtonState = false;
@@ -87,6 +85,8 @@ MPU9250_asukiaaa mpu(0x69);
 
 DRAM_ATTR char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 DRAM_ATTR int lastSecond = -1;
+DRAM_ATTR DateTime lastRunTime;
+DRAM_ATTR int saveInterval = 5;
 
 DRAM_ATTR int liveDataTimer = 0;
 
@@ -251,10 +251,59 @@ void drawCenteredText(Adafruit_GFX &display, const String &text, int16_t y) {
   display.print(text);
 }
 
+void spiralFill(Adafruit_GFX &d, uint16_t color) {
+  int x0 = 0;
+  int y0 = 0;
+  int x1 = SCREEN_WIDTH - 1;
+  int y1 = SCREEN_HEIGHT - 1;
+
+  while (x0 <= x1 && y0 <= y1) {
+    // Top edge
+    for (int x = x0; x <= x1; x++) {
+      d.drawPixel(x, y0, color);
+    }
+    y0++;
+
+    // Right edge
+    for (int y = y0; y <= y1; y++) {
+      d.drawPixel(x1, y, color);
+    }
+    x1--;
+
+    // Bottom edge
+    if (y0 <= y1) {
+      for (int x = x1; x >= x0; x--) {
+        d.drawPixel(x, y1, color);
+      }
+      y1--;
+    }
+
+    // Left edge
+    if (x0 <= x1) {
+      for (int y = y1; y >= y0; y--) {
+        d.drawPixel(x0, y, color);
+      }
+      x0++;
+    }
+    display.display();
+    delay(5);  // Adjust delay for animation speed
+  }
+}
+
 void saveGameToEEPROM() {
   display.setTextColor(SH110X_BLACK, SH110X_WHITE);
   drawCenteredText(display, "saving...", 60);
   display.display();
+  
+  saveGameToRam();
+
+  writeStructEEPROM(EEPROM_ADDRESS, currentSaveGame);
+  drawCenteredText(display, "saved!", 68);
+  display.display();
+  delay(500);
+}
+
+void saveGameToRam() {
   currentSaveGame.hunger = petHunger;
   currentSaveGame.sleep = petSleep;
   currentSaveGame.fun = petFun;
@@ -288,19 +337,9 @@ void saveGameToEEPROM() {
 
   currentSaveGame.foodInvItems = foodInventoryItems;
   currentSaveGame.saveVersion = saveFileVersion;
-
-  writeStructEEPROM(EEPROM_ADDRESS, currentSaveGame);
-  drawCenteredText(display, "saved!", 68);
-  display.display();
-  delay(500);
 }
 
-void loadGameFromEEPROM() {
-  display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-  drawCenteredText(display, "loading game...", 60);
-  display.display();
-  currentSaveGame = readStructEEPROM(EEPROM_ADDRESS);
-
+void loadGameFromRam() {
   petHunger = currentSaveGame.hunger;
   petSleep = currentSaveGame.sleep;
   petFun = currentSaveGame.fun;
@@ -334,6 +373,15 @@ void loadGameFromEEPROM() {
 
   foodInventoryItems = currentSaveGame.foodInvItems;
   int saveVersion = currentSaveGame.saveVersion;
+}
+
+void loadGameFromEEPROM() {
+  display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+  drawCenteredText(display, "loading game...", 60);
+  display.display();
+  currentSaveGame = readStructEEPROM(EEPROM_ADDRESS);
+
+  loadGameFromRam();
 
   drawCenteredText(display, "loaded!", 68);
   display.display();
@@ -504,7 +552,7 @@ void waitForSelectRelease() {
 }
 
 void killPet(String deathReason = "") {
-  spiralFill(display, SH110X_WHITE);
+    spiralFill(display, SH110X_WHITE);
     delay(500);
     display.clearDisplay();
     display.display();
@@ -1103,7 +1151,6 @@ void updatePetNeeds() {
       petHunger -= 1;
       petFun -= 1;
       petSleep -= 5;
-      saveGameToEEPROM();
     }
   }
 }
@@ -1128,7 +1175,6 @@ void drawLiveData() {
   liveDataTimer++;
   if (liveDataTimer > 200) {
     liveDataTimer = 0; 
-    //setBatteryLevel();
   }
   
   display.setTextColor(SH110X_WHITE);
@@ -1244,14 +1290,7 @@ int averageADC(int pin, int samples = 64) {
 }
 
 
-void setBatteryLevel() {
-  int raw = averageADC(3, 64);
-  float voltage = (raw / 4095) * REF_VOLTAGE;
-  batteryVoltage = voltage * 2; // Because of the voltage divider
 
-  batteryPercentage = convertBatteryPercent(batteryVoltage);
-  Serial.println(raw);
-}
 
 void startMovingPet(int x, int y, int speed) {
   petMoveX = x;
@@ -1386,6 +1425,36 @@ void drawShop() {
 
 }
 
+bool drawCenteredButton(String label, int y) {
+  int16_t x1, y1;
+  uint16_t w, h;
+
+  // Get the size of the text
+  display.getTextBounds(label, 0, y, &x1, &y1, &w, &h);
+
+  // Calculate the centered X position
+  int16_t x = (display.width() - w) / 2;
+
+  // Draw the button (background box and text)
+  display.drawRect(x - 2, y - 2, w + 4, h + 4, SH110X_WHITE);
+  display.setCursor(x, y);
+  display.setTextColor(SH110X_WHITE);
+  display.print(label);
+
+  updateButtonStates();  // You probably need this before reading touch state
+
+  // Handle touch
+  if (detectCursorTouch(x - 2, y - 2, w + 4, h + 4)) {
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE); // optional inverse
+    if (rightButtonState) {
+      waitForSelectRelease();  // Now this runs properly
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void drawSettings() {
   uiTimer = 100;
   display.fillRect(0, 0, 127, 112, SH110X_BLACK);
@@ -1429,6 +1498,17 @@ void drawSettings() {
       }
 
       display.println("loop delay");
+
+      display.setTextColor(SH110X_WHITE);
+
+      if (detectCursorTouch(0, 34, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          settingsOption = 4;
+        }
+      }
+
+      display.println("save manager");
 
       display.setTextColor(SH110X_WHITE);
       break;
@@ -1668,6 +1748,65 @@ void drawSettings() {
       display.print("confirm");
 
       updateButtonStates();
+      break;
+    }
+    case 4: {
+      drawCenteredText(display, "save manager", 10);
+
+      if (drawCenteredButton("save to eeprom", 22)) {
+        saveGameToEEPROM();
+      }
+
+      if (drawCenteredButton("save to ram", 32)) {
+        saveGameToRam();
+      }
+
+      if (drawCenteredButton("load from eeprom", 42)) {
+        loadGameFromEEPROM();
+      }
+
+      if (drawCenteredButton("load from ram", 52)) {
+        loadGameFromRam();
+      }
+
+      drawCenteredText(display, "save interval (mins):", 65);
+
+      // + button
+      display.setCursor(60, 76);
+      if (detectCursorTouch(60, 76, 10, 10)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          saveInterval++;
+          waitForSelectRelease();
+        }
+      } else {
+        display.setTextColor(SH110X_WHITE);
+      }
+      display.print("+");
+
+      // Value
+      display.setCursor(80, 76);
+      display.setTextColor(SH110X_WHITE);
+      display.print(saveInterval);
+
+      // - button
+      display.setCursor(110, 76);
+      if (detectCursorTouch(110, 76, 10, 10)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          saveInterval--;
+          if (saveInterval < 0) saveInterval = 0; 
+          waitForSelectRelease();
+        }
+      } else {
+        display.setTextColor(SH110X_WHITE);
+      }
+      display.print("-");
+
+      if (drawCenteredButton("exit", 90)) {
+        settingsOption = 0;
+      }
+
       break;
     }
   }
@@ -1934,45 +2073,19 @@ void drawPetLeveling(String levelType, float beginningXP, float gainedXP, int be
   drawCheckerboard(newLVL + 1);
 }
 
-void spiralFill(Adafruit_GFX &d, uint16_t color) {
-  int x0 = 0;
-  int y0 = 0;
-  int x1 = SCREEN_WIDTH - 1;
-  int y1 = SCREEN_HEIGHT - 1;
+void runSaveInterval() {
+  DateTime now = rtc.now();
 
-  while (x0 <= x1 && y0 <= y1) {
-    // Top edge
-    for (int x = x0; x <= x1; x++) {
-      d.drawPixel(x, y0, color);
-    }
-    y0++;
+  TimeSpan elapsed = now - lastRunTime;
+  if (elapsed.totalseconds() >= saveInterval * 60) {
+    
+    Serial.println("interval passed, saving game");
 
-    // Right edge
-    for (int y = y0; y <= y1; y++) {
-      d.drawPixel(x1, y, color);
-    }
-    x1--;
+    saveGameToEEPROM();
 
-    // Bottom edge
-    if (y0 <= y1) {
-      for (int x = x1; x >= x0; x--) {
-        d.drawPixel(x, y1, color);
-      }
-      y1--;
-    }
-
-    // Left edge
-    if (x0 <= x1) {
-      for (int y = y1; y >= y0; y--) {
-        d.drawPixel(x0, y, color);
-      }
-      x0++;
-    }
-    display.display();
-    delay(5);  // Adjust delay for animation speed
+    lastRunTime = now;
   }
 }
-
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
 DRAM_ATTR enum NodeStatus { SUCCESS,
                             FAILURE,
@@ -2389,6 +2502,9 @@ void loop() {
     const BitmapInfo& bmp2 = bitmaps[1];
     display.drawBitmap(55, 90, bmp2.data, bmp2.width, bmp2.height, SH110X_WHITE);
     display.display();
+    if (minutesSinceSlept >= saveInterval) {
+      saveGameToEEPROM();
+    }
     delay(1000);
   }
 
