@@ -59,6 +59,8 @@ const long interval = 50;
 
 DRAM_ATTR DateTime now;
 
+DRAM_ATTR int saveFileVersion = 1
+
 DRAM_ATTR int batteryPercentage = 50;
 DRAM_ATTR float batteryVoltage = 3.7;
 //buttons
@@ -132,7 +134,7 @@ DRAM_ATTR int cursorBitmap = 14;
 
 DRAM_ATTR int uiTimer = 100;
 
-DRAM_ATTR int petHunger = 5;
+DRAM_ATTR int petHunger = 50;
 DRAM_ATTR int petFun = 50;
 DRAM_ATTR int petSleep = 50;
 DRAM_ATTR int petX = 64;
@@ -191,6 +193,8 @@ DRAM_ATTR int gyroSensitivityY = 3;
 DRAM_ATTR int gyroSensitivityZ = 3;
 DRAM_ATTR int loopDelay = 5;
 
+DRAM_ATTR SaveGame currentSaveGame;
+
 void petMessage(String message) {
   currentPetMessage = message;
   messageDisplayTime = 0;
@@ -245,6 +249,99 @@ void drawCenteredText(Adafruit_GFX &display, const String &text, int16_t y) {
   // Draw the text at the centered X position
   display.setCursor(x, y);
   display.print(text);
+}
+
+void saveGameToEEPROM() {
+  display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+  drawCenteredText(display, "saving...", 60);
+  display.display();
+  currentSaveGame.hunger = petHunger;
+  currentSaveGame.sleep = petSleep;
+  currentSaveGame.fun = petFun;
+  currentSaveGame.money = money;
+  currentSaveGame.pongXP = petPongXP;
+  currentSaveGame.pongLVL = petPongLVL;
+
+  for (int i = 0; i < 8; i++) {
+    currentSaveGame.invent[i] = inventory[i];
+  }
+
+  currentSaveGame.inventItems = inventoryItems;
+
+  for (int i = 0; i < 30; i++) {
+    currentSaveGame.placed[i] = placedHomeItems[i];
+  }
+
+  currentSaveGame.placedItems = amountItemsPlaced;
+
+  for (int i = 0; i < 30; i++) {
+    currentSaveGame.placedX[i] = placedHomeItemsX[i];
+  }
+
+  for (int i = 0; i < 30; i++) {
+    currentSaveGame.placedY[i] = placedHomeItemsY[i];
+  }
+
+  for (int i = 0; i < 8; i++) {
+    currentSaveGame.foodInv[i] = foodInventory[i];
+  }
+
+  currentSaveGame.foodInvItems = foodInventoryItems;
+  currentSaveGame.saveVersion = saveFileVersion;
+
+  writeStructEEPROM(EEPROM_ADDRESS, currentSaveGame);
+  drawCenteredText(display, "saved!", 68);
+  display.display();
+  delay(500);
+}
+
+void loadGameFromEEPROM() {
+  display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+  drawCenteredText(display, "loading game...", 60);
+  display.display();
+  currentSaveGame = readStructEEPROM(EEPROM_ADDRESS);
+
+  petHunger = currentSaveGame.hunger;
+  petSleep = currentSaveGame.sleep;
+  petFun = currentSaveGame.fun;
+  money = currentSaveGame.money;
+  petPongXP = currentSaveGame.pongXP;
+  petPongLVL = currentSaveGame.pongLVL;
+  
+  for (int i = 0; i < 8; i++) {
+    inventory[i] = currentSaveGame.invent[i];
+  }
+
+  inventoryItems = currentSaveGame.inventItems;
+  
+  for (int i = 0; i < 30; i++) {
+    placedHomeItems[i] = currentSaveGame.placed[i];
+  }
+
+  amountItemsPlaced = currentSaveGame.placedItems;
+  
+  for (int i = 0; i < 30; i++) {
+    placedHomeItemsX[i] = currentSaveGame.placedX[i];
+  }
+
+  for (int i = 0; i < 30; i++) {
+    placedHomeItemsY[i] = currentSaveGame.placedY[i];
+  }
+
+  for (int i = 0; i < 8; i++) {
+    foodInventory[i] = currentSaveGame.foodInv[i];
+  }
+
+  foodInventoryItems = currentSaveGame.foodInvItems;
+  int saveVersion = currentSaveGame.saveVersion;
+
+  drawCenteredText(display, "loaded!", 68);
+  display.display();
+  delay(500);
+}
+
+void setVariablesFromSave() {
+
 }
 
 void drawBitmapFlippedX(int16_t x, int16_t y,
@@ -361,7 +458,30 @@ void setup() {
 
   lastUpdate = millis();
 
-
+  while (1) {
+      updateButtonStates();
+      if (leftButtonState) {
+      //load game
+      loadGameFromEEPROM();
+      break;
+    } else if (rightButtonState) {
+      saveGameToEEPROM();
+      break;
+    } else {
+      display.clearDisplay();
+      display.setTextSize(2);
+      drawCenteredText(display, "cheetoPet", 0);
+      display.setTextSize(1);
+      drawCenteredText(display, "what would you like", 20);
+      drawCenteredText(display, "to do?", 29);
+      display.setCursor(0, 118);
+      display.print("B: continue");
+      display.setCursor(91, 118);
+      display.print("new: A");
+      display.display();
+    }
+  }
+  
 }
 
 void waitForSelectRelease() {
@@ -983,6 +1103,7 @@ void updatePetNeeds() {
       petHunger -= 1;
       petFun -= 1;
       petSleep -= 5;
+      saveGameToEEPROM();
     }
   }
 }
