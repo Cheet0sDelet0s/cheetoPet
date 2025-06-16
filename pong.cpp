@@ -109,7 +109,7 @@ void reEnergizeBall(float amount) {
 }
 
 void pong() { // PONG if you couldnt read
-  
+  display.setTextColor(SH110X_WHITE);
   while (stopApp == false) {
       updateGyro();
       updateButtonStates();

@@ -23,6 +23,7 @@ you dont have to, but it would be great if you could credit me if you use any of
 #include "petLines.h"
 #include "eepromHandler.h"
 #include "pong.h"
+#include "veridium.h"
 
 #define SDA_ALT 20
 #define SCL_ALT 9
@@ -110,6 +111,12 @@ DRAM_ATTR int placedFoodX[10] = {};
 DRAM_ATTR int placedFoodY[10] = {};
 DRAM_ATTR bool handleFoodPlacing = false;
 
+//game library
+DRAM_ATTR int gameLibrary[8] = { 0, 1 };
+DRAM_ATTR int gameLibraryCount = 2;
+
+const String gameNames[2] = {"pong", "veridium"};
+
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
 DRAM_ATTR float gyroXOffset = -0.40;
@@ -165,9 +172,6 @@ DRAM_ATTR int foodShopItems[] = { 16, 18 };
 DRAM_ATTR float foodShopPrices[] = { 1.50, 1.50};
 DRAM_ATTR int foodShopLength = sizeof(foodShopItems) / sizeof(foodShopItems[0]);
 
-//pong
-
-
 //settings
 DRAM_ATTR int gyroSensitivityX = 2;
 DRAM_ATTR int gyroSensitivityY = 3;
@@ -179,7 +183,7 @@ DRAM_ATTR SaveGame currentSaveGame;
 void petMessage(String message) {
   currentPetMessage = message;
   messageDisplayTime = 0;
-  messageMaxTime = (currentPetMessage.length() * 15) / 2;
+  messageMaxTime = constrain((currentPetMessage.length() * 15) / 2, 1, 3000);
 }
 
 bool removeFromList(int list[], int& itemCount, int index) {
@@ -769,13 +773,14 @@ void drawBottomUI() {
               }
 
               if (detectCursorTouch(86, 113, 41, 15)) {  //controller button check
-                display.drawFastVLine(88, 115, 11, SH110X_WHITE);
-                display.drawFastVLine(125, 115, 11, SH110X_WHITE);
+                
                 if (rightButtonState) {
+                  secondOption = 2;
+                  depth = 2;
                   waitForSelectRelease();
-                  drawCheckerboard(petPongLVL + 1);
-                  pong();
-                  waitForSelectRelease();
+                } else {
+                  display.drawFastVLine(88, 115, 11, SH110X_WHITE);
+                  display.drawFastVLine(125, 115, 11, SH110X_WHITE);
                 }
               }
               break;
@@ -836,7 +841,7 @@ void drawBottomUI() {
                 drawBottomBar();
                 display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
 
-                if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
+                if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
                   if (rightButtonState) {
                     firstOption = 1;
                     depth = 1;
@@ -857,6 +862,26 @@ void drawBottomUI() {
                   updateButtonStates();
                   if (!handleFoodPlacing) {
                     drawFoodInventory();
+                  }
+                  drawBottomBar();
+                  display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
+
+                  if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
+                    if (rightButtonState) {
+                      firstOption = 2;
+                      depth = 1;
+                      waitForSelectRelease();
+                    } else {
+                      display.drawFastVLine(2, 115, 11, SH110X_WHITE);
+                      display.drawFastVLine(39, 115, 11, SH110X_WHITE);
+                    }
+                  }
+                  break;
+                }
+                case 2: {   //game library
+                  updateButtonStates();
+                  if (!handleFoodPlacing) {
+                    drawGameLibrary();
                   }
                   drawBottomBar();
                   display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
@@ -1324,6 +1349,59 @@ void updatePetMovement() {
   petMoveAnim++;
   if (petMoveAnim > 4) {
     petMoveAnim = 0;
+  }
+}
+
+void drawGameLibrary() {
+  display.fillRect(0, 64, 128, 64, SH110X_BLACK);
+  display.drawRect(0, 64, 128, 64, SH110X_WHITE);
+  display.drawFastHLine(0, 113, 128, SH110X_WHITE);
+  display.setCursor(2, 66);
+  display.setTextSize(1);
+  display.setTextColor(SH110X_WHITE);
+  display.print("games: ");
+  display.print(gameLibraryCount);
+  display.print("/2");
+
+  int charWidth = 6;     // Approximate width of one character
+  int lineHeight = 8;    // Height of one text line
+  int lineSpacing = 10;  // Reduce this for tighter layout
+  int itemBoxWidth = 60;
+  int maxCharsPerLine = itemBoxWidth / charWidth;
+
+  for (int i = 0; i < gameLibraryCount; i++) {
+    int col = (i > 3) ? 1 : 0;
+    int row = (i > 3) ? i - 4 : i;
+    int itemX = 4 + col * 64;
+    int itemY = 76 + row * lineSpacing;
+
+    String name = gameNames[gameLibrary[i]];
+    int lineLen = min((int)name.length(), maxCharsPerLine);
+
+    bool hovered = detectCursorTouch(itemX, itemY, itemBoxWidth, lineHeight * 2);
+    display.setTextColor(hovered ? SH110X_BLACK : SH110X_WHITE,
+                        hovered ? SH110X_WHITE : SH110X_BLACK);
+
+    if (hovered && rightButtonState) {
+      if (name == "pong") {
+        drawCheckerboard(petPongLVL + 1);
+        pong();
+      } else {
+        drawCheckerboard(petVeridiumLVL + 1);
+        veridium();
+      }
+      waitForSelectRelease();
+    }
+
+    // First line
+    display.setCursor(itemX, itemY);
+    display.println(name.substring(0, lineLen));
+
+    // Optional second line if needed (check room)
+    if (name.length() > maxCharsPerLine && itemY + lineHeight < 127) {
+      display.setCursor(itemX, itemY + lineHeight);
+      display.println(name.substring(maxCharsPerLine));
+    }
   }
 }
 
@@ -1983,6 +2061,8 @@ public:
     if (random(0, 200) == 1) {
       int messageRandomiser = random(0, idleLinesCount);
       petMessage(idleLines[messageRandomiser]);
+    } else if (random(0, 200) == 2) {
+      petMessage(generateSentence());
     }
 
     if (movePet == false) {

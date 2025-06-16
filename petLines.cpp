@@ -102,3 +102,72 @@ DRAM_ATTR String shakenLines[] = {
 };
 
 const size_t shakenLinesCount = sizeof(shakenLines) / sizeof(shakenLines[0]);
+
+const char* nouns[] = {
+  "cat", "dog", "robot", "car", "tree", "bird", "house", "computer",
+  "book", "river", "mountain", "child", "city", "flower", "ocean", "star"
+};
+
+const char* adjectives[] = {
+  "fast", "red", "lazy", "funny", "bright", "silent", "tall", "ancient",
+  "wild", "happy", "bitter", "cold", "gentle", "sharp", "brave", "calm"
+};
+
+const char* verbs[] = {
+  "runs", "jumps", "drives", "flies", "sings", "laughs", "shines", "whispers",
+  "dances", "climbs", "swims", "dreams", "wanders", "hides", "glows", "builds"
+};
+
+
+const char* adverbs[] = {
+  "quickly", "silently", "gracefully", "happily", "sadly", "loudly", "bravely",
+  "carefully", "eagerly", "boldly", "slowly", "fiercely", "softly", "wildly",
+  "brightly", "gently"
+};
+
+const int nounCount = sizeof(nouns) / sizeof(nouns[0]);
+const int adjCount = sizeof(adjectives) / sizeof(adjectives[0]);
+const int verbCount = sizeof(verbs) / sizeof(verbs[0]);
+const int adverbCount = sizeof(adverbs) / sizeof(adverbs[0]);
+
+const char* templates[] = {
+  "the <adj> <noun> <verb> <adv>.",
+  "a <noun> that <adv> <verb> is very <adj>.",
+  "the <noun> <adv> <verb>.",
+  "you know theres a <adj> <noun> over there",
+  "idk, have you tried the <adj> <noun> that <verb> <adv>?",
+  "<adj> and <adj>, the <noun> <verb> <adj>",
+  "why does the <noun> <verb> so <adv>?",
+  "sometimes, the <adj> <noun> <verb> <adv> in the night",
+  "did you hear about the guy that <verb> through the <noun>?"
+};
+
+const int templateCount = sizeof(templates) / sizeof(templates[0]);
+
+const char* randomNoun() {
+  return nouns[random(nounCount)];
+}
+
+const char* randomAdj() {
+  return adjectives[random(adjCount)];
+}
+
+const char* randomVerb() {
+  return verbs[random(verbCount)];
+}
+
+const char* randomAdverb() {
+  return verbs[random(adverbCount)];
+}
+
+String generateSentence() {
+  String sentence = templates[random(templateCount)];
+
+  // Replace tokens
+  sentence.replace("<noun>", randomNoun());
+  sentence.replace("<adj>", randomAdj());
+  sentence.replace("<verb>", randomVerb());
+  sentence.replace("<adv>", randomAdverb());
+
+  return sentence;
+}
