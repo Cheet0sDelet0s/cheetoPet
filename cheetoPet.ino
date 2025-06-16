@@ -180,7 +180,7 @@ DRAM_ATTR int paddleHeight = 20;
 DRAM_ATTR bool stopApp = false;
 DRAM_ATTR float friction = 0.998;
 DRAM_ATTR float minHorizontalSpeed = 0.8;
-DRAM_ATTR float maxVerticalSpeed = 3;
+DRAM_ATTR float maxVerticalSpeed = 3.2;
 DRAM_ATTR float enemyX = 125;          // Opposite side of player
 DRAM_ATTR float enemyY = 30;           // Starting Y
 DRAM_ATTR int enemyHeight = 20;
@@ -198,7 +198,7 @@ DRAM_ATTR SaveGame currentSaveGame;
 void petMessage(String message) {
   currentPetMessage = message;
   messageDisplayTime = 0;
-  messageMaxTime = (currentPetMessage.length() * 20) / 1.5;
+  messageMaxTime = (currentPetMessage.length() * 15) / 2;
 }
 
 bool removeFromList(int list[], int& itemCount, int index) {
@@ -290,16 +290,21 @@ void spiralFill(Adafruit_GFX &d, uint16_t color) {
   }
 }
 
-void saveGameToEEPROM() {
-  display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-  drawCenteredText(display, "saving...", 60);
-  display.display();
+void saveGameToEEPROM(bool showUI = true) {
+  if (showUI) {
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+    drawCenteredText(display, "saving...", 60);
+    display.display();
+  }
   
   saveGameToRam();
 
   writeStructEEPROM(EEPROM_ADDRESS, currentSaveGame);
-  drawCenteredText(display, "saved!", 68);
-  display.display();
+  
+  if (showUI) {
+    drawCenteredText(display, "saved!", 68);
+    display.display();
+  }
   delay(500);
 }
 
@@ -1438,21 +1443,27 @@ bool drawCenteredButton(String label, int y) {
   // Draw the button (background box and text)
   display.drawRect(x - 2, y - 2, w + 4, h + 4, SH110X_WHITE);
   display.setCursor(x, y);
-  display.setTextColor(SH110X_WHITE);
-  display.print(label);
+  
 
   updateButtonStates();  // You probably need this before reading touch state
-
+  bool buttonClicked = false;
   // Handle touch
   if (detectCursorTouch(x - 2, y - 2, w + 4, h + 4)) {
     display.setTextColor(SH110X_BLACK, SH110X_WHITE); // optional inverse
     if (rightButtonState) {
       waitForSelectRelease();  // Now this runs properly
-      return true;
+      buttonClicked = true;
     }
   }
 
-  return false;
+  display.print(label);
+  display.setTextColor(SH110X_WHITE);
+
+  if (buttonClicked) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void drawSettings() {
@@ -1905,10 +1916,10 @@ void pong() { // PONG if you couldnt read
 
       float paddleYDiff = abs(paddleY - desiredPaddleY);
 
-      if (paddleYDiff >= enemySpeed * 1.4 + 2) {
-        if (desiredPaddleY < paddleY + paddleHeight / 2) {
+      if (paddleYDiff >= paddleHeight) {
+        if (desiredPaddleY < paddleY + paddleHeight) {
         paddleY -= enemySpeed * 1.4;
-        } else if (desiredPaddleY > paddleY + paddleHeight / 2) {
+        } else if (desiredPaddleY > paddleY + paddleHeight) {
         paddleY += enemySpeed * 1.4;
         }
       }
@@ -1947,7 +1958,7 @@ void pong() { // PONG if you couldnt read
       }
 
       if (ballVY > maxVerticalSpeed) {
-        ballVY = ballVY / 1.5;
+        ballVY = ballVY / 1.2;
         ballVX *= 1.5;
       }
 
@@ -1972,11 +1983,11 @@ void pong() { // PONG if you couldnt read
 
       if (ballY <= 0) {
         ballY = 0;
-        ballVY = abs(ballVY); // Bounce down
+        ballVY = abs(ballVY)*1.5; // Bounce down
       }
       if (ballY >= 127) {
         ballY = 127;
-        ballVY = -abs(ballVY); // Bounce up
+        ballVY = -abs(ballVY)*1.5; // Bounce up
       }
 
       
@@ -2503,7 +2514,7 @@ void loop() {
     display.drawBitmap(55, 90, bmp2.data, bmp2.width, bmp2.height, SH110X_WHITE);
     display.display();
     if (minutesSinceSlept >= saveInterval) {
-      saveGameToEEPROM();
+      saveGameToEEPROM(false);
     }
     delay(1000);
   }
