@@ -138,7 +138,7 @@ const char* templates[] = {
   "idk, have you tried the <adj> <noun> that <verb> <adv>?",
   "<adj> and <adj>, the <noun> <verb> <adj>",
   "why does the <noun> <verb> so <adv>?",
-  "sometimes, the <adj> <noun> <verb> <adv> in the night",
+  "sometimes, the <adj> <noun> <verb> in the night",
   "did you hear about the guy that <verb> through the <noun>?"
 };
 
