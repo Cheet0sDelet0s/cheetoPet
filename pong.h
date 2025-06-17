@@ -17,8 +17,8 @@
 // DRAM_ATTR float friction;
 // DRAM_ATTR float minHorizontalSpeed;
 // DRAM_ATTR float maxVerticalSpeed;
-// DRAM_ATTR float enemyX;          // Opposite side of player
-// DRAM_ATTR float enemyY;           // Starting Y
+// DRAM_ATTR float enemyPaddleX;          // Opposite side of player
+// DRAM_ATTR float enemyPaddleY;           // Starting Y
 // DRAM_ATTR int enemyHeight;
 // DRAM_ATTR float enemySpeed;      // How fast the enemy moves (tweakable)
 // DRAM_ATTR int enemyScore;

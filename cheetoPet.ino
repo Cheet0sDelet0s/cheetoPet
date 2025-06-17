@@ -115,7 +115,7 @@ DRAM_ATTR bool handleFoodPlacing = false;
 DRAM_ATTR int gameLibrary[8] = { 0, 1 };
 DRAM_ATTR int gameLibraryCount = 2;
 
-const String gameNames[2] = {"pong", "veridium"};
+const String gameNames[2] = {"pong", "helldivers II"};
 
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
@@ -466,7 +466,7 @@ void setup() {
   display.println("loading modules\n\n");
   display.print("made by\nCheet0sDelet0s");
   display.display();
-  delay(2000);
+  delay(500);
   if (!rtc.begin()) {
     Serial.println("Couldn't find RTC");
     Serial.flush();
@@ -1378,7 +1378,7 @@ void drawGameLibrary() {
     String name = gameNames[gameLibrary[i]];
     int lineLen = min((int)name.length(), maxCharsPerLine);
 
-    bool hovered = detectCursorTouch(itemX, itemY, itemBoxWidth, lineHeight * 2);
+    bool hovered = detectCursorTouch(itemX, itemY, itemBoxWidth, lineHeight);
     display.setTextColor(hovered ? SH110X_BLACK : SH110X_WHITE,
                         hovered ? SH110X_WHITE : SH110X_BLACK);
 
@@ -1563,7 +1563,17 @@ void drawSettings() {
       if (detectCursorTouch(0, 26, 102, 8)) {
         display.setTextColor(SH110X_BLACK, SH110X_WHITE);
         if (rightButtonState) {
-          settingsOption = 3;
+          settingsOption = 3;if (detectCursorTouch(0, 34, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          settingsOption = 4;
+        }
+      }
+
+      display.println("save manager");
+
+      display.setTextColor(SH110X_WHITE);
+      break;
         }
       }
 
@@ -1579,6 +1589,19 @@ void drawSettings() {
       }
 
       display.println("save manager");
+
+      display.setTextColor(SH110X_WHITE);
+
+      display.setCursor(0, 100);
+
+      if (detectCursorTouch(0, 100, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          esp_restart();
+        }
+      }
+
+      display.println("restart");
 
       display.setTextColor(SH110X_WHITE);
       break;

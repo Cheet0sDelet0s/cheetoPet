@@ -105,7 +105,8 @@ const size_t shakenLinesCount = sizeof(shakenLines) / sizeof(shakenLines[0]);
 
 const char* nouns[] = {
   "cat", "dog", "robot", "car", "tree", "bird", "house", "computer",
-  "book", "river", "mountain", "child", "city", "flower", "ocean", "star"
+  "book", "river", "mountain", "child", "city", "flower", "ocean", "star",
+  "music", "man", "woman", "goose"
 };
 
 const char* adjectives[] = {
@@ -114,15 +115,16 @@ const char* adjectives[] = {
 };
 
 const char* verbs[] = {
-  "runs", "jumps", "drives", "flies", "sings", "laughs", "shines", "whispers",
-  "dances", "climbs", "swims", "dreams", "wanders", "hides", "glows", "builds"
+  "run", "jump", "drive", "fly", "sing", "laugh", "shine", "whisper",
+  "dance", "climb", "swim", "dream", "wander", "hide", "glow", "build",
+  "fart"
 };
 
 
 const char* adverbs[] = {
   "quickly", "silently", "gracefully", "happily", "sadly", "loudly", "bravely",
   "carefully", "eagerly", "boldly", "slowly", "fiercely", "softly", "wildly",
-  "brightly", "gently"
+  "brightly", "gently", "musically"
 };
 
 const int nounCount = sizeof(nouns) / sizeof(nouns[0]);
@@ -131,15 +133,20 @@ const int verbCount = sizeof(verbs) / sizeof(verbs[0]);
 const int adverbCount = sizeof(adverbs) / sizeof(adverbs[0]);
 
 const char* templates[] = {
-  "the <adj> <noun> <verb> <adv>.",
-  "a <noun> that <adv> <verb> is very <adj>.",
-  "the <noun> <adv> <verb>.",
+  "the <adj> <noun> <verb>s <adv>.",
+  "a <noun> that <adv> <verb>s is very <adj>.",
+  "the <noun> <adv> <verb>s.",
   "you know theres a <adj> <noun> over there",
-  "idk, have you tried the <adj> <noun> that <verb> <adv>?",
-  "<adj> and <adj>, the <noun> <verb> <adj>",
+  "idk, have you tried the <adj> <noun> that <verb>s <adv>?",
+  "<adj> and <adj>, the <noun> <verb>s <adv>",
   "why does the <noun> <verb> so <adv>?",
-  "sometimes, the <adj> <noun> <verb> in the night",
-  "did you hear about the guy that <verb> through the <noun>?"
+  "sometimes, the <adj> <noun>s <verb> in the night",
+  "did you hear about the <noun> that <verb>s through the <noun>?",
+  "<adj> <noun> <noun>",
+  "the <adj> <noun> need not <verb> <adv> to become <adj>",
+  "yoo did you see the <noun>?",
+  "you sound so <adj> right now",
+  "im <verb>ing right now"
 };
 
 const int templateCount = sizeof(templates) / sizeof(templates[0]);
@@ -157,7 +164,7 @@ const char* randomVerb() {
 }
 
 const char* randomAdverb() {
-  return verbs[random(adverbCount)];
+  return adverbs[random(adverbCount)];
 }
 
 String generateSentence() {

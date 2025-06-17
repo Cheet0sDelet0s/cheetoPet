@@ -18,8 +18,8 @@ DRAM_ATTR bool stopApp = false;
 DRAM_ATTR float friction = 0.998;
 DRAM_ATTR float minHorizontalSpeed = 0.8;
 DRAM_ATTR float maxVerticalSpeed = 3;
-DRAM_ATTR float enemyX = 125;          // Opposite side of player
-DRAM_ATTR float enemyY = 30;           // Starting Y
+DRAM_ATTR float enemyPaddleX = 125;          // Opposite side of player
+DRAM_ATTR float enemyPaddleY = 30;           // Starting Y
 DRAM_ATTR int enemyHeight = 20;
 DRAM_ATTR float enemySpeed = 1.5;      // How fast the enemy moves (tweakable)
 DRAM_ATTR int enemyScore = 0;
@@ -32,10 +32,10 @@ void handlePongEnemyAI() {
     enemySpeed = 1.5 + (petPongLVL - 1) * 0.5;  // 1.5 to 2.5
     enemySpeed = constrain(enemySpeed, 0, 3);
 
-    if (ballY < enemyY + enemyHeight / 2) {
-      enemyY -= enemySpeed;
-    } else if (ballY > enemyY + enemyHeight / 2) {
-      enemyY += enemySpeed;
+    if (ballY < enemyPaddleY + enemyHeight / 2) {
+      enemyPaddleY -= enemySpeed;
+    } else if (ballY > enemyPaddleY + enemyHeight / 2) {
+      enemyPaddleY += enemySpeed;
     }
   }
 
@@ -47,16 +47,16 @@ void handlePongEnemyAI() {
       enemySpeed = 2.5 + (petPongLVL - 4) * 0.5;  // Up to 4.5
       enemySpeed = constrain(enemySpeed, 0, 5);
 
-      if (ballY < enemyY + enemyHeight / 2) {
-        enemyY -= enemySpeed;
-      } else if (ballY > enemyY + enemyHeight / 2) {
-        enemyY += enemySpeed;
+      if (ballY < enemyPaddleY + enemyHeight / 2) {
+        enemyPaddleY -= enemySpeed;
+      } else if (ballY > enemyPaddleY + enemyHeight / 2) {
+        enemyPaddleY += enemySpeed;
       }
     }
   }
 
   // Clamp enemy paddle within screen bounds
-  enemyY = constrain(enemyY, 0, 128 - enemyHeight);
+  enemyPaddleY = constrain(enemyPaddleY, 0, 128 - enemyHeight);
 }
 
 void drawPetLeveling(String levelType, float beginningXP, float gainedXP, int beginningLVL) {
@@ -173,7 +173,7 @@ void pong() { // PONG if you couldnt read
 
       
 
-      if (ballX <= paddleX + 4 && ballY >= paddleY - 2 && ballY <= paddleY + paddleHeight + 2) {
+      if (ballX <= paddleX + 4 + ballVX && ballY >= paddleY - 2  && ballY <= paddleY + paddleHeight + 2) {
         ballVX = abs(ballVX); // bounce right
         // Optionally change VY based on where it hit the paddle
         float offset = (ballY - (paddleY + paddleHeight / 2)) / (paddleHeight / 2) + random(-5, 5);
@@ -181,12 +181,12 @@ void pong() { // PONG if you couldnt read
         reEnergizeBall(1.1);
       }
 
-      if (ballX >= enemyX - 2 && 
-        ballY >= enemyY && ballY <= enemyY + enemyHeight) {
+      if (ballX >= enemyPaddleX - 2 + ballVX && 
+        ballY >= enemyPaddleY && ballY <= enemyPaddleY + enemyHeight) {
         ballVX = -abs(ballVX); // bounce left
        
         // Optional: add angle based on hit position
-        float offset = (ballY - (enemyY + enemyHeight / 2)) / (enemyHeight / 2);
+        float offset = (ballY - (enemyPaddleY + enemyHeight / 2)) / (enemyHeight / 2);
         ballVY += offset;
       }
 
@@ -217,7 +217,7 @@ void pong() { // PONG if you couldnt read
       display.fillCircle(ballX, ballY, 2, SH110X_WHITE);
       display.fillRect(paddleX, paddleY, 2, paddleHeight, SH110X_WHITE);
       display.fillRect(2, desiredPaddleY - 3, 2, 6, SH110X_WHITE);
-      display.fillRect(enemyX, enemyY, 2, enemyHeight, SH110X_WHITE);
+      display.fillRect(enemyPaddleX, enemyPaddleY, 2, enemyHeight, SH110X_WHITE);
       display.setCursor(0, 0);
       display.setTextSize(1);
       display.print(score);
