@@ -328,6 +328,4 @@ void veridium() {  //launch veridium
   }
   stopVeridium = false;
 
-  enemies = {};
-
 }

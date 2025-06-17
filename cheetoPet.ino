@@ -2232,8 +2232,6 @@ void loop() {
 
   updatePetNeeds();
 
-  
-
   rgb.setPixelColor(0, rgb.Color(angleX, angleY, angleZ));  // set led color to angle of device
   rgb.show();
 
