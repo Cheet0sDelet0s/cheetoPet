@@ -57,6 +57,10 @@ extern const unsigned char pet_gooseWalk2Mask[] PROGMEM;
 
 extern const unsigned char item_gravestone[] PROGMEM;
 
+extern const unsigned char pet_gooseSit[] PROGMEM;
+
+extern const unsigned char pet_gooseSitMask[] PROGMEM;
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;

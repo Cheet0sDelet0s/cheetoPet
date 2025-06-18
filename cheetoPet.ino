@@ -157,6 +157,7 @@ DRAM_ATTR int petMoveSpeed = 0;
 DRAM_ATTR bool movePet = false;
 DRAM_ATTR int petMoveAnim = 0;
 DRAM_ATTR int petDir = 1;
+DRAM_ATTR int petSitTimer = 0;
 
 DRAM_ATTR unsigned long lastUpdate = 0;
 
@@ -211,6 +212,21 @@ void drawCheckerboard(uint8_t squareSize = 8) {
   }
   display.display();
   delay(300);
+}
+
+bool isInArray(int item, int arr[], int arrSize) {
+  for (int i = 0; i < arrSize; i++) {
+    if (arr[i] == item) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void drawBitmapFromList(int16_t x, int16_t y, int dir, const uint8_t bitmapID, uint16_t color) {
+  const BitmapInfo& bmp = bitmaps[bitmapID];
+
+  drawBitmapWithDirection(x, y, dir, bmp.data, bmp.width, bmp.height, color);
 }
 
 void drawBitmapWithDirection(int16_t x, int16_t y, int dir, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color) {
@@ -273,6 +289,10 @@ void spiralFill(Adafruit_GFX &d, uint16_t color) {
     display.display();
     delay(5);  // Adjust delay for animation speed
   }
+}
+
+void sitPet(int time) {
+  petSitTimer = time;
 }
 
 void saveGameToEEPROM(bool showUI = true) {
@@ -378,9 +398,46 @@ void loadGameFromEEPROM() {
   delay(500);
 }
 
-void setVariablesFromSave() {
+void printSaveGame(const SaveGame& save) {
+  Serial.println("=== SaveGame ===");
 
+  Serial.print("Hunger: "); Serial.println(save.hunger);
+  Serial.print("Sleep: "); Serial.println(save.sleep);
+  Serial.print("Fun: "); Serial.println(save.fun);
+  Serial.print("Money: "); Serial.println(save.money);
+  Serial.print("Pong XP: "); Serial.println(save.pongXP);
+  Serial.print("Pong LVL: "); Serial.println(save.pongLVL);
+  
+  Serial.print("Inventory Items: "); Serial.println(save.inventItems);
+  Serial.print("Inventory: ");
+  for (uint8_t i = 0; i < save.inventItems && i < 8; i++) {
+    Serial.print(save.invent[i]);
+    Serial.print(i < save.inventItems - 1 ? ", " : "\n");
+  }
+
+  Serial.print("Food Inventory Items: "); Serial.println(save.foodInvItems);
+  Serial.print("Food Inventory: ");
+  for (uint8_t i = 0; i < save.foodInvItems && i < 8; i++) {
+    Serial.print(save.foodInv[i]);
+    Serial.print(i < save.foodInvItems - 1 ? ", " : "\n");
+  }
+
+  Serial.print("Placed Items: "); Serial.println(save.placedItems);
+  for (uint8_t i = 0; i < save.placedItems && i < 30; i++) {
+    Serial.print("  Placed["); Serial.print(i); Serial.print("]: ");
+    Serial.print(save.placed[i]);
+    Serial.print(" at (");
+    Serial.print(save.placedX[i]);
+    Serial.print(", ");
+    Serial.print(save.placedY[i]);
+    Serial.println(")");
+  }
+
+  Serial.print("Save Version: "); Serial.println(save.saveVersion);
+
+  Serial.println("================");
 }
+
 
 void drawBitmapFlippedX(int16_t x, int16_t y,
                                 const uint8_t *bitmap, int16_t w, int16_t h,
@@ -505,6 +562,8 @@ void setup() {
     } else if (rightButtonState) {
       saveGameToEEPROM();
       break;
+    } else if (middleButtonState) {
+      break;
     } else {
       display.clearDisplay();
       display.setTextSize(2);
@@ -626,8 +685,14 @@ void drawPet(int petNumber, int drawX, int drawY) {
     case 0:
       {
         if (movePet == false) {
-          drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBigMask, 17, 26, SH110X_BLACK);
-          drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBig, 16, 26, SH110X_WHITE);
+          if (petSitTimer > 0) {
+            drawBitmapFromList(drawX, drawY, petDir, 27, SH110X_BLACK);
+            drawBitmapFromList(drawX, drawY, petDir, 26, SH110X_WHITE);
+            petSitTimer--;
+          } else {
+            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBigMask, 18, 28, SH110X_BLACK);
+            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBig, 16, 26, SH110X_WHITE);
+          }
         } else {
           if (petMoveAnim < 3) {
             drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
@@ -1304,11 +1369,13 @@ int averageADC(int pin, int samples = 64) {
 
 
 void startMovingPet(int x, int y, int speed) {
-  petMoveX = x;
-  petMoveY = y;
-  petMoveSpeed = speed;
-  petMoveAnim = 0;
-  movePet = true;
+  if (petSitTimer < 1) {
+    petMoveX = x;
+    petMoveY = y;
+    petMoveSpeed = speed;
+    petMoveAnim = 0;
+    movePet = true;
+  }
 }
 
 void updatePetMovement() {
@@ -2088,15 +2155,27 @@ public:
       petMessage(generateSentence());
     }
 
+    
+    }
     if (movePet == false) {
       if (random(0, 100) == 1) {
         startMovingPet(random(0, 105), random(35, 100), 1);
+      } else if (random(0, 200) == 2) {
+        int index = indexOf(placedHomeItems, amountItemsPlaced, 3);
+        if (index != -1) {
+          int itemX = placedHomeItemsX[index];
+          int itemY = placedHomeItemsY[index];
+          if (petX != itemX || petY != itemY) {
+          startMovingPet(itemX, itemY, 2);
+          } else {
+            if (petSitTimer < 5) {
+              sitPet(1000);
+            }
+          }
+        }
       }
     }
     return SUCCESS;
-  } else {
-    return RUNNING;
-  }
   }
 };
 
@@ -2208,11 +2287,9 @@ DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() 
                                       new Idle() });
 
 void loop() {
-  
   if (totalG > 11) {   //kinda funny but annoying
     killPet("got shaken to death"); 
   }
-  
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval) {
@@ -2222,16 +2299,12 @@ void loop() {
       updatePetMovement();
     }
   }
-
   tree->tick();  //behaviour tree update
 
-  
   DateTime now = rtc.now();
 
   //Serial.println(now.second());
-
   updatePetNeeds();
-
   rgb.setPixelColor(0, rgb.Color(angleX, angleY, angleZ));  // set led color to angle of device
   rgb.show();
 
@@ -2266,7 +2339,7 @@ void loop() {
     cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
   }
   drawHomeItems();
-
+  Serial.println("drawn home items");
   if (movingPet) {
     petX = cursorX;
     petY = cursorY;
