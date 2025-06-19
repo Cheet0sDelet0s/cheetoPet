@@ -686,19 +686,19 @@ void drawPet(int petNumber, int drawX, int drawY) {
       {
         if (movePet == false) {
           if (petSitTimer > 0) {
-            drawBitmapFromList(drawX, drawY, petDir, 27, SH110X_BLACK);
+            drawBitmapFromList(drawX - 1, drawY - 1, petDir, 27, SH110X_BLACK);
             drawBitmapFromList(drawX, drawY, petDir, 26, SH110X_WHITE);
             petSitTimer--;
           } else {
-            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBigMask, 18, 28, SH110X_BLACK);
+            drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseStillBigMask, 18, 28, SH110X_BLACK);
             drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBig, 16, 26, SH110X_WHITE);
           }
         } else {
           if (petMoveAnim < 3) {
-            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
+            drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
             drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk, 16, 26, SH110X_WHITE);
           } else {
-            drawBitmapWithDirection(drawX, drawY+1, petDir, pet_gooseWalk2Mask, 19, 26, SH110X_BLACK);
+            drawBitmapWithDirection(drawX - 1, drawY, petDir, pet_gooseWalk2Mask, 19, 26, SH110X_BLACK);
             drawBitmapWithDirection(drawX, drawY+1, petDir, pet_gooseWalk2, 17, 25, SH110X_WHITE);
           }
         }
