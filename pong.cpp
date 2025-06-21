@@ -173,7 +173,7 @@ void pong() { // PONG if you couldnt read
 
       
 
-      if (ballX <= paddleX + 4 + ballVX && ballY >= paddleY - 2  && ballY <= paddleY + paddleHeight + 2) {
+      if (ballX <= paddleX + 4 + ballVX * -1 && ballY >= paddleY - 2  && ballY <= paddleY + paddleHeight + 2) {
         ballVX = abs(ballVX); // bounce right
         // Optionally change VY based on where it hit the paddle
         float offset = (ballY - (paddleY + paddleHeight / 2)) / (paddleHeight / 2) + random(-5, 5);

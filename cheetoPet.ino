@@ -158,6 +158,7 @@ DRAM_ATTR bool movePet = false;
 DRAM_ATTR int petMoveAnim = 0;
 DRAM_ATTR int petDir = 1;
 DRAM_ATTR int petSitTimer = 0;
+DRAM_ATTR int petStatus = 0;
 
 DRAM_ATTR unsigned long lastUpdate = 0;
 
@@ -2160,22 +2161,50 @@ public:
     if (movePet == false) {
       if (random(0, 100) == 1) {
         startMovingPet(random(0, 105), random(35, 100), 1);
-      } else if (random(0, 200) == 2) {
-        int index = indexOf(placedHomeItems, amountItemsPlaced, 3);
-        if (index != -1) {
-          int itemX = placedHomeItemsX[index];
-          int itemY = placedHomeItemsY[index];
-          if (petX != itemX || petY != itemY) {
-          startMovingPet(itemX, itemY, 2);
-          } else {
-            if (petSitTimer < 5) {
-              sitPet(1000);
-            }
-          }
-        }
       }
     }
     return SUCCESS;
+  }
+};
+
+class WantToSitOnCouch : public Node {
+public:
+  NodeStatus tick() override {
+    if ((petStatus == 1 || petStatus == 0) && (petSitTimer < 5 && movePet == false)) {
+      return SUCCESS;
+    }
+    return FAILURE;
+  }
+};
+
+class IsCouchAvailable : public Node {
+public:
+  NodeStatus tick() override {
+    if (indexOf(placedHomeItems, amountItemsPlaced, 3) != -1) {
+      return SUCCESS; 
+    } else {
+      return FAILURE;
+    }
+  }
+};
+
+class SitOnCouch : public Node {
+public:
+  NodeStatus tick() override {
+    if (petStatus == 1) {
+      int index = indexOf(placedHomeItems, amountItemsPlaced, 3);
+      if (index != -1) {
+        int itemX = placedHomeItemsX[index] + 4;
+        int itemY = placedHomeItemsY[index] + 2;
+        if (petX != itemX || petY != itemY) {
+          startMovingPet(itemX, itemY, 2);
+        } else {
+          sitPet(200);
+          petStatus = 0;
+        }
+      }  
+    }
+  return SUCCESS;
   }
 };
 
@@ -2284,7 +2313,9 @@ DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() 
                                       new Sequence({ new IsHungry(), new AskForFood() }),
                                       new Sequence({ new IsTired(), new AskForSleep() }),
                                       new Sequence({ new IsBored(), new AskForPlay() }),
-                                      new Idle() });
+                                      new Sequence({ new WantToSitOnCouch(), new IsCouchAvailable(), new SitOnCouch() }),
+                                      new Idle()
+                                      });
 
 void loop() {
   if (totalG > 11) {   //kinda funny but annoying
