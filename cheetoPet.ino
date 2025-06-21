@@ -30,10 +30,6 @@ you dont have to, but it would be great if you could credit me if you use any of
 #define LED_PIN 8
 #define LED_COUNT 1
 #define SWITCH_PIN GPIO_NUM_0
-#define BATT_PIN GPIO_NUM_3
-const float voltageDividerRatio = 2.0;  // R1 + R2 = 2x actual
-#define ADC_MAX 4095       // 12-bit ADC
-#define REF_VOLTAGE 3.7    // ADC reference voltage
 
 Adafruit_NeoPixel rgb(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -501,7 +497,6 @@ void setup() {
   if (digitalRead(SWITCH_PIN) == LOW) {
     esp_deep_sleep_start();
   }
-  pinMode(BATT_PIN, INPUT);
   pinMode(leftButton, INPUT_PULLUP);
   pinMode(middleButton, INPUT_PULLUP);
   pinMode(rightButton, INPUT_PULLUP);
