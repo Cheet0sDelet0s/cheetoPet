@@ -2448,7 +2448,7 @@ void loop() {
 
     petSleep += minutesSinceSlept;
     
-    petHunger -= minutesSinceSlept / 10;
+    petHunger -= minutesSinceSlept / 30;
     
     petSleep = constrain(petSleep, 0, 120);
 
