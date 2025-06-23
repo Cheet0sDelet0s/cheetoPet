@@ -138,9 +138,9 @@ DRAM_ATTR int cursorBitmap = 14;
 
 DRAM_ATTR int uiTimer = 100;
 
-DRAM_ATTR int petHunger = 50;
-DRAM_ATTR int petFun = 50;
-DRAM_ATTR int petSleep = 50;
+DRAM_ATTR int petHunger = 60;
+DRAM_ATTR int petFun = 60;
+DRAM_ATTR int petSleep = 60;
 DRAM_ATTR int petX = 64;
 DRAM_ATTR int petY = 32;
 DRAM_ATTR bool showPetMenu = false;
@@ -2165,9 +2165,11 @@ public:
 class WantToSitOnCouch : public Node {
 public:
   NodeStatus tick() override {
-    if ((petStatus == 1 || petStatus == 0) && (petSitTimer < 5 && movePet == false)) {
+    if ((petStatus == 1) || (petStatus == 0 && (petSitTimer < 5) && random(0, 300) == 1)) {
+      Serial.println("wanting to sit on couch");
       return SUCCESS;
     }
+    Serial.println("not wanting to sit on couch");
     return FAILURE;
   }
 };
@@ -2191,15 +2193,18 @@ public:
       if (index != -1) {
         int itemX = placedHomeItemsX[index] + 4;
         int itemY = placedHomeItemsY[index] + 2;
-        if (petX != itemX || petY != itemY) {
-          startMovingPet(itemX, itemY, 2);
-        } else {
+        startMovingPet(itemX, itemY, 2);
+        Serial.println("moving pet to couch");
+        if (petX == itemX && petY == itemY) {
+          Serial.println("pet has reached couch");
           sitPet(200);
           petStatus = 0;
+          return SUCCESS;
+        } else {
+          return RUNNING;
         }
       }  
     }
-  return SUCCESS;
   }
 };
 
@@ -2326,6 +2331,7 @@ void loop() {
     }
   }
   tree->tick();  //behaviour tree update
+  Serial.println(petStatus);
 
   DateTime now = rtc.now();
 
@@ -2365,7 +2371,6 @@ void loop() {
     cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
   }
   drawHomeItems();
-  Serial.println("drawn home items");
   if (movingPet) {
     petX = cursorX;
     petY = cursorY;

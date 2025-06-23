@@ -117,13 +117,13 @@ void pong() { // PONG if you couldnt read
         stopApp = true;
       }
       if (leftButtonState) {
-        angleY = 0;
+        angleY = 60;
       }
       constrain(angleY + 64, 0, 126);
 
       float desiredPaddleY = angleY;
 
-      float paddleYDiff = abs(paddleY - desiredPaddleY);
+      float paddleYDiff = abs(paddleY - 4 - desiredPaddleY);
 
       if (paddleYDiff >= paddleHeight) {
         if (desiredPaddleY < paddleY + paddleHeight) {
@@ -172,23 +172,35 @@ void pong() { // PONG if you couldnt read
       }
 
       
+      // Store last frame's ball position
+      float lastBallX = ballX - ballVX;
+      float lastBallY = ballY - ballVY;
 
-      if (ballX <= paddleX + 4 + ballVX * -1 && ballY >= paddleY - 2  && ballY <= paddleY + paddleHeight + 2) {
-        ballVX = abs(ballVX); // bounce right
-        // Optionally change VY based on where it hit the paddle
+      // Ball is moving left toward player paddle
+      if (ballVX < 0 &&
+          lastBallX >= paddleX + 4 &&  // was to the right of paddle
+          ballX <= paddleX + 4 &&      // now is to the left of paddle
+          ballY >= paddleY - 2 &&
+          ballY <= paddleY + paddleHeight + 2) {
+
+        ballVX = abs(ballVX);
         float offset = (ballY - (paddleY + paddleHeight / 2)) / (paddleHeight / 2) + random(-5, 5);
-        ballVY += offset * 2; // add a bit of vertical variation
+        ballVY += offset * 2;
         reEnergizeBall(1.1);
       }
 
-      if (ballX >= enemyPaddleX - 2 + ballVX && 
-        ballY >= enemyPaddleY && ballY <= enemyPaddleY + enemyHeight) {
-        ballVX = -abs(ballVX); // bounce left
-       
-        // Optional: add angle based on hit position
+      // Ball is moving right toward enemy paddle
+      if (ballVX > 0 &&
+          lastBallX <= enemyPaddleX - 2 &&  // was to the left
+          ballX >= enemyPaddleX - 2 &&     // now is to the right
+          ballY >= enemyPaddleY &&
+          ballY <= enemyPaddleY + enemyHeight) {
+
+        ballVX = -abs(ballVX);
         float offset = (ballY - (enemyPaddleY + enemyHeight / 2)) / (enemyHeight / 2);
         ballVY += offset;
       }
+
 
       if (ballY <= 0) {
         ballY = 0;
