@@ -279,7 +279,8 @@ const BitmapInfo bitmaps[] = {
   { item_gravestone, 32, 33},         //25
   { pet_gooseSit, 19, 26},            //26
   { pet_gooseSitMask, 21, 28},        //27
-  { pet_gooseMarshmellow, 17, 26}
+  { pet_gooseMarshmellow, 17, 26},    //28
+  { pet_gooseMarshmellowMask, 19, 28} //29
 };
 
 String displayNames[] = {
@@ -310,5 +311,7 @@ String displayNames[] = {
   { "goose" },          //24
   { "gravestone"},      //25
   { "goose" },          //26
-  { "goose" }           //27
+  { "goose" },          //27
+  { "goose" },          //28
+  { "goose" }           //29
 };

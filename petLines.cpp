@@ -103,6 +103,17 @@ DRAM_ATTR String shakenLines[] = {
 
 const size_t shakenLinesCount = sizeof(shakenLines) / sizeof(shakenLines[0]);
 
+DRAM_ATTR String fireplaceLines[] = {
+  "toasty",
+  "i love marshmellow",
+  "consuming",
+  "the chair cannot cook marshmellows",
+  "popcorn",
+  "would you like a marshmellow?"
+};
+
+const size_t fireplaceLinesCount = sizeof(fireplaceLines) / sizeof(fireplaceLines[0]);
+
 const char* nouns[] = {
   "cat", "dog", "robot", "car", "tree", "bird", "house", "computer",
   "book", "river", "mountain", "child", "city", "flower", "ocean", "star",

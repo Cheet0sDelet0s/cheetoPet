@@ -154,6 +154,7 @@ DRAM_ATTR bool movePet = false;
 DRAM_ATTR int petMoveAnim = 0;
 DRAM_ATTR int petDir = 1;
 DRAM_ATTR int petSitTimer = 0;
+DRAM_ATTR int petSitType = 0;
 DRAM_ATTR int petStatus = 0;
 
 DRAM_ATTR unsigned long lastUpdate = 0;
@@ -288,8 +289,9 @@ void spiralFill(Adafruit_GFX &d, uint16_t color) {
   }
 }
 
-void sitPet(int time) {
+void sitPet(int time, int type = 26) {
   petSitTimer = time;
+  petSitType = type;
 }
 
 void saveGameToEEPROM(bool showUI = true) {
@@ -680,10 +682,10 @@ void drawPet(int petNumber, int drawX, int drawY) {
   switch (petNumber) {
     case 0:
       {
-        if (movePet == false) {
+        if (!movePet) {
           if (petSitTimer > 0) {
-            drawBitmapFromList(drawX - 1, drawY - 1, petDir, 27, SH110X_BLACK);
-            drawBitmapFromList(drawX, drawY, petDir, 26, SH110X_WHITE);
+            drawBitmapFromList(drawX - 1, drawY - 1, petDir, petSitType + 1, SH110X_BLACK);
+            drawBitmapFromList(drawX, drawY, petDir, petSitType, SH110X_WHITE);
             petSitTimer--;
           } else {
             drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseStillBigMask, 18, 28, SH110X_BLACK);
@@ -2027,7 +2029,7 @@ void runSaveInterval() {
 }
 
 bool checkItemIsPlaced(int item) {
-  return indexOf(placedHomeItems, amountItemsPlaced, item) != -1);
+  return (indexOf(placedHomeItems, amountItemsPlaced, item) != -1);
 }
 
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
@@ -2101,54 +2103,36 @@ public:
 class AskForFood : public Node {
 public:
   NodeStatus tick() override {
-    if (messageDisplayTime >= messageMaxTime) {
-    if (random(0, 50) == 1) {
-      int messageRandomiser = random(0, hungryLinesCount);
-      petMessage(hungryLines[messageRandomiser]);
-      return SUCCESS;
-    } else {
+    if (messageDisplayTime < messageMaxTime || random(0, 50) != 1) {
       return RUNNING;
     }
-    } else {
-      return RUNNING;
-    }
-    
+    int messageRandomiser = random(0, hungryLinesCount);
+    petMessage(hungryLines[messageRandomiser]);
+    return SUCCESS;   
   } 
 };
 
 class AskForPlay : public Node {
 public:
   NodeStatus tick() override {
-    if (messageDisplayTime >= messageMaxTime) {
-    if (random(0, 50) == 1) {
-      int messageRandomiser = random(0, boredLinesCount);
-      petMessage(boredLines[messageRandomiser]);
-      return SUCCESS;
-    } else {
+    if (messageDisplayTime < messageMaxTime || random(0, 50) != 1) {
       return RUNNING;
     }
-    } else {
-      return RUNNING;
-    }
-    
+    int messageRandomiser = random(0, boredLinesCount);
+    petMessage(boredLines[messageRandomiser]);
+    return SUCCESS;
   } 
 };
 
 class AskForSleep : public Node {
 public:
   NodeStatus tick() override {
-    if (messageDisplayTime >= messageMaxTime) {
-    if (random(0, 50) == 1) {
-      int messageRandomiser = random(0, tiredLinesCount);
-      petMessage(tiredLines[messageRandomiser]);
-      return SUCCESS;
-    } else {
+    if (messageDisplayTime < messageMaxTime || random(0, 50) != 1) {
       return RUNNING;
     }
-    } else {
-      return RUNNING;
-    }
-    
+    int messageRandomiser = random(0, tiredLinesCount);
+    petMessage(tiredLines[messageRandomiser]);
+    return SUCCESS;
   } 
 };
 
@@ -2166,7 +2150,7 @@ public:
 
     
     }
-    if (movePet == false) {
+    if (!movePet) {
       if (random(0, 100) == 1) {
         startMovingPet(random(0, 105), random(35, 100), 1);
       }
@@ -2178,44 +2162,44 @@ public:
 class WantToUseFireplace : public Node {
 public:
   NodeStatus tick() override {
-    if (petStatus == 2 || (petStatus == 0 && (petSitTimer < 5) && random(0, 300) == 1)) {
+    if (petStatus == 2 || (petStatus == 0 && (petSitTimer < 5) && random(0, 500) == 1)) {
       petStatus = 2;
       return SUCCESS;
     }
     return FAILURE;
   }
-}
+};
 
 class UseFireplace : public Node {
 public:
   NodeStatus tick() override {
     if (checkItemIsPlaced(5)) {
-      int index = indexOf(placedHomeItems, amountItemsPlaced, 3);
-      int itemX = placedHomeItemsX[index] + 10;
+      int index = indexOf(placedHomeItems, amountItemsPlaced, 5);
+      int itemX = placedHomeItemsX[index] - 15;
       int itemY = placedHomeItemsY[index] + 3;
-      if (movePet == false) {
+      if (!movePet) {
         startMovingPet(itemX, itemY, 2);
       }
       Serial.println("moving pet to fireplace");
       if (petX == itemX && petY == itemY) {
         Serial.println("pet has reached fireplace");
-        sitPet(200);
+        sitPet(200, 28);
+        petHunger += 5;
+        petMessage(fireplaceLines[random(0, fireplaceLinesCount)]);
         petStatus = 0;
         return SUCCESS;
-      } else {
-        return RUNNING;
-      }
-    } else {
-      petStatus = 0;
-      return FAILURE;
+      } 
+      return RUNNING;
     }
+    petStatus = 0;
+    return FAILURE;
   }
-}
+};
 
 class WantToSitOnCouch : public Node {
 public:
   NodeStatus tick() override {
-    if (petStatus == 1 || (petStatus == 0 && (petSitTimer < 5) && random(0, 300) == 1)) {
+    if (petStatus == 1 || (petStatus == 0 && (petSitTimer < 5) && random(0, 500) == 1)) {
       Serial.println("wanting to sit on couch");
       petStatus = 1;
       return SUCCESS;
@@ -2245,7 +2229,7 @@ public:
       if (index != -1) {
         int itemX = placedHomeItemsX[index] + 4;
         int itemY = placedHomeItemsY[index] + 2;
-        if (movePet == false) {
+        if (!movePet) {
           startMovingPet(itemX, itemY, 2);
         }
         Serial.println("moving pet to couch");
@@ -2367,6 +2351,7 @@ DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() 
                                       new Sequence({ new IsHungry(), new AskForFood() }),
                                       new Sequence({ new IsTired(), new AskForSleep() }),
                                       new Sequence({ new IsBored(), new AskForPlay() }),
+                                      new Sequence({ new WantToUseFireplace(), new UseFireplace() }) ,
                                       new Sequence({ new WantToSitOnCouch(), new IsCouchAvailable(), new SitOnCouch() }),
                                       new Idle()
                                       });
