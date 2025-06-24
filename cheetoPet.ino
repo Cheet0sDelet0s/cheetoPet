@@ -1081,14 +1081,14 @@ void drawEmotionUI() {
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
   display.print("HUN: ");
   display.print(petHunger);
-  if (petHunger < 50) {
+  if (petHunger < 30) {
     display.println("!");
   } else {
     display.println("");
   }
   display.print("FUN: ");
   display.print(petFun);
-  if (petFun < 50) {
+  if (petFun < 40) {
     display.println("!");
   } else {
     display.println("");
@@ -1197,10 +1197,13 @@ void drawPetMenu() {
   int petMenuY = petY + 10;
   display.fillRoundRect(petMenuX, petMenuY, 30, 50, 2, SH110X_WHITE);
   display.drawFastHLine(petMenuX + 1, petMenuY + 10, 28, SH110X_BLACK);
+  display.drawFastHLine(petMenuX + 1, petMenuY + 20, 28, SH110X_BLACK);
   display.setTextColor(SH110X_BLACK);
   display.setTextSize(1);
   display.setCursor(petMenuX + 1, petMenuY + 1);
   display.print("move");
+  display.setCursor(petMenuX + 1, petMenuY + 11);
+  display.print("pet");
   display.setTextColor(SH110X_WHITE);
   updateButtonStates();
   if (rightButtonState) {
@@ -1210,6 +1213,11 @@ void drawPetMenu() {
       movingPet = true;
       waitForSelectRelease();
       showPetMenu = false;
+    } else if (detectCursorTouch(petMenuX, petMenuY + 10, 30, 10)) {
+      petFun += random(0, 3);
+      showPetMenu = false;
+      petMessage("glorb");
+      waitForSelectRelease();
     }
   }
 }
@@ -2017,6 +2025,11 @@ void runSaveInterval() {
     lastRunTime = now;
   }
 }
+
+bool checkItemIsPlaced(int item) {
+  return indexOf(placedHomeItems, amountItemsPlaced, item) != -1);
+}
+
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
 DRAM_ATTR enum NodeStatus { SUCCESS,
                             FAILURE,
@@ -2060,14 +2073,14 @@ public:
 class IsHungry : public Node {
 public:
   NodeStatus tick() override {
-    return (petHunger < 50) ? SUCCESS : FAILURE;
+    return (petHunger < 30) ? SUCCESS : FAILURE;
   }
 };
 
 class IsBored : public Node {
 public:
   NodeStatus tick() override {
-    return (petFun < 50) ? SUCCESS : FAILURE;
+    return (petFun < 40) ? SUCCESS : FAILURE;
   }
 };
 
@@ -2162,11 +2175,49 @@ public:
   }
 };
 
+class WantToUseFireplace : public Node {
+public:
+  NodeStatus tick() override {
+    if (petStatus == 2 || (petStatus == 0 && (petSitTimer < 5) && random(0, 300) == 1)) {
+      petStatus = 2;
+      return SUCCESS;
+    }
+    return FAILURE;
+  }
+}
+
+class UseFireplace : public Node {
+public:
+  NodeStatus tick() override {
+    if (checkItemIsPlaced(5)) {
+      int index = indexOf(placedHomeItems, amountItemsPlaced, 3);
+      int itemX = placedHomeItemsX[index] + 10;
+      int itemY = placedHomeItemsY[index] + 3;
+      if (movePet == false) {
+        startMovingPet(itemX, itemY, 2);
+      }
+      Serial.println("moving pet to fireplace");
+      if (petX == itemX && petY == itemY) {
+        Serial.println("pet has reached fireplace");
+        sitPet(200);
+        petStatus = 0;
+        return SUCCESS;
+      } else {
+        return RUNNING;
+      }
+    } else {
+      petStatus = 0;
+      return FAILURE;
+    }
+  }
+}
+
 class WantToSitOnCouch : public Node {
 public:
   NodeStatus tick() override {
-    if ((petStatus == 1) || (petStatus == 0 && (petSitTimer < 5) && random(0, 300) == 1)) {
+    if (petStatus == 1 || (petStatus == 0 && (petSitTimer < 5) && random(0, 300) == 1)) {
       Serial.println("wanting to sit on couch");
+      petStatus = 1;
       return SUCCESS;
     }
     Serial.println("not wanting to sit on couch");
@@ -2180,6 +2231,7 @@ public:
     if (indexOf(placedHomeItems, amountItemsPlaced, 3) != -1) {
       return SUCCESS; 
     } else {
+      petStatus = 0;
       return FAILURE;
     }
   }
@@ -2193,7 +2245,9 @@ public:
       if (index != -1) {
         int itemX = placedHomeItemsX[index] + 4;
         int itemY = placedHomeItemsY[index] + 2;
-        startMovingPet(itemX, itemY, 2);
+        if (movePet == false) {
+          startMovingPet(itemX, itemY, 2);
+        }
         Serial.println("moving pet to couch");
         if (petX == itemX && petY == itemY) {
           Serial.println("pet has reached couch");
