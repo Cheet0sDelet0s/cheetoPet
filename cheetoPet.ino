@@ -24,6 +24,7 @@ you dont have to, but it would be great if you could credit me if you use any of
 #include "eepromHandler.h"
 #include "pong.h"
 #include "veridium.h"
+#include "flappybird.h"
 
 #define SDA_ALT 20
 #define SCL_ALT 9
@@ -74,9 +75,6 @@ DRAM_ATTR int settingsOption = 0;
 DRAM_ATTR int selectedField = 0; // 0=year, 1=month, 2=day, 3=hour, 4=minute
 DRAM_ATTR bool editingTime = false;
 
-//debug
-DRAM_ATTR int handleItemsGotThrough = 0;
-
 RTC_DS3231 rtc;
 DateTime tempDateTime;
 MPU9250_asukiaaa mpu(0x69);
@@ -108,10 +106,10 @@ DRAM_ATTR int placedFoodY[10] = {};
 DRAM_ATTR bool handleFoodPlacing = false;
 
 //game library
-DRAM_ATTR int gameLibrary[8] = { 0, 1 };
-DRAM_ATTR int gameLibraryCount = 2;
+DRAM_ATTR int gameLibrary[8] = { 0, 1, 2};
+DRAM_ATTR int gameLibraryCount = 3;
 
-const String gameNames[2] = {"pong", "helldivers II"};
+const String gameNames[3] = {"pong", "veridium", "flappy bird"};
 
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
@@ -135,6 +133,7 @@ DRAM_ATTR int cursorY = 500;
 DRAM_ATTR bool shouldDrawCursor = false;
 DRAM_ATTR float cursorTimer = 0;
 DRAM_ATTR int cursorBitmap = 14;
+DRAM_ATTR float loadIndicator = 0;
 
 DRAM_ATTR int uiTimer = 100;
 
@@ -178,6 +177,67 @@ DRAM_ATTR int gyroSensitivityZ = 3;
 DRAM_ATTR int loopDelay = 5;
 
 DRAM_ATTR SaveGame currentSaveGame;
+
+void testdrawline() {   // -- by adafruit from their SH1107_128x128.ino example
+  int16_t i;
+
+  display.clearDisplay(); // Clear display buffer
+
+  for(i=0; i<display.width(); i+=4) {
+    display.drawLine(0, 0, i, display.height()-1, SH110X_WHITE);
+    display.display(); // Update screen with each newly-drawn line
+    delay(1);
+  }
+  for(i=0; i<display.height(); i+=4) {
+    display.drawLine(0, 0, display.width()-1, i, SH110X_WHITE);
+    display.display();
+    delay(1);
+  }
+  delay(250);
+
+  display.clearDisplay();
+
+  for(i=0; i<display.width(); i+=4) {
+    display.drawLine(0, display.height()-1, i, 0, SH110X_WHITE);
+    display.display();
+    delay(1);
+  }
+  for(i=display.height()-1; i>=0; i-=4) {
+    display.drawLine(0, display.height()-1, display.width()-1, i, SH110X_WHITE);
+    display.display();
+    delay(1);
+  }
+  delay(250);
+
+  display.clearDisplay();
+
+  for(i=display.width()-1; i>=0; i-=4) {
+    display.drawLine(display.width()-1, display.height()-1, i, 0, SH110X_WHITE);
+    display.display();
+    delay(1);
+  }
+  for(i=display.height()-1; i>=0; i-=4) {
+    display.drawLine(display.width()-1, display.height()-1, 0, i, SH110X_WHITE);
+    display.display();
+    delay(1);
+  }
+  delay(250);
+
+  display.clearDisplay();
+
+  for(i=0; i<display.height(); i+=4) {
+    display.drawLine(display.width()-1, 0, 0, i, SH110X_WHITE);
+    display.display();
+    delay(1);
+  }
+  for(i=0; i<display.width(); i+=4) {
+    display.drawLine(display.width()-1, 0, i, display.height()-1, SH110X_WHITE);
+    display.display();
+    delay(1);
+  }
+
+  delay(2000); // Pause for 2 seconds
+}
 
 void petMessage(String message) {
   currentPetMessage = message;
@@ -468,6 +528,14 @@ void mpu9250_wake() {
   Wire.endTransmission();
 }
 
+void prepareForSleepyTime() {
+  display.clearDisplay();
+  display.display();
+  rgb.setPixelColor(0, rgb.Color(0, 0, 0));
+  rgb.show();
+  mpu9250_sleep();
+}
+
 void printPlacedHomeItems() {
   for (int i = 0; i < amountItemsPlaced; i++) {
     Serial.print(placedHomeItems[i]);
@@ -496,9 +564,6 @@ int indexOf(int array[], int length, int target) {
 
 void setup() {
   pinMode(SWITCH_PIN, INPUT_PULLUP);
-  if (digitalRead(SWITCH_PIN) == LOW) {
-    esp_deep_sleep_start();
-  }
   pinMode(leftButton, INPUT_PULLUP);
   pinMode(middleButton, INPUT_PULLUP);
   pinMode(rightButton, INPUT_PULLUP);
@@ -536,7 +601,8 @@ void setup() {
     // Set the RTC to the current date & time
     rtc.adjust(DateTime(2025, 6, 6, 7, 53, 0));
     display.clearDisplay();
-    display.println("rtc module lost power! time and date has been reset. oh dear. booting in 5 secs");
+    display.println("rtc module lost power! time, date and save data has been reset. oh dear. booting in 5 secs");
+    display.println("make sure the coin cell didnt fall out or has lost charge!");
     display.display();
     delay(5000);
   }
@@ -550,16 +616,32 @@ void setup() {
   rgb.show();             // Initialize all pixels to 'off'
 
   lastUpdate = millis();
-
-  while (1) {
+  bool readyToStart = false;
+  while (!readyToStart) {
       updateButtonStates();
       if (leftButtonState) {
       //load game
       loadGameFromEEPROM();
       break;
     } else if (rightButtonState) {
-      saveGameToEEPROM();
-      break;
+      display.clearDisplay();
+      drawCenteredText(display, "are you sure?", 0);
+      drawCenteredText(display, "A = yes", 10);
+      drawCenteredText(display, "B = no", 20);
+      display.display();
+      bool confirmed = false;
+      waitForSelectRelease();
+      while (!confirmed) {
+        updateButtonStates();
+        if (rightButtonState) {confirmed = true;}
+        if (leftButtonState) {break;}
+        delay(50);
+      }
+      if (confirmed) {
+        saveGameToEEPROM();
+        readyToStart = true;
+        break;
+      }      
     } else if (middleButtonState) {
       break;
     } else {
@@ -573,6 +655,7 @@ void setup() {
       display.print("B: continue");
       display.setCursor(91, 118);
       display.print("new: A");
+      drawCenteredText(display, "X: RAM game", 105);
       display.display();
     }
   }
@@ -624,7 +707,7 @@ void killPet(String deathReason = "") {
     display.println("we are sorry\nfor your loss.");
     display.display();
     delay(500);
-    display.println("press SELECT to\nrestart.");
+    display.println("press A to\nrestart.");
     display.display();
     updateButtonStates();
     while(!rightButtonState) {updateButtonStates();}
@@ -676,6 +759,7 @@ void drawCursor() {
 
   const BitmapInfo& bmp = bitmaps[cursorBitmap];
   display.drawBitmap(cursorX, cursorY, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
+  display.fillRect(cursorX, cursorY + bmp.height + 3, loadIndicator, 2, SH110X_WHITE);
 }
 
 void drawPet(int petNumber, int drawX, int drawY) {
@@ -1112,9 +1196,27 @@ void drawHomeItems() {
 
   for (int i = 0; i < amountItemsPlaced; i++) {
     const BitmapInfo& bmp = bitmaps[placedHomeItems[i]];
-    display.drawBitmap(placedHomeItemsX[i], placedHomeItemsY[i], bmp.data, bmp.width, bmp.height, SH110X_WHITE);
+    int x = placedHomeItemsX[i];
+    int y = placedHomeItemsY[i];
+
+    display.drawBitmap(x, y, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
     if (placedHomeItems[i] == 5) {
-      display.fillRect(placedHomeItemsX[i] + 6, placedHomeItemsY[i], 3, -27, SH110X_WHITE);
+      display.fillRect(x + 6, y, 3, -27, SH110X_WHITE);
+    }
+    updateButtonStates();
+    if (detectCursorTouch(x, y, bmp.width, bmp.height)) {
+      if (rightButtonState && loadIndicator > 9) {
+        int itemIndex = placedHomeItems[i];
+        removeFromList(placedHomeItems, amountItemsPlaced, placedHomeItems[i]);
+        removeFromList(placedHomeItemsX, amountItemsPlaced, placedHomeItemsX[i]);
+        removeFromList(placedHomeItemsY, amountItemsPlaced, placedHomeItemsY[i]);
+
+        amountItemsPlaced -= 1;
+        addToList(inventory, inventoryItems, 8, itemIndex);
+        loadIndicator = 0;
+      } else if (rightButtonState) {
+        loadIndicator++;
+      }
     }
   }
 
@@ -1128,7 +1230,6 @@ void handleItemPlacing() {
   Serial.println(rightButtonState);
   Serial.println(itemBeingPlaced);
 
-  handleItemsGotThrough++;
   startHandlingPlacing = false;
   int placedCount = amountItemsPlaced;
   addToList(placedHomeItems, placedCount, 30, itemBeingPlaced);
@@ -1162,7 +1263,6 @@ void handleFoodPlacingLogic() {
   Serial.println(rightButtonState);
   Serial.println(itemBeingPlaced);
 
-  handleItemsGotThrough++;
   handleFoodPlacing = false;
   int placedCount = amountFoodPlaced;
   addToList(placedFood, placedCount, 10, itemBeingPlaced);
@@ -1434,7 +1534,7 @@ void drawGameLibrary() {
   display.setTextColor(SH110X_WHITE);
   display.print("games: ");
   display.print(gameLibraryCount);
-  display.print("/2");
+  display.print("/3");
 
   int charWidth = 6;     // Approximate width of one character
   int lineHeight = 8;    // Height of one text line
@@ -1459,9 +1559,12 @@ void drawGameLibrary() {
       if (name == "pong") {
         drawCheckerboard(petPongLVL + 1);
         pong();
-      } else {
+      } else if (name == "veridium") {
         drawCheckerboard(petVeridiumLVL + 1);
         veridium();
+      } else {
+        drawCheckerboard(2);
+        flappyBird();
       }
       waitForSelectRelease();
     }
@@ -1591,11 +1694,7 @@ bool drawCenteredButton(String label, int y) {
   display.print(label);
   display.setTextColor(SH110X_WHITE);
 
-  if (buttonClicked) {
-    return true;
-  } else {
-    return false;
-  }
+  return buttonClicked;
 }
 
 void drawSettings() {
@@ -1662,6 +1761,17 @@ void drawSettings() {
       }
 
       display.println("save manager");
+
+      display.setTextColor(SH110X_WHITE);
+
+      if (detectCursorTouch(0, 42, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          settingsOption = 5;
+        }
+      }
+
+      display.println("misc");
 
       display.setTextColor(SH110X_WHITE);
 
@@ -1975,11 +2085,30 @@ void drawSettings() {
 
       break;
     }
+    case 5: {
+      display.setCursor(0, 10);
+      display.println("misc\n");
+    
+      display.println("deep sleep");
+      display.println("display test");
+      updateButtonStates();
+      if (detectCursorTouch(0, 26, 100, 8) && rightButtonState) {
+        display.clearDisplay();
+        display.print("the device will enter deep sleep in 5 seconds. to turn it back on, disconnect and reconnect the battery.");
+        display.display();
+        delay(5000);
+        prepareForSleepyTime();
+        Serial.println("going into deep sleep as requested by user goodnight");
+        esp_deep_sleep_start();
+      }
+      if (detectCursorTouch(0, 34, 100, 8) && rightButtonState) {
+        display.clearDisplay();
+        display.display();
+        testdrawline();
+      }
+    }
   }
-  
 }
-
-
 
 void updateGyro() {
   mpu.gyroUpdate();
@@ -2162,7 +2291,7 @@ public:
 class WantToUseFireplace : public Node {
 public:
   NodeStatus tick() override {
-    if (petStatus == 2 || (petStatus == 0 && (petSitTimer < 5) && random(0, 500) == 1)) {
+    if (petStatus == 2 || (petStatus == 0 && (petSitTimer < 5) && random(0, 800) == 1)) {
       petStatus = 2;
       return SUCCESS;
     }
@@ -2199,7 +2328,7 @@ public:
 class WantToSitOnCouch : public Node {
 public:
   NodeStatus tick() override {
-    if (petStatus == 1 || (petStatus == 0 && (petSitTimer < 5) && random(0, 500) == 1)) {
+    if (petStatus == 1 || (petStatus == 0 && (petSitTimer < 5) && random(0, 800) == 1)) {
       Serial.println("wanting to sit on couch");
       petStatus = 1;
       return SUCCESS;
@@ -2360,6 +2489,11 @@ void loop() {
   if (totalG > 11) {   //kinda funny but annoying
     killPet("got shaken to death"); 
   }
+
+  if (loadIndicator > 0) {
+    loadIndicator -= 0.5;
+  }
+
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval) {
@@ -2472,11 +2606,7 @@ void loop() {
     display.drawBitmap(55, 82, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
     display.display();
     delay(1000);
-    display.clearDisplay();
-    display.display();
-    rgb.setPixelColor(0, rgb.Color(0, 0, 0));
-    rgb.show();
-    mpu9250_sleep();
+    prepareForSleepyTime();
     DateTime timeWhenSlept = rtc.now();
     esp_deep_sleep_enable_gpio_wakeup(1 << SWITCH_PIN, ESP_GPIO_WAKEUP_GPIO_HIGH); // enable waking up from deep sleep when switch is turned on / pulled high absoulute nerd
 
@@ -2514,9 +2644,11 @@ void loop() {
     display.drawBitmap(55, 90, bmp2.data, bmp2.width, bmp2.height, SH110X_WHITE);
     display.display();
     if (minutesSinceSlept >= saveInterval) {
-      saveGameToEEPROM(false);
+      delay(700);
+      saveGameToEEPROM(true);
+    } else {
+      delay(1000);
     }
-    delay(1000);
   }
 
   delay(loopDelay);

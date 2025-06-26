@@ -30,7 +30,8 @@ DRAM_ATTR String idleLines[] = {
   "heard he got hit by a truck",
   "heard he got fired",
   "heard he got electrocuted",
-  "see if your device needs charging"
+  "see if your device needs charging",
+  "what is my purpose?"
 };
 
 const size_t idleLinesCount = sizeof(idleLines) / sizeof(idleLines[0]);

@@ -3,25 +3,6 @@
 
 #include "bitmaps.h"
 
-// DRAM_ATTR int score;
-// DRAM_ATTR int leftPaddlePos;
-// DRAM_ATTR float ballX;
-// DRAM_ATTR float ballY;
-// DRAM_ATTR float ballVX;
-// DRAM_ATTR float ballVY;
-// DRAM_ATTR int ballSpeed;
-// DRAM_ATTR int paddleX;
-// DRAM_ATTR int paddleY;
-// DRAM_ATTR int paddleHeight;
-// DRAM_ATTR bool stopApp;
-// DRAM_ATTR float friction;
-// DRAM_ATTR float minHorizontalSpeed;
-// DRAM_ATTR float maxVerticalSpeed;
-// DRAM_ATTR float enemyPaddleX;          // Opposite side of player
-// DRAM_ATTR float enemyPaddleY;           // Starting Y
-// DRAM_ATTR int enemyHeight;
-// DRAM_ATTR float enemySpeed;      // How fast the enemy moves (tweakable)
-// DRAM_ATTR int enemyScore;
 extern float petPongXP;
 extern int petPongLVL;
 
