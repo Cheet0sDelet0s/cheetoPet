@@ -25,6 +25,7 @@ you dont have to, but it would be great if you could credit me if you use any of
 #include "pong.h"
 #include "veridium.h"
 #include "flappybird.h"
+#include "particlesim.h"
 
 #define SDA_ALT 20
 #define SCL_ALT 9
@@ -106,10 +107,10 @@ DRAM_ATTR int placedFoodY[10] = {};
 DRAM_ATTR bool handleFoodPlacing = false;
 
 //game library
-DRAM_ATTR int gameLibrary[8] = { 0, 1, 2};
-DRAM_ATTR int gameLibraryCount = 3;
+DRAM_ATTR int gameLibrary[8] = { 0, 1, 2, 3};
+DRAM_ATTR int gameLibraryCount = 4;
 
-const String gameNames[3] = {"pong", "veridium", "flappy bird"};
+const String gameNames[4] = {"pong", "veridium", "flappy bird", "sandbox"};
 
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
@@ -1562,9 +1563,12 @@ void drawGameLibrary() {
       } else if (name == "veridium") {
         drawCheckerboard(petVeridiumLVL + 1);
         veridium();
-      } else {
-        drawCheckerboard(2);
+      } else if (name == "flappy bird") {
+        drawCheckerboard(3);
         flappyBird();
+      } else {
+        drawCheckerboard(3);
+        particleSim();
       }
       waitForSelectRelease();
     }
