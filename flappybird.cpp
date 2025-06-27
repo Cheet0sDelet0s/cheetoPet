@@ -66,9 +66,11 @@ void drawPipes() {
   for (int i = 0; i < maxPipes; i++) {
     if (pipes[i].active) {
       // Top pipe
-      display.fillRect(pipes[i].x, 0, pipeWidth, pipes[i].y, SH110X_WHITE);
+      display.drawRect(pipes[i].x, -1, pipeWidth, pipes[i].y - 2, SH110X_WHITE);
+      display.drawRect(pipes[i].x - 2, pipes[i].y - 4, pipeWidth + 4, 4, SH110X_WHITE);
       // Bottom pipe
-      display.fillRect(pipes[i].x, pipes[i].y + pipeGap, pipeWidth, screenH - (pipes[i].y + pipeGap), SH110X_WHITE);
+      display.drawRect(pipes[i].x, pipes[i].y + pipeGap + 4, pipeWidth, screenH - (pipes[i].y + pipeGap), SH110X_WHITE);
+      display.drawRect(pipes[i].x - 2, pipes[i].y + pipeGap + 3, pipeWidth + 4, -2, SH110X_WHITE);
     }
   }
 }
