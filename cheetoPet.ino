@@ -59,7 +59,7 @@ const long interval = 50;
 
 DRAM_ATTR DateTime now;
 
-DRAM_ATTR int saveFileVersion = 1;
+int saveFileVersion = 1;
 
 //buttons
 DRAM_ATTR bool leftButtonState = false;
@@ -80,7 +80,7 @@ RTC_DS3231 rtc;
 DateTime tempDateTime;
 MPU9250_asukiaaa mpu(0x69);
 
-DRAM_ATTR char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 DRAM_ATTR int lastSecond = -1;
 DRAM_ATTR DateTime lastRunTime;
 DRAM_ATTR int saveInterval = 5;
@@ -100,10 +100,10 @@ DRAM_ATTR ItemList outsidePlot[30] = {
 //item inventory
 DRAM_ATTR int inventory[8] = {};
 DRAM_ATTR int inventoryItems = 0;
-DRAM_ATTR int placedHomeItems[30] = { 7 };
+DRAM_ATTR ItemList placedHomeItems[30] = {
+  {7, 98, 4, true}
+};
 DRAM_ATTR int amountItemsPlaced = 1;
-DRAM_ATTR int placedHomeItemsX[30] = { 98 };
-DRAM_ATTR int placedHomeItemsY[30] = { 4 };
 DRAM_ATTR int itemBeingPlaced = -1;
 DRAM_ATTR bool startHandlingPlacing = false;
 
@@ -120,7 +120,7 @@ DRAM_ATTR bool handleFoodPlacing = false;
 DRAM_ATTR int gameLibrary[8] = { 0, 1, 2, 3};
 DRAM_ATTR int gameLibraryCount = 4;
 
-const String gameNames[4] = {"pong", "veridium", "flappy bird", "sandbox"};
+const String gameNames[4] = {"pong", "veridium", "flappy bird", "bubblebox"};
 
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
@@ -188,21 +188,46 @@ DRAM_ATTR String currentPetMessage;
 DRAM_ATTR int messageDisplayTime = 0;
 DRAM_ATTR int messageMaxTime = 0;
 
-DRAM_ATTR int constructionShopItems[] = { 3, 4, 5, 6, 7, 19 };
-DRAM_ATTR float constructionShopPrices[] = { 5, 2.50, 7.50, 10, 12.50, 4 };
-DRAM_ATTR int constructionShopLength = sizeof(constructionShopItems) / sizeof(constructionShopItems[0]);
+int constructionShopItems[] = { 3, 4, 5, 6, 7, 19 };
+float constructionShopPrices[] = { 5, 2.50, 7.50, 10, 12.50, 4 };
+int constructionShopLength = sizeof(constructionShopItems) / sizeof(constructionShopItems[0]);
 
-DRAM_ATTR int foodShopItems[] = { 16, 18 };
-DRAM_ATTR float foodShopPrices[] = { 1.50, 1.50};
-DRAM_ATTR int foodShopLength = sizeof(foodShopItems) / sizeof(foodShopItems[0]);
+int foodShopItems[] = { 16, 18 };
+float foodShopPrices[] = { 1.50, 1.50};
+int foodShopLength = sizeof(foodShopItems) / sizeof(foodShopItems[0]);
 
 //settings
-DRAM_ATTR int gyroSensitivityX = 2;
-DRAM_ATTR int gyroSensitivityY = 3;
-DRAM_ATTR int gyroSensitivityZ = 3;
-DRAM_ATTR int loopDelay = 5;
+int gyroSensitivityX = 2;
+int gyroSensitivityY = 3;
+int gyroSensitivityZ = 3;
+int loopDelay = 5;
 
 DRAM_ATTR SaveGame currentSaveGame;
+
+//gamer rgb
+
+const uint8_t fadeSteps = 100;        // Number of steps between colors
+const uint16_t fadeInterval = 10;     // Time between steps (ms)
+unsigned long lastRGBUpdate = 0;
+
+const uint32_t colors[] = {
+  rgb.Color(255, 0, 0),     // Red
+  rgb.Color(0, 255, 0),     // Green
+  rgb.Color(0, 0, 255),     // Blue
+  rgb.Color(255, 0, 255),   // Magenta
+  rgb.Color(255, 255, 0),   // Yellow
+  rgb.Color(0, 255, 255)    // Cyan
+};
+const uint8_t numColors = sizeof(colors) / sizeof(colors[0]);
+
+// ----- Fade State -----
+uint8_t currentColor = 0;
+uint8_t step = 0;
+
+// Helper to extract R/G/B from uint32_t
+uint8_t getR(uint32_t color) { return (color >> 16) & 0xFF; }
+uint8_t getG(uint32_t color) { return (color >> 8) & 0xFF; }
+uint8_t getB(uint32_t color) { return color & 0xFF; }
 
 void testdrawline() {   // -- by adafruit from their SH1107_128x128.ino example
   int16_t i;
@@ -412,19 +437,13 @@ void saveGameToRam() {
 
   currentSaveGame.inventItems = inventoryItems;
 
-  for (int i = 0; i < 30; i++) {
-    currentSaveGame.placed[i] = placedHomeItems[i];
+  for (int i = 0; i < amountItemsPlaced; i++) {
+    currentSaveGame.placed[i] = placedHomeItems[i].type;
+    currentSaveGame.placedX[i] = placedHomeItems[i].x;
+    currentSaveGame.placedY[i] = placedHomeItems[i].y;
   }
 
   currentSaveGame.placedItems = amountItemsPlaced;
-
-  for (int i = 0; i < 30; i++) {
-    currentSaveGame.placedX[i] = placedHomeItemsX[i];
-  }
-
-  for (int i = 0; i < 30; i++) {
-    currentSaveGame.placedY[i] = placedHomeItemsY[i];
-  }
 
   for (int i = 0; i < 8; i++) {
     currentSaveGame.foodInv[i] = foodInventory[i];
@@ -448,19 +467,16 @@ void loadGameFromRam() {
 
   inventoryItems = currentSaveGame.inventItems;
   
-  for (int i = 0; i < 30; i++) {
-    placedHomeItems[i] = currentSaveGame.placed[i];
+  for (int i = 0; i < currentSaveGame.placedItems; i++) {
+    placedHomeItems[i] = {
+      (int)currentSaveGame.placed[i],
+      (int)currentSaveGame.placedX[i],
+      (int)currentSaveGame.placedY[i],
+      true
+    };
   }
 
   amountItemsPlaced = currentSaveGame.placedItems;
-  
-  for (int i = 0; i < 30; i++) {
-    placedHomeItemsX[i] = currentSaveGame.placedX[i];
-  }
-
-  for (int i = 0; i < 30; i++) {
-    placedHomeItemsY[i] = currentSaveGame.placedY[i];
-  }
 
   for (int i = 0; i < 8; i++) {
     foodInventory[i] = currentSaveGame.foodInv[i];
@@ -562,14 +578,6 @@ void prepareForSleepyTime() {
   mpu9250_sleep();
 }
 
-void printPlacedHomeItems() {
-  for (int i = 0; i < amountItemsPlaced; i++) {
-    Serial.print(placedHomeItems[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
-}
-
 bool addToList(int list[], int& itemCount, int maxSize, int value) {
   if (itemCount < maxSize) {
     list[itemCount++] = value;
@@ -579,7 +587,16 @@ bool addToList(int list[], int& itemCount, int maxSize, int value) {
   }
 }
 
-int indexOf(int array[], int length, int target) {
+int indexOf(ItemList array[], int length, int targetType) {
+  for (int i = 0; i < length; i++) {
+    if (array[i].active && array[i].type == targetType) {
+      return i;
+    }
+  }
+  return -1; // Not found
+}
+
+int indexOfList(int array[], int length, int target) {
   for (int i = 0; i < length; i++) {
     if (array[i] == target) {
       return i;
@@ -587,6 +604,7 @@ int indexOf(int array[], int length, int target) {
   }
   return -1;  // Not found
 }
+
 
 void setup() {
   pinMode(SWITCH_PIN, INPUT_PULLUP);
@@ -1216,24 +1234,20 @@ void drawAreaItems() {
   display.drawFastHLine(0, 42, 127, SH110X_WHITE);
 
   for (int i = 0; i < amountItemsPlaced; i++) {
-    const BitmapInfo& bmp = bitmaps[placedHomeItems[i]];
-    int x = placedHomeItemsX[i];
-    int y = placedHomeItemsY[i];
+    if (!placedHomeItems[i].active) continue;
+    const BitmapInfo& bmp = bitmaps[placedHomeItems[i].type];
+    int x = placedHomeItems[i].x;
+    int y = placedHomeItems[i].y;
 
     display.drawBitmap(x, y, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
-    if (placedHomeItems[i] == 5) {
+    if (placedHomeItems[i].type == 5) {
       display.fillRect(x + 6, y, 3, -27, SH110X_WHITE);
     }
+
     updateButtonStates();
     if (detectCursorTouch(x, y, bmp.width, bmp.height)) {
       if (rightButtonState && loadIndicator > 9) {
-        int itemIndex = placedHomeItems[i];
-        removeFromList(placedHomeItems, amountItemsPlaced, placedHomeItems[i]);
-        removeFromList(placedHomeItemsX, amountItemsPlaced, placedHomeItemsX[i]);
-        removeFromList(placedHomeItemsY, amountItemsPlaced, placedHomeItemsY[i]);
-
-        amountItemsPlaced -= 1;
-        addToList(inventory, inventoryItems, 8, itemIndex);
+        //remove item
         loadIndicator = 0;
       } else if (rightButtonState) {
         loadIndicator++;
@@ -1252,31 +1266,18 @@ void handleItemPlacing() {
   Serial.println(itemBeingPlaced);
 
   startHandlingPlacing = false;
-  int placedCount = amountItemsPlaced;
-  addToList(placedHomeItems, placedCount, 30, itemBeingPlaced);
-  placedCount = amountItemsPlaced;
-  addToList(placedHomeItemsX, placedCount, 30, cursorX);
-  placedCount = amountItemsPlaced;
-  if (itemBeingPlaced == 5) {
-    addToList(placedHomeItemsY, placedCount, 30, 27);
-  } else {
-    addToList(placedHomeItemsY, placedCount, 30, cursorY);
-  }
+  placedHomeItems[amountItemsPlaced] = {
+    itemBeingPlaced,
+    cursorX,
+    itemBeingPlaced == 5 ? 27 : cursorY,
+    true
+  };
 
-  Serial.print("Placing item: ");
-  Serial.println(itemBeingPlaced);
-  Serial.print("At X: ");
-  Serial.print(cursorX);
-  Serial.print(" Y: ");
-  Serial.println(cursorY);
+  amountItemsPlaced++;
 
-  amountItemsPlaced += 1;
-  removeFromList(inventory, inventoryItems, indexOf(inventory, inventoryItems, itemBeingPlaced));
+  removeFromList(inventory, inventoryItems, indexOfList(inventory, inventoryItems, itemBeingPlaced));
   inventoryItems--;
-  Serial.print("Total items placed: ");
-  Serial.println(amountItemsPlaced);
   itemBeingPlaced = -1;
-  printPlacedHomeItems();
   waitForSelectRelease();
 }
 
@@ -1300,7 +1301,7 @@ void handleFoodPlacingLogic() {
   Serial.println(cursorY);
 
   amountFoodPlaced += 1;
-  removeFromList(foodInventory, foodInventoryItems, indexOf(foodInventory, foodInventoryItems, itemBeingPlaced));
+  removeFromList(foodInventory, foodInventoryItems, indexOfList(foodInventory, foodInventoryItems, itemBeingPlaced));
   foodInventoryItems--;
   Serial.print("Total items placed: ");
   Serial.println(amountFoodPlaced);
@@ -2182,8 +2183,14 @@ void runSaveInterval() {
 }
 
 bool checkItemIsPlaced(int item) {
-  return (indexOf(placedHomeItems, amountItemsPlaced, item) != -1);
+  for (int i = 0; i < amountItemsPlaced; i++) {
+    if (placedHomeItems[i].active && placedHomeItems[i].type == item) {
+      return true;
+    }
+  }
+  return false;
 }
+
 
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
 DRAM_ATTR enum NodeStatus { SUCCESS,
@@ -2328,8 +2335,8 @@ public:
   NodeStatus tick() override {
     if (checkItemIsPlaced(5)) {
       int index = indexOf(placedHomeItems, amountItemsPlaced, 5);
-      int itemX = placedHomeItemsX[index] - 15;
-      int itemY = placedHomeItemsY[index] + 3;
+      int itemX = placedHomeItems[index].x - 15;
+      int itemY = placedHomeItems[index].y + 3;
       if (!movePet) {
         startMovingPet(itemX, itemY, 2);
       }
@@ -2380,8 +2387,8 @@ public:
     if (petStatus == 1) {
       int index = indexOf(placedHomeItems, amountItemsPlaced, 3);
       if (index != -1) {
-        int itemX = placedHomeItemsX[index] + 4;
-        int itemY = placedHomeItemsY[index] + 2;
+        int itemX = placedHomeItems[index].x + 4;
+        int itemY = placedHomeItems[index].y + 2;
         if (!movePet) {
           startMovingPet(itemX, itemY, 2);
         }
@@ -2534,8 +2541,30 @@ void loop() {
 
   //Serial.println(now.second());
   updatePetNeeds();
-  rgb.setPixelColor(0, rgb.Color(angleX, angleY, angleZ));  // set led color to angle of device
-  rgb.show();
+
+
+  if (currentMillis - lastRGBUpdate >= fadeInterval) {
+    lastRGBUpdate = currentMillis;
+
+    // Get start and end colors
+    uint32_t colorStart = colors[currentColor];
+    uint32_t colorEnd = colors[(currentColor + 1) % numColors];
+
+    // Linear interpolate between the colors
+    float t = step / float(fadeSteps);
+    uint8_t r = (1 - t) * getR(colorStart) + t * getR(colorEnd);
+    uint8_t g = (1 - t) * getG(colorStart) + t * getG(colorEnd);
+    uint8_t b = (1 - t) * getB(colorStart) + t * getB(colorEnd);
+
+    rgb.setPixelColor(0, rgb.Color(r, g, b));
+    rgb.show();
+
+    step++;
+    if (step > fadeSteps) {
+      step = 0;
+      currentColor = (currentColor + 1) % numColors;
+    }
+  }
 
   updateButtonStates();
 

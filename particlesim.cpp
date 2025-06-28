@@ -6,10 +6,22 @@
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 128
-#define NUM_PARTICLES 100
+#define NUM_PARTICLES 125
 #define PARTICLE_RADIUS 3
+#define CELL_SIZE 8
+#define GRID_COLS (SCREEN_WIDTH / CELL_SIZE)
+#define GRID_ROWS (SCREEN_HEIGHT / CELL_SIZE)
+#define MAX_PARTICLES_PER_CELL 8
 
 Particle particles[NUM_PARTICLES];
+uint8_t grid[GRID_COLS][GRID_ROWS][MAX_PARTICLES_PER_CELL];
+uint8_t gridCounts[GRID_COLS][GRID_ROWS];
+
+int8_t jitterLUT[16] = { -5, -3, -1, 0, 1, 3, 5, -4, 2, -2, 4, -1, 1, 0, -3, 3 };
+
+bool previousLeftState = false;
+
+bool zeroG = false;
 
 void initParticles() {
   for (int i = 0; i < NUM_PARTICLES; i++) {
@@ -20,59 +32,87 @@ void initParticles() {
   }
 }
 
+void clearGrid() {
+  for (int x = 0; x < GRID_COLS; x++) {
+    for (int y = 0; y < GRID_ROWS; y++) {
+      gridCounts[x][y] = 0;
+    }
+  }
+}
+
+void populateGrid() {
+  for (int i = 0; i < NUM_PARTICLES; i++) {
+    int gx = constrain((int)(particles[i].x) / CELL_SIZE, 0, GRID_COLS - 1);
+    int gy = constrain((int)(particles[i].y) / CELL_SIZE, 0, GRID_ROWS - 1);
+    if (gridCounts[gx][gy] < NUM_PARTICLES) {
+      grid[gx][gy][gridCounts[gx][gy]++] = i;
+    }
+  }
+}
+
 void updateParticles() {
   float ax = angleX * 0.05; // Tweak this for responsiveness
   float ay = angleY * 0.05;
 
+  clearGrid();
+  populateGrid();
+
   for (int i = 0; i < NUM_PARTICLES; i++) {
     // Add a slight bit of randomness
-    float jitterX = ((float)random(-5, 6)) / 100.0;
-    float jitterY = ((float)random(-5, 6)) / 100.0;
+    int index = i % 16;
+    float jitterX = jitterLUT[index] / 100.0;
+    float jitterY = jitterLUT[(index + 5) % 16] / 100.0;
 
     particles[i].vx += ax + jitterX;
     particles[i].vy += ay + jitterY;
 
+    particles[i].vx = constrain(particles[i].vx, -4, 4);
+    particles[i].vy = constrain(particles[i].vy, -4, 4);
+
     particles[i].x += particles[i].vx;
     particles[i].y += particles[i].vy;
 
-    // Simple particle collision detection and stacking
-    for (int j = 0; j < NUM_PARTICLES; j++) {
-      if (i == j) continue;
-      float dx = particles[j].x - particles[i].x;
-      float dy = particles[j].y - particles[i].y;
-      float distSq = dx * dx + dy * dy;
-      float minDist = 2 * PARTICLE_RADIUS;
+    int gx = constrain((int)(particles[i].x) / CELL_SIZE, 0, GRID_COLS - 1);
+    int gy = constrain((int)(particles[i].y) / CELL_SIZE, 0, GRID_ROWS - 1);
 
-      if (distSq < minDist * minDist) {
-        float dist = sqrt(distSq);
-        float overlap = 0.5 * (minDist - dist);
+    for (int dx = -1; dx <= 1; dx++) {
+      for (int dy = -1; dy <= 1; dy++) {
+        int nx = gx + dx;
+        int ny = gy + dy;
+        if (nx < 0 || ny < 0 || nx >= GRID_COLS || ny >= GRID_ROWS) continue;
+        for (int k = 0; k < gridCounts[nx][ny]; k++) {
+          int j = grid[nx][ny][k];
+          if (i == j) continue;
 
-        // Normalize the direction vector
-        if (dist != 0) {
-          dx /= dist;
-          dy /= dist;
-        } else {
-          dx = 1;
-          dy = 0;
+          float dx = particles[j].x - particles[i].x;
+          float dy = particles[j].y - particles[i].y;
+          float distSq = dx * dx + dy * dy;
+          float minDist = 2 * PARTICLE_RADIUS;
+
+          if (distSq < minDist * minDist) {
+            float dist = sqrt(distSq);
+            float overlap = 0.5 * (minDist - dist);
+
+            if (dist != 0) {
+              dx /= dist;
+              dy /= dist;
+            } else {
+              dx = 1;
+              dy = 0;
+            }
+
+            particles[i].x -= dx * overlap;
+            particles[i].y -= dy * overlap;
+            particles[j].x += dx * overlap;
+            particles[j].y += dy * overlap;
+
+            particles[i].vx *= 0.8;
+            particles[i].vy *= 0.8;
+          }
         }
-
-        // Push particles apart
-        particles[i].x -= dx * overlap;
-        particles[i].y -= dy * overlap;
-        particles[j].x += dx * overlap;
-        particles[j].y += dy * overlap;
-
-        // Exchange velocities
-        float tempVx = particles[i].vx;
-        float tempVy = particles[i].vy;
-        particles[i].vx = particles[j].vx;
-        particles[i].vy = particles[j].vy;
-        particles[j].vx = tempVx;
-        particles[j].vy = tempVy;
       }
     }
 
-    // Bounce off edges
     if (particles[i].x < 0) {
       particles[i].x = 0;
       particles[i].vx *= -0.6;
@@ -95,7 +135,9 @@ void updateParticles() {
 void drawParticles() {
   display.clearDisplay();
   for (int i = 0; i < NUM_PARTICLES; i++) {
-    display.drawPixel((int)particles[i].x, (int)particles[i].y, SH110X_WHITE);
+    //display.drawPixel((int)particles[i].x, (int)particles[i].y, SH110X_WHITE);
+    display.fillCircle((int)particles[i].x, (int)particles[i].y, PARTICLE_RADIUS + 1, SH110X_BLACK);
+    display.drawCircle((int)particles[i].x, (int)particles[i].y, PARTICLE_RADIUS, SH110X_WHITE);
   }
   display.display();
 }
@@ -108,10 +150,16 @@ void particleSim() {
     updateParticles();
     updateButtonStates();
     drawParticles();
-    if (leftButtonState) {
+    if (!leftButtonState && previousLeftState) {
+      zeroG = !zeroG;
+    }
+
+    if (zeroG) {
       angleX = 0;
       angleY = 0;
     }
+    
+    previousLeftState = leftButtonState;
     delay(5); // Limit frame rate
   }
 }
