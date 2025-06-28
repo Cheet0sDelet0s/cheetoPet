@@ -65,6 +65,18 @@ extern const unsigned char pet_gooseMarshmellow[] PROGMEM;
 
 extern const unsigned char pet_gooseMarshmellowMask[] PROGMEM;
 
+extern const unsigned char item_tree [] PROGMEM;
+
+extern const unsigned char item_bush [] PROGMEM;
+
+extern const unsigned char item_fence [] PROGMEM;
+
+extern const unsigned char item_sun [] PROGMEM;
+
+extern const unsigned char item_grass [] PROGMEM;
+
+extern const unsigned char item_grass2 [] PROGMEM;
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;

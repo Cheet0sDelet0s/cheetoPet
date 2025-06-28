@@ -7,7 +7,7 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 128
 #define NUM_PARTICLES 100
-#define PARTICLE_RADIUS 1.5
+#define PARTICLE_RADIUS 3
 
 Particle particles[NUM_PARTICLES];
 

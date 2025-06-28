@@ -87,6 +87,16 @@ DRAM_ATTR int saveInterval = 5;
 
 DRAM_ATTR int liveDataTimer = 0;
 
+struct ItemList {
+  int type, x, y;
+  bool active;
+};
+
+DRAM_ATTR ItemList outsidePlot[30] = {
+  {34, 40, 50, true},
+  {35, 60, 70, true}
+};
+
 //item inventory
 DRAM_ATTR int inventory[8] = {};
 DRAM_ATTR int inventoryItems = 0;
@@ -146,6 +156,21 @@ DRAM_ATTR int petY = 32;
 DRAM_ATTR bool showPetMenu = false;
 DRAM_ATTR bool movingPet = false;
 DRAM_ATTR float money = 40;
+DRAM_ATTR int currentArea = 0;
+
+/*AREAS:
+0: inside home
+1: outside plot
+
+DOOR LOCATIONS:
+
+0: top of screen
+1: right of screen
+2: bottom of screen
+3: left of screen
+*/
+
+const int exitLocations[2] = {1, 0};
 
 DRAM_ATTR int petMoveX = 64;
 DRAM_ATTR int petMoveY = 32;
@@ -715,24 +740,24 @@ void killPet(String deathReason = "") {
     esp_restart();
 }
 
-void debug() {
-  DateTime now = rtc.now();
+// void debug() {
+//   DateTime now = rtc.now();
 
-  String yearStr = String(now.year(), DEC);
-  String monthStr = (now.month() < 10 ? "0" : "") + String(now.month(), DEC);
-  String dayStr = (now.day() < 10 ? "0" : "") + String(now.day(), DEC);
-  String hourStr = (now.hour() < 10 ? "0" : "") + String(now.hour(), DEC);
-  String minuteStr = (now.minute() < 10 ? "0" : "") + String(now.minute(), DEC);
-  String secondStr = (now.second() < 10 ? "0" : "") + String(now.second(), DEC);
-  String dayOfWeek = daysOfTheWeek[now.dayOfTheWeek()];
+//   String yearStr = String(now.year(), DEC);
+//   String monthStr = (now.month() < 10 ? "0" : "") + String(now.month(), DEC);
+//   String dayStr = (now.day() < 10 ? "0" : "") + String(now.day(), DEC);
+//   String hourStr = (now.hour() < 10 ? "0" : "") + String(now.hour(), DEC);
+//   String minuteStr = (now.minute() < 10 ? "0" : "") + String(now.minute(), DEC);
+//   String secondStr = (now.second() < 10 ? "0" : "") + String(now.second(), DEC);
+//   String dayOfWeek = daysOfTheWeek[now.dayOfTheWeek()];
 
-  String formattedTime = dayOfWeek + ", " + yearStr + "-" + monthStr + "-" + dayStr + " " + hourStr + ":" + minuteStr + ":" + secondStr;
+//   String formattedTime = dayOfWeek + ", " + yearStr + "-" + monthStr + "-" + dayStr + " " + hourStr + ":" + minuteStr + ":" + secondStr;
 
-  display.setCursor(0, 0);
-  display.println(formattedTime);
-  display.print("gyro: X:");
-  display.print(String(angleX) + " Y:" + String(angleY) + " Z:" + String(angleZ));
-}
+//   display.setCursor(0, 0);
+//   display.println(formattedTime);
+//   display.print("gyro: X:");
+//   display.print(String(angleX) + " Y:" + String(angleY) + " Z:" + String(angleZ));
+// }
 
 bool detectCursorTouch(int startX, int startY, int endX, int endY) {
   if (cursorX > startX && cursorX < startX + endX && cursorY > startY && cursorY < startY + endY) {
@@ -743,11 +768,6 @@ bool detectCursorTouch(int startX, int startY, int endX, int endY) {
 }
 
 void drawCursor() {
-  // legacy cursor:
-  // display.drawLine(cursorX, cursorY, cursorX+5, cursorY+6, SH110X_WHITE);
-  // display.drawFastVLine(cursorX, cursorY, 6, SH110X_WHITE);
-  // display.drawFastHLine(cursorX, cursorY+6, 5, SH110X_WHITE);
-  // display.drawFastVLine(cursorX+2, cursorY+6, 4, SH110X_WHITE);
 
   // bitmap cursor:
   if (itemBeingPlaced != -1) {
@@ -1192,7 +1212,7 @@ void drawEmotionUI() {
   display.setTextColor(SH110X_WHITE);
 }
 
-void drawHomeItems() {
+void drawAreaItems() {
   display.drawFastHLine(0, 42, 127, SH110X_WHITE);
 
   for (int i = 0; i < amountItemsPlaced; i++) {
@@ -2547,7 +2567,7 @@ void loop() {
     shouldDrawCursor = true;
     cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
   }
-  drawHomeItems();
+  drawAreaItems();
   if (movingPet) {
     petX = cursorX;
     petY = cursorY;
