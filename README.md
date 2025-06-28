@@ -1,6 +1,10 @@
 # cheetoPet
 <strong>an esp32 c3 based tamagotchi</strong>
 <br><br>
+
+![main image](photos/main.jpg)
+![side view](photos/side.jpg)
+
 # features
 6 axis gyro <br>
 128x128 monochrome oled display <br>
