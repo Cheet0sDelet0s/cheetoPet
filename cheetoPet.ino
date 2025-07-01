@@ -97,6 +97,8 @@ DRAM_ATTR ItemList outsidePlot[30] = {
   {35, 60, 70, true}
 };
 
+DRAM_ATTR int outsidePlotPlaced = 2;
+
 //item inventory
 DRAM_ATTR int inventory[8] = {};
 DRAM_ATTR int inventoryItems = 0;
@@ -115,6 +117,9 @@ DRAM_ATTR int amountFoodPlaced = 0;
 DRAM_ATTR int placedFoodX[10] = {};
 DRAM_ATTR int placedFoodY[10] = {};
 DRAM_ATTR bool handleFoodPlacing = false;
+
+DRAM_ATTR int* areaItemsPlaced;
+DRAM_ATTR ItemList* currentAreaPtr = nullptr;
 
 //game library
 DRAM_ATTR int gameLibrary[8] = { 0, 1, 2, 3};
@@ -171,6 +176,7 @@ DOOR LOCATIONS:
 */
 
 const int exitLocations[2] = {1, 0};
+const int exitLinks[2] = {1, 0};
 
 DRAM_ATTR int petMoveX = 64;
 DRAM_ATTR int petMoveY = 32;
@@ -188,19 +194,19 @@ DRAM_ATTR String currentPetMessage;
 DRAM_ATTR int messageDisplayTime = 0;
 DRAM_ATTR int messageMaxTime = 0;
 
-int constructionShopItems[] = { 3, 4, 5, 6, 7, 19 };
-float constructionShopPrices[] = { 5, 2.50, 7.50, 10, 12.50, 4 };
-int constructionShopLength = sizeof(constructionShopItems) / sizeof(constructionShopItems[0]);
+DRAM_ATTR int constructionShopItems[] = { 3, 4, 5, 6, 7, 19 };
+DRAM_ATTR float constructionShopPrices[] = { 5, 2.50, 7.50, 10, 12.50, 4 };
+DRAM_ATTR int constructionShopLength = sizeof(constructionShopItems) / sizeof(constructionShopItems[0]);
 
-int foodShopItems[] = { 16, 18 };
-float foodShopPrices[] = { 1.50, 1.50};
-int foodShopLength = sizeof(foodShopItems) / sizeof(foodShopItems[0]);
+DRAM_ATTR int foodShopItems[] = { 16, 18 };
+DRAM_ATTR float foodShopPrices[] = { 1.50, 1.50};
+DRAM_ATTR int foodShopLength = sizeof(foodShopItems) / sizeof(foodShopItems[0]);
 
 //settings
-int gyroSensitivityX = 2;
-int gyroSensitivityY = 3;
-int gyroSensitivityZ = 3;
-int loopDelay = 5;
+DRAM_ATTR uint8_t gyroSensitivityX = 2;
+DRAM_ATTR uint8_t gyroSensitivityY = 3;
+DRAM_ATTR uint8_t gyroSensitivityZ = 3;
+DRAM_ATTR uint8_t loopDelay = 5;
 
 DRAM_ATTR SaveGame currentSaveGame;
 
@@ -208,7 +214,7 @@ DRAM_ATTR SaveGame currentSaveGame;
 
 const uint8_t fadeSteps = 100;        // Number of steps between colors
 const uint16_t fadeInterval = 10;     // Time between steps (ms)
-unsigned long lastRGBUpdate = 0;
+DRAM_ATTR unsigned long lastRGBUpdate = 0;
 
 const uint32_t colors[] = {
   rgb.Color(255, 0, 0),     // Red
@@ -221,13 +227,23 @@ const uint32_t colors[] = {
 const uint8_t numColors = sizeof(colors) / sizeof(colors[0]);
 
 // ----- Fade State -----
-uint8_t currentColor = 0;
-uint8_t step = 0;
+DRAM_ATTR uint8_t currentColor = 0;
+DRAM_ATTR uint8_t step = 0;
 
 // Helper to extract R/G/B from uint32_t
 uint8_t getR(uint32_t color) { return (color >> 16) & 0xFF; }
 uint8_t getG(uint32_t color) { return (color >> 8) & 0xFF; }
 uint8_t getB(uint32_t color) { return color & 0xFF; }
+
+void updateAreaPointers() {
+  if (currentArea == 0) {
+    areaItemsPlaced = &amountItemsPlaced;
+    currentAreaPtr = placedHomeItems;
+  } else if (currentArea == 1) {
+    areaItemsPlaced = &outsidePlotPlaced;
+    currentAreaPtr = outsidePlot;
+  }
+}
 
 void testdrawline() {   // -- by adafruit from their SH1107_128x128.ino example
   int16_t i;
@@ -1231,20 +1247,27 @@ void drawEmotionUI() {
 }
 
 void drawAreaItems() {
+  Serial.println("drawing area items");
   display.drawFastHLine(0, 42, 127, SH110X_WHITE);
 
-  for (int i = 0; i < amountItemsPlaced; i++) {
-    if (!placedHomeItems[i].active) continue;
-    const BitmapInfo& bmp = bitmaps[placedHomeItems[i].type];
-    int x = placedHomeItems[i].x;
-    int y = placedHomeItems[i].y;
+  updateAreaPointers();
+  updateButtonStates();
+
+  Serial.println("pointer update");
+
+  for (int i = 0; i < *areaItemsPlaced; i++) {
+    Serial.println("check 2");
+    if (currentAreaPtr[i].type != 0) continue;
+    Serial.println("check 3");
+    const BitmapInfo& bmp = bitmaps[currentAreaPtr[i].type];
+    int x = currentAreaPtr[i].x;
+    int y = currentAreaPtr[i].y;
 
     display.drawBitmap(x, y, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
-    if (placedHomeItems[i].type == 5) {
+    if (currentAreaPtr[i].type == 5) {
       display.fillRect(x + 6, y, 3, -27, SH110X_WHITE);
     }
 
-    updateButtonStates();
     if (detectCursorTouch(x, y, bmp.width, bmp.height)) {
       if (rightButtonState && loadIndicator > 9) {
         //remove item
@@ -1255,10 +1278,66 @@ void drawAreaItems() {
     }
   }
 
+      /*
+    DOOR LOCATIONS:
+
+    0: top of screen
+    1: right of screen
+    2: bottom of screen
+    3: left of screen
+    */
+
+    Serial.println("door stuff setting variables");
+
+    int exitLocation = exitLocations[currentArea];
+    
+    int doorX;
+    int doorY;
+    int doorW;
+    int doorH;
+
+    if (exitLocation == 0) {
+      doorX = 59;
+      doorH = 15;
+      doorY = 42 - doorH;
+      doorW = 10;
+    } else if (exitLocation == 1) {
+      doorX = 124;
+      doorH = 10;
+      doorY = 59;
+      doorW = 3;
+    } else if (exitLocation == 3) {
+      doorX = 0;
+      doorH = 10;
+      doorY = 59;
+      doorW = 3;
+    }
+
+    Serial.println("door stuff");
+
+    display.fillRect(doorX, doorY, doorW, doorH, SH110X_WHITE);
+
+    if (detectCursorTouch(doorX, doorY, doorW, doorH)) {
+      if (rightButtonState && loadIndicator > 9) {
+        //change area
+
+        currentArea = exitLinks[currentArea];
+        Serial.println("set current area");
+
+        loadIndicator = 0;
+      } else if (rightButtonState) {
+        loadIndicator++;
+      }
+    }
+
+  Serial.println("food stuff");
+
   for (int i = 0; i < amountFoodPlaced; i++) {
     const BitmapInfo& bmp = bitmaps[placedFood[i]];
     display.drawBitmap(placedFoodX[i], placedFoodY[i], bmp.data, bmp.width, bmp.height, SH110X_WHITE);
   }
+  
+  Serial.println("end of drawing area items");
 }
 
 void handleItemPlacing() {
@@ -1266,14 +1345,17 @@ void handleItemPlacing() {
   Serial.println(itemBeingPlaced);
 
   startHandlingPlacing = false;
-  placedHomeItems[amountItemsPlaced] = {
+
+  updateAreaPointers();
+
+  currentAreaPtr[*areaItemsPlaced] = {
     itemBeingPlaced,
     cursorX,
     itemBeingPlaced == 5 ? 27 : cursorY,
     true
   };
 
-  amountItemsPlaced++;
+  *areaItemsPlaced++;
 
   removeFromList(inventory, inventoryItems, indexOfList(inventory, inventoryItems, itemBeingPlaced));
   inventoryItems--;
@@ -1724,7 +1806,7 @@ bool drawCenteredButton(String label, int y) {
 
 void drawSettings() {
   uiTimer = 100;
-  display.fillRect(0, 0, 127, 112, SH110X_BLACK);
+  display.fillRect(0, 0, 128, 112, SH110X_BLACK);
   display.setCursor(0,0);
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE);
@@ -2131,6 +2213,10 @@ void drawSettings() {
         display.display();
         testdrawline();
       }
+      if (drawCenteredButton("exit", 90)) {
+        settingsOption = 0;
+      }
+      break;
     }
   }
 }
@@ -2183,8 +2269,9 @@ void runSaveInterval() {
 }
 
 bool checkItemIsPlaced(int item) {
-  for (int i = 0; i < amountItemsPlaced; i++) {
-    if (placedHomeItems[i].active && placedHomeItems[i].type == item) {
+  updateAreaPointers();
+  for (int i = 0; i < *areaItemsPlaced; i++) {
+    if (currentAreaPtr[i].active && currentAreaPtr[i].type == item) {
       return true;
     }
   }
@@ -2334,9 +2421,10 @@ class UseFireplace : public Node {
 public:
   NodeStatus tick() override {
     if (checkItemIsPlaced(5)) {
-      int index = indexOf(placedHomeItems, amountItemsPlaced, 5);
-      int itemX = placedHomeItems[index].x - 15;
-      int itemY = placedHomeItems[index].y + 3;
+      updateAreaPointers();
+      int index = indexOf(currentAreaPtr, *areaItemsPlaced, 5);
+      int itemX = currentAreaPtr[index].x - 15;
+      int itemY = currentAreaPtr[index].y + 3;
       if (!movePet) {
         startMovingPet(itemX, itemY, 2);
       }
@@ -2372,7 +2460,8 @@ public:
 class IsCouchAvailable : public Node {
 public:
   NodeStatus tick() override {
-    if (indexOf(placedHomeItems, amountItemsPlaced, 3) != -1) {
+    updateAreaPointers();
+    if (indexOf(currentAreaPtr, *areaItemsPlaced, 3) != -1) {
       return SUCCESS; 
     } else {
       petStatus = 0;
@@ -2385,10 +2474,11 @@ class SitOnCouch : public Node {
 public:
   NodeStatus tick() override {
     if (petStatus == 1) {
-      int index = indexOf(placedHomeItems, amountItemsPlaced, 3);
+      updateAreaPointers();
+      int index = indexOf(currentAreaPtr, *areaItemsPlaced, 3);
       if (index != -1) {
-        int itemX = placedHomeItems[index].x + 4;
-        int itemY = placedHomeItems[index].y + 2;
+        int itemX = currentAreaPtr[index].x + 4;
+        int itemY = currentAreaPtr[index].y + 2;
         if (!movePet) {
           startMovingPet(itemX, itemY, 2);
         }
