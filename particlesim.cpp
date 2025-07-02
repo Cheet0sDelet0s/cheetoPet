@@ -6,8 +6,8 @@
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 128
-#define NUM_PARTICLES 125
-#define PARTICLE_RADIUS 3
+#define NUM_PARTICLES 175
+#define PARTICLE_RADIUS 2
 #define CELL_SIZE 8
 #define GRID_COLS (SCREEN_WIDTH / CELL_SIZE)
 #define GRID_ROWS (SCREEN_HEIGHT / CELL_SIZE)
@@ -139,6 +139,15 @@ void drawParticles() {
     display.fillCircle((int)particles[i].x, (int)particles[i].y, PARTICLE_RADIUS + 1, SH110X_BLACK);
     display.drawCircle((int)particles[i].x, (int)particles[i].y, PARTICLE_RADIUS, SH110X_WHITE);
   }
+  if (leftButtonState) {
+    display.setCursor(0, 0);
+    display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+    if (!zeroG) {
+      display.print("zero g on");  
+    } else {
+      display.print("zero g off");
+    }
+  }
   display.display();
 }
 
@@ -157,6 +166,9 @@ void particleSim() {
     if (zeroG) {
       angleX = 0;
       angleY = 0;
+    } else {
+      angleX = constrain(angleX, -4, 4);
+      angleY = constrain(angleY, -4, 4);
     }
     
     previousLeftState = leftButtonState;
