@@ -18,6 +18,10 @@ extern void updateButtonStates();
 extern void updateGyro();
 extern void drawCheckerboard(uint8_t squareSize);
 extern void drawCenteredText(Adafruit_GFX &display, const String &text, int16_t y);
+extern void audioEngine();
+extern void queueTone(int freq);
+extern void priorityQueueTone(int freq);
+extern void clearTones();
 //extern const BitmapInfo bitmaps;
 
 void drawPetLeveling(String levelType, float beginningXP, float gainedXP, int beginningLVL);

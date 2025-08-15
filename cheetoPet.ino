@@ -1,11 +1,25 @@
-/*
-
-cheetoPet - by olly jeffery / @Cheet0sDelet0s
+/**********************************************************
+* cheetoPet - by olly jeffery / @Cheet0sDelet0s on github *
+***********************************************************
 
 an esp32 c3 based, feature-rich tamagotchi!
 
 fully open source - do whatever you want with it!
 you dont have to, but it would be great if you could credit me if you use any of this stuff!
+
+repo: https://github.com/Cheet0sDelet0s/cheetoPet
+
+components:
+
+esp32 c3 (use super mini dev board if not on pcb)
+SH1107 128x128 oled display
+DS3231 clock
+AT24C32 EEPROM chip (included in lots of DS3231 modules if using one of them)
+MPU9250 gyro
+TP4056 charging board
+1s lipo battery (1000mah will last a week or so without charging, go higher if you want)
+3x smd push buttons
+2 position 3 pin switch
 
 */
 
@@ -26,13 +40,15 @@ you dont have to, but it would be great if you could credit me if you use any of
 #include "veridium.h"
 #include "flappybird.h"
 #include "particlesim.h"
-#include "latinproject.h"
+#include "Picopixel.h"
 
 #define SDA_ALT 20
 #define SCL_ALT 9
 #define LED_PIN 8
 #define LED_COUNT 1
 #define SWITCH_PIN GPIO_NUM_0
+#define SPKR_PIN 3
+#define PLAY_TIME 50
 
 Adafruit_NeoPixel rgb(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -54,6 +70,18 @@ it can spontaneously die if you arent careful.
 const int leftButton = 5;
 const int middleButton = 6;
 const int rightButton = 7;
+
+bool spkrEnable = true;
+
+// Tone queue
+#define MAX_TONES 48
+int toneQueue[MAX_TONES];
+int toneCount = 0;  // number of tones currently in the queue
+
+// Playback state
+unsigned long lastStepTime = 0;
+int currentTone = 0;
+bool isPlaying = false;
 
 DRAM_ATTR unsigned long previousMillis = 0;
 const long interval = 50;  
@@ -125,10 +153,10 @@ DRAM_ATTR int* areaItemsPlaced;
 DRAM_ATTR ItemList* currentAreaPtr = nullptr;
 
 //game library
-DRAM_ATTR int gameLibrary[8] = { 0, 1, 2, 3, 4};
-DRAM_ATTR int gameLibraryCount = 5;
+DRAM_ATTR int gameLibrary[8] = { 0, 1, 2, 3};
+DRAM_ATTR int gameLibraryCount = 4;
 
-const String gameNames[5] = {"pong", "veridium", "flappy bird", "bubblebox", "latin"};
+const String gameNames[5] = {"pong", "veridium", "flappy bird", "bubblebox"};
 
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
@@ -242,6 +270,60 @@ DRAM_ATTR uint8_t step = 0;
 uint8_t getR(uint32_t color) { return (color >> 16) & 0xFF; }
 uint8_t getG(uint32_t color) { return (color >> 8) & 0xFF; }
 uint8_t getB(uint32_t color) { return color & 0xFF; }
+
+void clearTones() {
+  toneCount = 0;
+}
+
+void queueTone(int freq) {
+  if (toneCount < MAX_TONES) {
+    toneQueue[toneCount++] = freq;
+  }
+}
+
+void priorityQueueTone(int freq) {
+  if (toneCount < MAX_TONES) {
+    // Shift elements to the right
+    for (int i = MAX_TONES - 1; i > 0; i--) {
+      toneQueue[i] = toneQueue[i - 1];
+    }
+
+    // Insert at the start
+    toneQueue[0] = freq;
+  }
+}
+void audioEngine() {
+  // Playback logic
+  if (toneCount > 0 && spkrEnable) {
+    if (!isPlaying) {
+      // Start playing the first tone in the queue
+      currentTone = toneQueue[0];
+      ledcWriteTone(SPKR_PIN, currentTone);
+      Serial.println(currentTone);
+      lastStepTime = millis();
+      isPlaying = true;
+    } else if (millis() - lastStepTime >= PLAY_TIME) {
+      // Time to move to the next tone
+      // Shift queue down
+      for (int i = 1; i < toneCount; i++) {
+        toneQueue[i - 1] = toneQueue[i];
+      }
+      toneCount--;
+
+      if (toneCount > 0) {
+        // Play next tone
+        currentTone = toneQueue[0];
+        ledcWriteTone(SPKR_PIN, currentTone);
+        Serial.println(currentTone);
+        lastStepTime = millis();
+      } else {
+        // No more tones
+        ledcWriteTone(SPKR_PIN, 0);
+        isPlaying = false;
+      }
+    }
+  }
+}
 
 void printItemList(const ItemList* list, int length) {
   Serial.println("Item List:");
@@ -358,7 +440,14 @@ void testdrawline() {   // -- by adafruit from their SH1107_128x128.ino example
 void petMessage(String message) {
   currentPetMessage = message;
   messageDisplayTime = 0;
-  messageMaxTime = constrain((currentPetMessage.length() * 15) / 2, 1, 3000);
+  int msgLength = currentPetMessage.length();
+  messageMaxTime = constrain((msgLength * 15) / 2, 1, 3000);
+
+  for (int i = 0; i < msgLength; i++) {
+    int letterNumber = currentPetMessage[i] - 'a';
+    int frequency = 400 + letterNumber * 4;
+    queueTone(frequency);
+  }
 }
 
 bool removeFromList(int list[], int& itemCount, int index) {
@@ -710,6 +799,11 @@ void setup() {
   pinMode(leftButton, INPUT_PULLUP);
   pinMode(middleButton, INPUT_PULLUP);
   pinMode(rightButton, INPUT_PULLUP);
+  pinMode(SPKR_PIN, OUTPUT);
+
+  ledcAttach(SPKR_PIN, 5000, 8);
+
+  ledcWriteTone(SPKR_PIN, 0);           // start silent
 
   Serial.begin(115200);
   analogReadResolution(12);
@@ -1303,6 +1397,7 @@ void drawEmotionUI() {
   display.setCursor(0, 0);
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  display.setFont(&Picopixel);
   display.print("HUN: ");
   display.print(petHunger);
   if (petHunger < 30) {
@@ -1327,6 +1422,7 @@ void drawEmotionUI() {
   display.print("$");
   display.print(money);
   display.setTextColor(SH110X_WHITE);
+  display.setFont(NULL);
 }
 
 void drawAreaItems() {
@@ -1724,7 +1820,7 @@ void drawGameLibrary() {
         drawCheckerboard(3);
         particleSim();
       } else {
-        latinProject();
+        //latinProject();
       }
       waitForSelectRelease();
     }
@@ -1753,7 +1849,7 @@ void drawShop() {
   
   updateButtonStates();
 
-  if (detectCursorTouch(1, 10, 72, 8) && rightButtonState) {
+  if (detectCursorTouch(1, 10, 54, 8) && rightButtonState) {
     thirdOption = 1;
   } else if (detectCursorTouch(78, 10, 24, 8) && rightButtonState) {
     thirdOption = 2;
@@ -1768,7 +1864,7 @@ void drawShop() {
   if (thirdOption == 1) { //construction tab
     display.setCursor(1, 10);
     display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-    display.print("construction");
+    display.print("construct");
     display.setTextColor(SH110X_WHITE);
     display.print(" food");
     currentShopItems = constructionShopItems;
@@ -1779,7 +1875,7 @@ void drawShop() {
   } else { //food tab
     display.setCursor(1, 10);
     display.setTextColor(SH110X_WHITE);
-    display.print("construction ");
+    display.print("construct ");
     display.setTextColor(SH110X_BLACK, SH110X_WHITE);
     display.print("food");
     currentShopItems = foodShopItems;
@@ -1931,7 +2027,36 @@ void drawSettings() {
         }
       }
 
+      display.println("display");
+
+      display.setTextColor(SH110X_WHITE);
+
+      if (detectCursorTouch(0, 50, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          settingsOption = 6;
+        }
+      }
+
       display.println("misc");
+
+      display.setTextColor(SH110X_WHITE);
+
+      display.setCursor(0, 92);
+
+      if (detectCursorTouch(0, 92, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          spkrEnable = !spkrEnable;
+          waitForSelectRelease();
+        }
+      }
+
+      if (spkrEnable) {
+        display.println("mute");
+      } else {
+        display.println("unmute");
+      }
 
       display.setTextColor(SH110X_WHITE);
 
@@ -2246,6 +2371,78 @@ void drawSettings() {
       break;
     }
     case 5: {
+      static int brightnessTemp = 5;
+
+      display.setCursor(0, 10);
+      display.print("display");
+
+      String labels[] = {"brightness:"};
+      int *values[] = {&brightnessTemp};
+      int startY = 50;
+
+      for (int i = 0; i < 1; i++) {
+        int y = startY + i * 20;
+
+        // Label
+        display.setCursor(0, y);
+        display.setTextColor(SH110X_WHITE);
+        display.print(labels[i]);
+
+        // + button
+        display.setCursor(60, y);
+        if (detectCursorTouch(60, y, 10, 10)) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+          if (rightButtonState) {
+            (*values[i])++;
+            if (*values[i] > 10) *values[i] = 10; // Optional upper limit
+            delay(10);
+          }
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print("+");
+
+        // Value
+        display.setCursor(80, y);
+        display.setTextColor(SH110X_WHITE);
+        display.print(*values[i]);
+
+        // - button
+        display.setCursor(110, y);
+        if (detectCursorTouch(110, y, 10, 10)) {
+          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+          if (rightButtonState) {
+            (*values[i])--;
+            if (*values[i] < 0) *values[i] = 0; // Optional lower limit
+            delay(10);
+          }
+        } else {
+          display.setTextColor(SH110X_WHITE);
+        }
+        display.print("-");
+      }
+
+      display.setContrast(brightnessTemp * 25.5);
+
+      // Confirm button
+      bool confirmPressed = detectCursorTouch(30, 100, 60, 10);
+      display.setCursor(30, 100);
+      if (confirmPressed) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          //set
+          settingsOption = 0;
+          waitForSelectRelease();
+        }
+      } else {
+        display.setTextColor(SH110X_WHITE);
+      }
+      display.print("confirm");
+
+      updateButtonStates();
+      break;
+    }
+    case 6: {
       display.setCursor(0, 10);
       display.println("misc\n");
     
@@ -2481,9 +2678,9 @@ public:
       if (!movePet) {
         startMovingPet(itemX, itemY, 2);
       }
-      Serial.println("moving pet to fireplace");
+      //Serial.println("moving pet to fireplace");
       if (petX == itemX && petY == itemY) {
-        Serial.println("pet has reached fireplace");
+        //Serial.println("pet has reached fireplace");
         sitPet(200, 28);
         petHunger += 5;
         petMessage(fireplaceLines[random(0, fireplaceLinesCount)]);
@@ -2501,11 +2698,11 @@ class WantToSitOnCouch : public Node {
 public:
   NodeStatus tick() override {
     if (petStatus == 1 || (petStatus == 0 && (petSitTimer < 5) && random(0, 800) == 1)) {
-      Serial.println("wanting to sit on couch");
+      //Serial.println("wanting to sit on couch");
       petStatus = 1;
       return SUCCESS;
     }
-    Serial.println("not wanting to sit on couch");
+    //Serial.println("not wanting to sit on couch");
     return FAILURE;
   }
 };
@@ -2535,9 +2732,9 @@ public:
         if (!movePet) {
           startMovingPet(itemX, itemY, 2);
         }
-        Serial.println("moving pet to couch");
+        //Serial.println("moving pet to couch");
         if (petX == itemX && petY == itemY) {
-          Serial.println("pet has reached couch");
+          //Serial.println("pet has reached couch");
           sitPet(200);
           petStatus = 0;
           return SUCCESS;
@@ -2788,7 +2985,10 @@ void loop() {
 
   display.display();
 
+  audioEngine();
+
   if (powerSwitchState) {
+    clearTones();
     blindCloseAnimation();
     Serial.println("going into light sleep, see ya later!");
     display.clearDisplay();
@@ -2805,7 +3005,9 @@ void loop() {
     delay(1000);
     prepareForSleepyTime();
     DateTime timeWhenSlept = rtc.now();
-    esp_deep_sleep_enable_gpio_wakeup(1 << SWITCH_PIN, ESP_GPIO_WAKEUP_GPIO_HIGH); // enable waking up from deep sleep when switch is turned on / pulled high absoulute nerd
+    gpio_wakeup_enable(SWITCH_PIN, GPIO_INTR_HIGH_LEVEL);
+
+    esp_sleep_enable_gpio_wakeup();
 
     esp_light_sleep_start();  //yoo he said the thing
 

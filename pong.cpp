@@ -26,36 +26,43 @@ DRAM_ATTR int enemyScore = 0;
 DRAM_ATTR float petPongXP = 0;
 DRAM_ATTR int petPongLVL = 1;
 
+// void handlePongEnemyAI() {
+//   // Basic tracking AI
+//   if (petPongLVL >= 1 && petPongLVL <= 3) {
+//     enemySpeed = 1.5 + (petPongLVL - 1) * 0.5;  // 1.5 to 2.5
+//     enemySpeed = constrain(enemySpeed, 0, 3);
+
+//     if (ballY < enemyPaddleY + enemyHeight / 2) {
+//       enemyPaddleY -= enemySpeed;
+//     } else if (ballY > enemyPaddleY + enemyHeight / 2) {
+//       enemyPaddleY += enemySpeed;
+//     }
+//   }
+
+//   // Intermediate AI: wait until ball is halfway, then react quickly
+//   else if (petPongLVL >= 4 && petPongLVL <= 10) {
+//     int triggerX = 55 + (petPongLVL - 4) * 3;  // Gets more reactive as level increases
+
+//     if (ballX > triggerX) {
+//       enemySpeed = 2.5 + (petPongLVL - 4) * 0.5;  // Up to 4.5
+//       enemySpeed = constrain(enemySpeed, 0, 5);
+
+//       if (ballY < enemyPaddleY + enemyHeight / 2) {
+//         enemyPaddleY -= enemySpeed;
+//       } else if (ballY > enemyPaddleY + enemyHeight / 2) {
+//         enemyPaddleY += enemySpeed;
+//       }
+//     }
+//   }
+
+//   // Clamp enemy paddle within screen bounds
+//   enemyPaddleY = constrain(enemyPaddleY, 0, 128 - enemyHeight);
+// }
+
 void handlePongEnemyAI() {
-  // Basic tracking AI
-  if (petPongLVL >= 1 && petPongLVL <= 3) {
-    enemySpeed = 1.5 + (petPongLVL - 1) * 0.5;  // 1.5 to 2.5
-    enemySpeed = constrain(enemySpeed, 0, 3);
+  int difference = ballY - enemyPaddleY;
+  enemyPaddleY += difference / 4;
 
-    if (ballY < enemyPaddleY + enemyHeight / 2) {
-      enemyPaddleY -= enemySpeed;
-    } else if (ballY > enemyPaddleY + enemyHeight / 2) {
-      enemyPaddleY += enemySpeed;
-    }
-  }
-
-  // Intermediate AI: wait until ball is halfway, then react quickly
-  else if (petPongLVL >= 4 && petPongLVL <= 10) {
-    int triggerX = 55 + (petPongLVL - 4) * 3;  // Gets more reactive as level increases
-
-    if (ballX > triggerX) {
-      enemySpeed = 2.5 + (petPongLVL - 4) * 0.5;  // Up to 4.5
-      enemySpeed = constrain(enemySpeed, 0, 5);
-
-      if (ballY < enemyPaddleY + enemyHeight / 2) {
-        enemyPaddleY -= enemySpeed;
-      } else if (ballY > enemyPaddleY + enemyHeight / 2) {
-        enemyPaddleY += enemySpeed;
-      }
-    }
-  }
-
-  // Clamp enemy paddle within screen bounds
   enemyPaddleY = constrain(enemyPaddleY, 0, 128 - enemyHeight);
 }
 
@@ -110,6 +117,7 @@ void reEnergizeBall(float amount) {
 
 void pong() { // PONG if you couldnt read
   display.setTextColor(SH110X_WHITE);
+  clearTones();
   while (stopApp == false) {
       updateGyro();
       updateButtonStates();
@@ -121,17 +129,7 @@ void pong() { // PONG if you couldnt read
       }
       constrain(angleY + 64, 0, 126);
 
-      float desiredPaddleY = angleY;
-
-      float paddleYDiff = abs(paddleY - 4 - desiredPaddleY);
-
-      if (paddleYDiff >= paddleHeight) {
-        if (desiredPaddleY < paddleY + paddleHeight) {
-        paddleY -= enemySpeed * 1.4;
-        } else if (desiredPaddleY > paddleY + paddleHeight) {
-        paddleY += enemySpeed * 1.4;
-        }
-      }
+      paddleY = angleY;
 
       stepBallForward();
       
@@ -187,6 +185,7 @@ void pong() { // PONG if you couldnt read
         float offset = (ballY - (paddleY + paddleHeight / 2)) / (paddleHeight / 2) + random(-5, 5);
         ballVY += offset * 2;
         reEnergizeBall(1.1);
+        queueTone(440);
       }
 
       // Ball is moving right toward enemy paddle
@@ -199,6 +198,7 @@ void pong() { // PONG if you couldnt read
         ballVX = -abs(ballVX);
         float offset = (ballY - (enemyPaddleY + enemyHeight / 2)) / (enemyHeight / 2);
         ballVY += offset;
+        queueTone(440);
       }
 
 
@@ -228,7 +228,6 @@ void pong() { // PONG if you couldnt read
       display.clearDisplay();
       display.fillCircle(ballX, ballY, 2, SH110X_WHITE);
       display.fillRect(paddleX, paddleY, 2, paddleHeight, SH110X_WHITE);
-      display.fillRect(2, desiredPaddleY - 3, 2, 6, SH110X_WHITE);
       display.fillRect(enemyPaddleX, enemyPaddleY, 2, enemyHeight, SH110X_WHITE);
       display.setCursor(0, 0);
       display.setTextSize(1);
@@ -236,6 +235,7 @@ void pong() { // PONG if you couldnt read
       display.setCursor(120, 0);
       display.print(enemyScore);
       display.display();
+      audioEngine();
       if (enemyScore == 5 || score == 5) {
         stopApp = true;
       }
