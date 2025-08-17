@@ -115,6 +115,17 @@ DRAM_ATTR String fireplaceLines[] = {
 
 const size_t fireplaceLinesCount = sizeof(fireplaceLines) / sizeof(fireplaceLines[0]);
 
+DRAM_ATTR String pianoLines[] = {
+  "la de da de da",
+  "i am the next beethoven",
+  "bing bong bing",
+  "welcome to my concert",
+  "practicing arpegios or whatever",
+  "can we get some drums?"
+};
+
+const size_t pianoLinesCount = sizeof(pianoLines) / sizeof(pianoLines[0]);
+
 const char* nouns[] = {
   "cat", "dog", "robot", "car", "tree", "bird", "house", "computer",
   "book", "river", "mountain", "child", "city", "flower", "ocean", "star",

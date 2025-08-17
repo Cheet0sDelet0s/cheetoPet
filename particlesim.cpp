@@ -13,23 +13,37 @@
 #define GRID_ROWS (SCREEN_HEIGHT / CELL_SIZE)
 #define MAX_PARTICLES_PER_CELL 8
 
-Particle particles[NUM_PARTICLES];
+Particle particles[300];
 uint8_t grid[GRID_COLS][GRID_ROWS][MAX_PARTICLES_PER_CELL];
 uint8_t gridCounts[GRID_COLS][GRID_ROWS];
 
 int8_t jitterLUT[16] = { -5, -3, -1, 0, 1, 3, 5, -4, 2, -2, 4, -1, 1, 0, -3, 3 };
 
+int particleCount = 0;
+
 bool previousLeftState = false;
+bool previousMiddleState = false;
 
 bool zeroG = false;
 
 void initParticles() {
+  particleCount = 0;
+  
   for (int i = 0; i < NUM_PARTICLES; i++) {
     particles[i].x = random(SCREEN_WIDTH);
     particles[i].y = random(SCREEN_HEIGHT);
     particles[i].vx = 0;
     particles[i].vy = 0;
+    particleCount++;
   }
+}
+
+void spawnParticle() {
+  particles[particleCount].x = random(SCREEN_WIDTH);
+  particles[particleCount].y = random(SCREEN_HEIGHT);
+  particles[particleCount].vx = 0;
+  particles[particleCount].vy = 0;
+  particleCount++;
 }
 
 void clearGrid() {
@@ -41,10 +55,10 @@ void clearGrid() {
 }
 
 void populateGrid() {
-  for (int i = 0; i < NUM_PARTICLES; i++) {
+  for (int i = 0; i < particleCount; i++) {
     int gx = constrain((int)(particles[i].x) / CELL_SIZE, 0, GRID_COLS - 1);
     int gy = constrain((int)(particles[i].y) / CELL_SIZE, 0, GRID_ROWS - 1);
-    if (gridCounts[gx][gy] < NUM_PARTICLES) {
+    if (gridCounts[gx][gy] < particleCount) {
       grid[gx][gy][gridCounts[gx][gy]++] = i;
     }
   }
@@ -57,7 +71,7 @@ void updateParticles() {
   clearGrid();
   populateGrid();
 
-  for (int i = 0; i < NUM_PARTICLES; i++) {
+  for (int i = 0; i < particleCount; i++) {
     // Add a slight bit of randomness
     int index = i % 16;
     float jitterX = jitterLUT[index] / 100.0;
@@ -134,7 +148,7 @@ void updateParticles() {
 
 void drawParticles() {
   display.clearDisplay();
-  for (int i = 0; i < NUM_PARTICLES; i++) {
+  for (int i = 0; i < particleCount; i++) {
     //display.drawPixel((int)particles[i].x, (int)particles[i].y, SH110X_WHITE);
     display.fillCircle((int)particles[i].x, (int)particles[i].y, PARTICLE_RADIUS + 1, SH110X_BLACK);
     display.drawCircle((int)particles[i].x, (int)particles[i].y, PARTICLE_RADIUS, SH110X_WHITE);
@@ -163,6 +177,10 @@ void particleSim() {
       zeroG = !zeroG;
     }
 
+    if (!middleButtonState && previousMiddleState) {
+      spawnParticle();
+    }
+
     if (zeroG) {
       angleX = 0;
       angleY = 0;
@@ -172,6 +190,7 @@ void particleSim() {
     }
     
     previousLeftState = leftButtonState;
+    previousMiddleState = middleButtonState;
     delay(5); // Limit frame rate
   }
 }

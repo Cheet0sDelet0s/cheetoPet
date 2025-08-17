@@ -6,6 +6,7 @@
 extern Adafruit_SH1107 display;
 
 extern bool leftButtonState;
+extern bool middleButtonState;
 extern bool rightButtonState;
 extern void updateButtonStates();
 extern void updateGyro();
