@@ -21,7 +21,9 @@ TP4056 charging board <br>
 3x smd push buttons <br>
 2 position 3 pin switch <br>
 
-unfortunately i have not made a pcb for this yet, i built mine on a perfboard. heres the wiring:<br>
+PCB IS NOT FINISHED - DO NOT ORDER YET!
+
+i built mine on a perfboard. heres the wiring:<br>
 SDA = GPIO20, SCL = GPIO9 (modified since on-board rgb led uses default sda pin) <br>
 all i2c devices (rtc module, display, gyro) connect to power and i2c communication lines <br>
 left button => GPIO5 <br>
