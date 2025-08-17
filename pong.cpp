@@ -185,7 +185,7 @@ void pong() { // PONG if you couldnt read
         float offset = (ballY - (paddleY + paddleHeight / 2)) / (paddleHeight / 2) + random(-5, 5);
         ballVY += offset * 2;
         reEnergizeBall(1.1);
-        queueTone(440);
+        queueTone(440, 50);
       }
 
       // Ball is moving right toward enemy paddle
@@ -198,7 +198,7 @@ void pong() { // PONG if you couldnt read
         ballVX = -abs(ballVX);
         float offset = (ballY - (enemyPaddleY + enemyHeight / 2)) / (enemyHeight / 2);
         ballVY += offset;
-        queueTone(440);
+        queueTone(440, 50);
       }
 
 

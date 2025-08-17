@@ -79,6 +79,8 @@ extern const unsigned char item_grass2 [] PROGMEM;
 
 extern const unsigned char item_house [] PROGMEM;
 
+extern const unsigned char item_piano [] PROGMEM;
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;

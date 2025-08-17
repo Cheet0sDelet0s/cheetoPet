@@ -24,6 +24,9 @@ extern const size_t shakenLinesCount;
 extern String fireplaceLines[];
 extern const size_t fireplaceLinesCount;
 
+extern String pianoLines[];
+extern const size_t pianoLinesCount;
+
 extern String generateSentence();
 
 #endif

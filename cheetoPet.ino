@@ -48,7 +48,6 @@ TP4056 charging board
 #define LED_COUNT 1
 #define SWITCH_PIN GPIO_NUM_0
 #define SPKR_PIN 3
-#define PLAY_TIME 50
 
 Adafruit_NeoPixel rgb(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -75,13 +74,27 @@ bool spkrEnable = true;
 
 // Tone queue
 #define MAX_TONES 48
-int toneQueue[MAX_TONES];
+DRAM_ATTR float toneQueue[MAX_TONES];
+DRAM_ATTR int toneLength[MAX_TONES];
 int toneCount = 0;  // number of tones currently in the queue
 
 // Playback state
 unsigned long lastStepTime = 0;
 int currentTone = 0;
 bool isPlaying = false;
+DRAM_ATTR int playTime = 50;
+
+
+struct Note {
+  float freq;
+  int length;
+};
+
+Note odeToJoy[15] = {
+  {329.63, 500}, {329.63, 500}, {349.23, 500}, {392.00, 500}, {392.00, 500}, {349.23, 500}, {329.63, 500},
+  {293.66, 500}, {261.63, 500}, {261.63, 500}, {293.66, 500}, {329.63, 500}, {329.63, 750}, {293.66, 500},
+  {293.66, 1000}
+};
 
 DRAM_ATTR unsigned long previousMillis = 0;
 const long interval = 50;  
@@ -230,8 +243,8 @@ DRAM_ATTR String currentPetMessage;
 DRAM_ATTR int messageDisplayTime = 0;
 DRAM_ATTR int messageMaxTime = 0;
 
-DRAM_ATTR int constructionShopItems[] = { 3, 4, 5, 6, 7, 19, 30, 31, 34, 35 };
-DRAM_ATTR float constructionShopPrices[] = { 5, 2.50, 7.50, 10, 12.50, 4, 15, 7.50, 1, 1};
+DRAM_ATTR int constructionShopItems[] = { 3, 4, 5, 6, 7, 19, 30, 31, 34, 35, 37 };
+DRAM_ATTR float constructionShopPrices[] = { 5, 2.50, 7.50, 10, 12.50, 4, 15, 7.50, 1, 1, 15 };
 DRAM_ATTR int constructionShopLength = sizeof(constructionShopItems) / sizeof(constructionShopItems[0]);
 
 DRAM_ATTR int foodShopItems[] = { 16, 18 };
@@ -273,48 +286,60 @@ uint8_t getB(uint32_t color) { return color & 0xFF; }
 
 void clearTones() {
   toneCount = 0;
+  ledcWrite(SPKR_PIN, 0);
 }
 
-void queueTone(int freq) {
+void queueTone(float freq, int length) {
   if (toneCount < MAX_TONES) {
-    toneQueue[toneCount++] = freq;
+    toneQueue[toneCount] = freq;
+    toneLength[toneCount] = length;
+    toneCount++;
   }
 }
 
-void priorityQueueTone(int freq) {
+void priorityQueueTone(float freq, int length) {
   if (toneCount < MAX_TONES) {
     // Shift elements to the right
     for (int i = MAX_TONES - 1; i > 0; i--) {
       toneQueue[i] = toneQueue[i - 1];
+      toneLength[i] = toneQueue[i - 1];
     }
 
     // Insert at the start
     toneQueue[0] = freq;
+    toneLength[0] = length;
+    toneCount++;
   }
 }
+
 void audioEngine() {
   // Playback logic
   if (toneCount > 0 && spkrEnable) {
     if (!isPlaying) {
       // Start playing the first tone in the queue
       currentTone = toneQueue[0];
+      playTime = toneLength[0];
       ledcWriteTone(SPKR_PIN, currentTone);
-      Serial.println(currentTone);
+      Serial.print("Tone: "); Serial.print(currentTone);
+      Serial.print(" Length: "); Serial.println(playTime);
       lastStepTime = millis();
       isPlaying = true;
-    } else if (millis() - lastStepTime >= PLAY_TIME) {
+    } else if (millis() - lastStepTime >= playTime) {
       // Time to move to the next tone
-      // Shift queue down
+      // Shift both queues down
       for (int i = 1; i < toneCount; i++) {
         toneQueue[i - 1] = toneQueue[i];
+        toneLength[i - 1] = toneLength[i];
       }
       toneCount--;
 
       if (toneCount > 0) {
         // Play next tone
         currentTone = toneQueue[0];
+        playTime = toneLength[0];
         ledcWriteTone(SPKR_PIN, currentTone);
-        Serial.println(currentTone);
+        Serial.print("Tone: "); Serial.print(currentTone);
+        Serial.print(" Length: "); Serial.println(playTime);
         lastStepTime = millis();
       } else {
         // No more tones
@@ -322,8 +347,11 @@ void audioEngine() {
         isPlaying = false;
       }
     }
+  } else if (!spkrEnable) {
+    ledcWrite(SPKR_PIN, 0);
   }
 }
+
 
 void printItemList(const ItemList* list, int length) {
   Serial.println("Item List:");
@@ -446,7 +474,7 @@ void petMessage(String message) {
   for (int i = 0; i < msgLength; i++) {
     int letterNumber = currentPetMessage[i] - 'a';
     int frequency = 400 + letterNumber * 4;
-    queueTone(frequency);
+    queueTone(frequency, 50);
   }
 }
 
@@ -2656,6 +2684,51 @@ public:
   }
 };
 
+class WantToUsePiano : public Node {
+public:
+  NodeStatus tick() override {
+    if (petStatus == 3 || (petStatus == 0 && (petSitTimer < 5) && random(0, 800) == 1)) {
+      petStatus = 3;
+      return SUCCESS;
+    }
+    return FAILURE;
+  }
+};
+
+class UsePiano : public Node {
+public:
+  NodeStatus tick() override {
+    if (checkItemIsPlaced(37)) {
+      updateAreaPointers();
+      int index = indexOf(currentAreaPtr, *areaItemsPlaced, 37);
+      int itemX = currentAreaPtr[index].x + 4;
+      int itemY = currentAreaPtr[index].y + 10;
+      if (!movePet) {
+        startMovingPet(itemX, itemY, 1);
+      }
+      //Serial.println("moving pet to piano");
+      if (petX == itemX && petY == itemY) {
+        //Serial.println("pet has reached piano");
+        
+        clearTones();
+
+        int numNotes = sizeof(odeToJoy) / sizeof(odeToJoy[0]);
+
+        for (int i = 0; i < numNotes; i++) {
+          queueTone(odeToJoy[i].freq, odeToJoy[i].length);
+        }
+
+        petMessage(pianoLines[random(0, pianoLinesCount)]);
+        petStatus = 0;
+        return SUCCESS;
+      } 
+      return RUNNING;
+    }
+    petStatus = 0;
+    return FAILURE;
+  }
+};
+
 class WantToUseFireplace : public Node {
 public:
   NodeStatus tick() override {
@@ -2682,7 +2755,7 @@ public:
       if (petX == itemX && petY == itemY) {
         //Serial.println("pet has reached fireplace");
         sitPet(200, 28);
-        petHunger += 5;
+        petHunger += 1;
         petMessage(fireplaceLines[random(0, fireplaceLinesCount)]);
         petStatus = 0;
         return SUCCESS;
@@ -2853,6 +2926,7 @@ DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() 
                                       new Sequence({ new IsBored(), new AskForPlay() }),
                                       new Sequence({ new WantToUseFireplace(), new UseFireplace() }) ,
                                       new Sequence({ new WantToSitOnCouch(), new IsCouchAvailable(), new SitOnCouch() }),
+                                      new Sequence({ new WantToUsePiano(), new UsePiano() }),
                                       new Idle()
                                       });
 

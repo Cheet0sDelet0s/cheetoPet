@@ -308,6 +308,14 @@ const unsigned char item_house [] PROGMEM = {
 	0x04, 0x00, 0x81, 0x00
 };
 
+const unsigned char item_piano [] PROGMEM = {
+	// 'piano, 20x18px
+	0x00, 0x0f, 0x80, 0x00, 0x70, 0x40, 0x03, 0x80, 0xe0, 0x1c, 0x07, 0x40, 0x20, 0x38, 0x40, 0x41, 
+	0xff, 0x40, 0x4e, 0x00, 0xc0, 0xf0, 0x00, 0x40, 0xff, 0xff, 0xe0, 0x80, 0x00, 0x10, 0xc5, 0x45, 
+	0x10, 0xaa, 0xaa, 0xb0, 0xaa, 0xaa, 0xb0, 0x7f, 0xff, 0xe0, 0x14, 0x62, 0x80, 0x14, 0xf2, 0x80, 
+	0x14, 0xf2, 0x80, 0x1c, 0x93, 0x80
+};
+
 const BitmapInfo bitmaps[] = {
   { pet_gooseStill, 12, 15 },         //0
   { pet_gooseStillBig, 16, 26 },      //1
@@ -345,7 +353,8 @@ const BitmapInfo bitmaps[] = {
   { item_sun, 26, 26},                //33
   { item_grass, 9, 7},                //34
   { item_grass2, 10, 9 },             //35
-  { item_house, 37, 36 }              //36
+  { item_house, 37, 36 },             //36
+  { item_piano, 20, 18}               //37
 };
 
 String displayNames[] = {
@@ -385,5 +394,6 @@ String displayNames[] = {
   { "sun" },            //33
   { "grass" },          //34
   { "grass 2" },        //35
-  { "house" }           //36
+  { "house" },          //36
+  { "piano" }           //37
 };
