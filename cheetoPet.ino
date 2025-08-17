@@ -72,10 +72,14 @@ const int rightButton = 7;
 
 bool spkrEnable = true;
 
+struct Note {
+  float freq;
+  int length;
+};
+
 // Tone queue
 #define MAX_TONES 48
-DRAM_ATTR float toneQueue[MAX_TONES];
-DRAM_ATTR int toneLength[MAX_TONES];
+Note noteQueue[MAX_TONES];
 int toneCount = 0;  // number of tones currently in the queue
 
 // Playback state
@@ -83,12 +87,6 @@ unsigned long lastStepTime = 0;
 int currentTone = 0;
 bool isPlaying = false;
 DRAM_ATTR int playTime = 50;
-
-
-struct Note {
-  float freq;
-  int length;
-};
 
 Note odeToJoy[15] = {
   {329.63, 500}, {329.63, 500}, {349.23, 500}, {392.00, 500}, {392.00, 500}, {349.23, 500}, {329.63, 500},
@@ -291,8 +289,7 @@ void clearTones() {
 
 void queueTone(float freq, int length) {
   if (toneCount < MAX_TONES) {
-    toneQueue[toneCount] = freq;
-    toneLength[toneCount] = length;
+    noteQueue[toneCount] = { freq, length };
     toneCount++;
   }
 }
@@ -301,48 +298,49 @@ void priorityQueueTone(float freq, int length) {
   if (toneCount < MAX_TONES) {
     // Shift elements to the right
     for (int i = MAX_TONES - 1; i > 0; i--) {
-      toneQueue[i] = toneQueue[i - 1];
-      toneLength[i] = toneQueue[i - 1];
+      noteQueue[i] = noteQueue[i - 1];
     }
 
+    Note newNote = {freq, length};
+
     // Insert at the start
-    toneQueue[0] = freq;
-    toneLength[0] = length;
+    noteQueue[0] = newNote;
     toneCount++;
   }
 }
 
 void audioEngine() {
-  // Playback logic
   if (toneCount > 0 && spkrEnable) {
     if (!isPlaying) {
-      // Start playing the first tone in the queue
-      currentTone = toneQueue[0];
-      playTime = toneLength[0];
+      // Start playing first note
+      currentTone = noteQueue[0].freq;
+      playTime = noteQueue[0].length;
       ledcWriteTone(SPKR_PIN, currentTone);
+
       Serial.print("Tone: "); Serial.print(currentTone);
       Serial.print(" Length: "); Serial.println(playTime);
+
       lastStepTime = millis();
       isPlaying = true;
     } else if (millis() - lastStepTime >= playTime) {
-      // Time to move to the next tone
-      // Shift both queues down
+      // Shift queue down by 1
       for (int i = 1; i < toneCount; i++) {
-        toneQueue[i - 1] = toneQueue[i];
-        toneLength[i - 1] = toneLength[i];
+        noteQueue[i - 1] = noteQueue[i];
       }
       toneCount--;
 
       if (toneCount > 0) {
-        // Play next tone
-        currentTone = toneQueue[0];
-        playTime = toneLength[0];
+        // Play next note
+        currentTone = noteQueue[0].freq;
+        playTime = noteQueue[0].length;
         ledcWriteTone(SPKR_PIN, currentTone);
+
         Serial.print("Tone: "); Serial.print(currentTone);
         Serial.print(" Length: "); Serial.println(playTime);
+
         lastStepTime = millis();
       } else {
-        // No more tones
+        // Finished all notes
         ledcWriteTone(SPKR_PIN, 0);
         isPlaying = false;
       }
@@ -351,6 +349,7 @@ void audioEngine() {
     ledcWrite(SPKR_PIN, 0);
   }
 }
+
 
 
 void printItemList(const ItemList* list, int length) {
