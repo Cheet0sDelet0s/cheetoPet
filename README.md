@@ -4,6 +4,7 @@
 
 ![main image](photos/main.jpg)
 ![side view](photos/side.jpg)
+![screenshot1](photos/screenshot1.png)
 
 # features
 6 axis gyro <br>
