@@ -163,6 +163,7 @@ void drawParticles() {
     }
   }
   display.display();
+  screenRecord();
 }
 
 void particleSim() {

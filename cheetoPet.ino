@@ -58,6 +58,8 @@ Adafruit_NeoPixel rgb(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 #define EEPROM_ADDRESS 0x57 // Check your chip
 #define EEPROM_SIZE 4096    // AT24C32 = 4KB
 
+#define OFFSET 4   // screen recording offset, adjust until it lines up
+
 /*FLASH AND DRAM
 anything that is read/written to infrequently should go in flash. (like storage of computer)
 anything that is used quite a bit goes in dram (like ram of computer)
@@ -100,6 +102,9 @@ const long interval = 50;
 DRAM_ATTR DateTime now;
 
 int saveFileVersion = 1;
+
+DRAM_ATTR unsigned long lastDump = 0;  // keeps track of the last time we dumped hahahah get it
+bool screenRecording = false;
 
 //buttons
 DRAM_ATTR bool leftButtonState = false;
@@ -317,8 +322,8 @@ void audioEngine() {
       playTime = noteQueue[0].length;
       ledcWriteTone(SPKR_PIN, currentTone);
 
-      Serial.print("Tone: "); Serial.print(currentTone);
-      Serial.print(" Length: "); Serial.println(playTime);
+      //Serial.print("Tone: "); Serial.print(currentTone);
+      //Serial.print(" Length: "); Serial.println(playTime);
 
       lastStepTime = millis();
       isPlaying = true;
@@ -335,8 +340,8 @@ void audioEngine() {
         playTime = noteQueue[0].length;
         ledcWriteTone(SPKR_PIN, currentTone);
 
-        Serial.print("Tone: "); Serial.print(currentTone);
-        Serial.print(" Length: "); Serial.println(playTime);
+        //Serial.print("Tone: "); Serial.print(currentTone);
+        //Serial.print(" Length: "); Serial.println(playTime);
 
         lastStepTime = millis();
       } else {
@@ -832,7 +837,7 @@ void setup() {
 
   ledcWriteTone(SPKR_PIN, 0);           // start silent
 
-  Serial.begin(115200);
+  Serial.begin(921600);
   analogReadResolution(12);
 
   Wire.begin(SDA_ALT, SCL_ALT);
@@ -850,6 +855,7 @@ void setup() {
   display.println("loading modules\n\n");
   display.print("made by\nCheet0sDelet0s");
   display.display();
+  dumpBufferASCII();
   delay(500);
   if (!rtc.begin()) {
     Serial.println("Couldn't find RTC");
@@ -893,6 +899,7 @@ void setup() {
       drawCenteredText(display, "A = yes", 10);
       drawCenteredText(display, "B = no", 20);
       display.display();
+      dumpBufferASCII();
       bool confirmed = false;
       waitForSelectRelease();
       while (!confirmed) {
@@ -921,6 +928,7 @@ void setup() {
       display.print("new: A");
       drawCenteredText(display, "X: RAM game", 105);
       display.display();
+      screenRecord();
     }
   }
   
@@ -1453,7 +1461,6 @@ void drawEmotionUI() {
 }
 
 void drawAreaItems() {
-  Serial.println("drawing area items");
   display.drawFastHLine(0, 42, 127, SH110X_WHITE);
 
   updateAreaPointers();
@@ -2069,6 +2076,24 @@ void drawSettings() {
 
       display.setTextColor(SH110X_WHITE);
 
+      display.setCursor(0, 84);
+
+      if (detectCursorTouch(0, 84, 102, 8)) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        if (rightButtonState) {
+          screenRecording = !screenRecording;
+          waitForSelectRelease();
+        }
+      }
+
+      if (screenRecording) {
+        display.println("stop record");
+      } else {
+        display.println("start record");
+      }
+
+      display.setTextColor(SH110X_WHITE);
+
       display.setCursor(0, 92);
 
       if (detectCursorTouch(0, 92, 102, 8)) {
@@ -2555,6 +2580,38 @@ bool checkItemIsPlaced(int item) {
   return false;
 }
 
+void dumpBufferASCII() {
+  uint8_t *buffer = display.getBuffer();
+  const int w = display.width();
+  const int h = display.height();
+  const int rowsPerChunk = 8;  // how many rows to print at once
+  char chunk[w * rowsPerChunk + rowsPerChunk + 1]; // +1 for final null, +rowsPerChunk for line breaks
+
+  for (int y = 0; y < h; y += rowsPerChunk) {
+    int chunkIndex = 0;
+
+    for (int row = 0; row < rowsPerChunk && (y + row) < h; row++) {
+      for (int x = 0; x < w; x++) {
+        int byteIndex = x + ((y + row) / 8) * w;
+        int bitMask = 1 << ((y + row) & 7);
+        chunk[chunkIndex++] = (buffer[byteIndex] & bitMask) ? '#' : '.';
+      }
+      chunk[chunkIndex++] = '\n'; // add newline at end of row
+    }
+
+    chunk[chunkIndex] = '\0';  // null-terminate the chunk
+    Serial.print(chunk);        // print multiple rows at once
+  }
+
+  Serial.println(); // final empty line to signal end of frame
+}
+
+void screenRecord() {
+  if (millis() - lastDump >= 100 && screenRecording) {
+      lastDump = millis();
+      dumpBufferASCII();
+  }
+}
 
 //BEHAVIOUR TREE STUFF (PRETTY SIGMA)
 DRAM_ATTR enum NodeStatus { SUCCESS,
@@ -3058,6 +3115,8 @@ void loop() {
 
   display.display();
 
+  screenRecord();
+
   audioEngine();
 
   if (powerSwitchState) {
@@ -3075,6 +3134,7 @@ void loop() {
     const BitmapInfo& bmp = bitmaps[17];
     display.drawBitmap(55, 82, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
     display.display();
+    dumpBufferASCII();
     delay(1000);
     prepareForSleepyTime();
     DateTime timeWhenSlept = rtc.now();
@@ -3117,6 +3177,8 @@ void loop() {
     const BitmapInfo& bmp2 = bitmaps[1];
     display.drawBitmap(55, 90, bmp2.data, bmp2.width, bmp2.height, SH110X_WHITE);
     display.display();
+    dumpBufferASCII();
+
     if (minutesSinceSlept >= saveInterval) {
       delay(700);
       saveGameToEEPROM(true);

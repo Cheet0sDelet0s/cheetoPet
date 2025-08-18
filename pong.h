@@ -22,6 +22,7 @@ extern void audioEngine();
 extern void queueTone(float freq, int length);
 extern void priorityQueueTone(int freq);
 extern void clearTones();
+extern void screenRecord();
 //extern const BitmapInfo bitmaps;
 
 void drawPetLeveling(String levelType, float beginningXP, float gainedXP, int beginningLVL);

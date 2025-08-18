@@ -16,6 +16,7 @@ extern void drawPetLeveling(String levelType, float beginningXP, float gainedXP,
 extern float money;
 extern int petFun;
 extern void petMessage(String message);
+extern void screenRecord();
 void particleSim();
 
 struct Particle {

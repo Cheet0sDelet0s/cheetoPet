@@ -235,6 +235,7 @@ void pong() { // PONG if you couldnt read
       display.setCursor(120, 0);
       display.print(enemyScore);
       display.display();
+      screenRecord();
       audioEngine();
       if (enemyScore == 5 || score == 5) {
         stopApp = true;
