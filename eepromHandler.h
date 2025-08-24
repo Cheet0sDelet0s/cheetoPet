@@ -16,6 +16,8 @@ struct SaveGame {
   uint8_t placedItems;
   uint8_t placedX[30];
   uint8_t placedY[30];
+  uint8_t outsidePlot[30];
+  uint8_t outsidePlotPlaced;
   uint8_t foodInv[8];
   uint8_t foodInvItems;
   uint8_t saveVersion;

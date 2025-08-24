@@ -161,14 +161,13 @@ DRAM_ATTR int liveDataTimer = 0;
 
 struct ItemList {
   int type, x, y;
-  bool active;
 };
 
-DRAM_ATTR ItemList outsidePlot[30] = {
-  {34, 40, 50, true},
-  {35, 60, 70, true},
-  {33, 96, 5, true},
-  {36, 46, 6, true}
+std::vector<ItemList> outsidePlot = {
+    {34, 40, 50},
+    {35, 60, 70},
+    {33, 96, 5},
+    {36, 46, 6}
 };
 
 DRAM_ATTR int outsidePlotPlaced = 4;
@@ -352,6 +351,14 @@ void reopenGames()    { firstOption = 2; depth = 1; }
 /// Button definitions
 /// ============================
 
+/*
+  
+  button syntax:
+  
+  {x pos, y pos, width, height, bitmap id, function},
+
+*/
+
 // Depth 0 (root menu)
 UIButton depth0Buttons[] = {
   {0,   115, 41, 15,  9,  selectEdit},     // Pencil
@@ -526,9 +533,7 @@ void printItemList(const ItemList* list, int length) {
     Serial.print(", X: ");
     Serial.print(list[i].x);
     Serial.print(", Y: ");
-    Serial.print(list[i].y);
-    Serial.print(", Active: ");
-    Serial.println(list[i].active ? "true" : "false");
+    Serial.println(list[i].y);
   }
 }
 
@@ -967,7 +972,7 @@ bool addToList(int list[], int& itemCount, int maxSize, int value) {
 
 int indexOf(ItemList array[], int length, int targetType) {
   for (int i = 0; i < length; i++) {
-    if (array[i].active && array[i].type == targetType) {
+    if (array[i].type == targetType) {
       return i;
     }
   }
@@ -1496,8 +1501,6 @@ void drawAreaItems() {
     uint8_t type = currentAreaPtr[i].type;
     if (type == 0) continue;  // stop foolish behavoir1!1!!!1!
 
-    //if (type >= NUM_BITMAPS) continue;  // avoid out-of-bounds bitmap access
-
     const BitmapInfo& bmp = bitmaps[type];
     int x = currentAreaPtr[i].x;
     int y = currentAreaPtr[i].y;
@@ -1651,7 +1654,7 @@ void drawLiveData() {
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
   display.setFont(&Picopixel);
   now = rtc.now();
-  display.setCursor(55, 0);
+  display.setCursor(55, 4);
   if (liveDataTimer < 100) {
     display.print(now.hour());
     display.print(":");
@@ -2238,9 +2241,9 @@ void updateGyro() {
   mpu.gyroUpdate();
   mpu.accelUpdate();
 
-  int gyroX = round(mpu.gyroX() + gyroXOffset) * gyroSensitivityX * -1;  //multiply gyro values by user set sensitivity. x value is inverted since gyro is upside down in hardware 
-  int gyroY = round(mpu.gyroY() + gyroYOffset) * gyroSensitivityY;
-  int gyroZ = round(mpu.gyroZ() + gyroZOffset) * gyroSensitivityZ;
+  int gyroX = round((mpu.gyroX() + gyroXOffset) / 2) * gyroSensitivityX * 2 * -1;  //multiply gyro values by user set sensitivity. x value is inverted since gyro is upside down in hardware 
+  int gyroY = round((mpu.gyroY() + gyroYOffset) / 2) * gyroSensitivityY * 2;
+  int gyroZ = round((mpu.gyroZ() + gyroZOffset) / 2) * gyroSensitivityZ * 2;
 
   int accelX = round(mpu.accelX() + accelXOffset);
   int accelY = round(mpu.accelY() + accelYOffset);
@@ -2261,11 +2264,7 @@ void updateGyro() {
   posX += gyroX * deltaTime;
   posY += gyroY * deltaTime;
   posZ += gyroZ * deltaTime;
-  // Serial.printf("TOTAL X: %f, Y: %f, Z: %f\n", posX, posY, posZ);
-  // Serial.printf("total gforce: %f\n", totalG);
 }
-
-
 
 void runSaveInterval() {
   DateTime now = rtc.now();
@@ -2284,7 +2283,7 @@ void runSaveInterval() {
 bool checkItemIsPlaced(int item) {
   updateAreaPointers();
   for (int i = 0; i < *areaItemsPlaced; i++) {
-    if (currentAreaPtr[i].active && currentAreaPtr[i].type == item) {
+    if (currentAreaPtr[i].type == item) {
       return true;
     }
   }

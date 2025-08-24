@@ -10,7 +10,7 @@
 post on my website for more info: https://www.cloudables.net/2025/08/22/cheetopet/
 <br>
 
-# features>
+# features
 6 axis gyro <br>
 128x128 monochrome oled display <br>
 RTC module for timekeeping <br>
