@@ -96,6 +96,32 @@ Note odeToJoy[15] = {
   {293.66, 1000}
 };
 
+Note maryLamb[14] = { //written by AI
+  {329.63, 500}, {293.66, 500}, {261.63, 500}, {293.66, 500}, {329.63, 500}, {329.63, 500}, {329.63, 1000},
+  {293.66, 500}, {293.66, 500}, {293.66, 1000}, {329.63, 500}, {392.00, 500}, {392.00, 1000}, {329.63, 1000}
+};
+
+Note happyBirthday[25] = { //written by AI
+  {264.00, 250}, {264.00, 250}, {297.00, 500}, {264.00, 500}, {352.00, 500}, {330.00, 1000}, 
+  {264.00, 250}, {264.00, 250}, {297.00, 500}, {264.00, 500}, {396.00, 500}, {352.00, 1000},
+  {264.00, 250}, {264.00, 250}, {528.00, 500}, {440.00, 500}, {352.00, 500}, {330.00, 500}, {297.00, 1000},
+  {466.00, 250}, {466.00, 250}, {440.00, 500}, {352.00, 500}, {396.00, 500}, {352.00, 1000}
+};
+
+// Song metadata wrapper
+struct Song {
+  Note* notes;
+  int length;
+};
+
+Song songs[] = {
+  {odeToJoy, sizeof(odeToJoy) / sizeof(odeToJoy[0])},
+  {maryLamb, sizeof(maryLamb) / sizeof(maryLamb[0])},
+  {happyBirthday, sizeof(happyBirthday) / sizeof(happyBirthday[0])}
+};
+
+int numSongs = sizeof(songs) / sizeof(songs[0]);
+
 DRAM_ATTR unsigned long previousMillis = 0;
 const long interval = 50;  
 
@@ -352,6 +378,17 @@ void audioEngine() {
     }
   } else if (!spkrEnable) {
     ledcWrite(SPKR_PIN, 0);
+  }
+}
+
+void playRandomSong() {
+  clearTones();
+
+  int songIndex = random(numSongs); // Pick random song
+  Song chosen = songs[songIndex];
+
+  for (int i = 0; i < chosen.length; i++) {
+    queueTone(chosen.notes[i].freq, chosen.notes[i].length);
   }
 }
 
@@ -1007,7 +1044,7 @@ bool drawAdjustable(int x, int y, int& value, int minVal, int maxVal, const char
   // Label (optional, can be empty string)
   if (label && strlen(label) > 0) {
     
-    display.setCursor(x - (label.length() * 6) - 1, y);
+    display.setCursor(x - (String(label).length() * 6) - 1, y);
     display.setTextColor(SH110X_WHITE);
     display.print(label);
   }
@@ -2079,7 +2116,7 @@ void settingsMainMenu() {
   if (drawButton(0, y, 102, 8, "gyro sensitivity")) settingsOption = 2;
   y += 8;
 
-  if (drawButton(0, y, 102, 8, "loop delay")) settingsOption = 3;
+  if (drawButton(0, y, 102, 8, "performance")) settingsOption = 3;
   y += 8;
 
   if (drawButton(0, y, 102, 8, "save manager")) settingsOption = 4;
@@ -2153,27 +2190,121 @@ void settingsDateTime() {
   }
 }
 
-void settingsGyro() {
+void settingsGyro() {  // LOOK. AT. THAT. BEAUTIFUL
   static int sensitivityX = gyroSensitivityX;
   static int sensitivityY = gyroSensitivityY;
   static int sensitivityZ = gyroSensitivityZ;
-
+  
   display.setCursor(0, 10);
   display.print("gyro sensitivity");
   
-  drawAdjustable(10, 50, sensitivityX, -5, 5, "X:", false);
-  drawAdjustable(40, 50, sensitivityY, -5, 5, "Y:", false);
-  drawAdjustable(100, 50, sensitivityZ, -5, 5, "Z:", false);
+  drawAdjustable(20, 50, sensitivityX, -5, 5, "X:", false);
+  drawAdjustable(50, 50, sensitivityY, -5, 5, "Y:", false);
+  drawAdjustable(80, 50, sensitivityZ, -5, 5, "Z:", false);
 
   if (drawButton(30, 80, 60, 10, "confirm")) {
-      gyroSensitivityX = sensitivityX;
-      gyroSensitivityY = sensitivityY;
-      gyroSensitivityZ = sensitivityZ;
       settingsOption = 0;
       waitForSelectRelease();
   }
 
   updateButtonStates();
+}
+
+void settingsPerformance() { //pretty good wheyyy
+  static int delayTemp = loopDelay;     
+
+  display.setCursor(0, 10);
+  display.print("loop delay");
+
+  drawAdjustable(80, 50, delayTemp, 0, 100, "delay (ms):", false);
+
+  if (drawButton(30, 80, 60, 10, "confirm")) {
+    loopDelay = delayTemp;
+    settingsOption = 0;
+    waitForSelectRelease();
+  }
+
+  updateButtonStates();
+}
+
+void settingsSaveManager() {    //OH MY GOD THIS IS SO CLEAN AGHHHHH
+  drawCenteredText(display, "save manager", 10);
+
+  if (drawCenteredButton("save to eeprom", 22)) {
+    saveGameToEEPROM();
+  }
+
+  if (drawCenteredButton("save to ram", 32)) {
+    saveGameToRam();
+  }
+
+  if (drawCenteredButton("load from eeprom", 42)) {
+    loadGameFromEEPROM();
+  }
+
+  if (drawCenteredButton("load from ram", 52)) {
+    loadGameFromRam();
+  }
+
+  drawAdjustable(70, 75, saveInterval, 1, 60, "interval:", false);
+
+  if (drawCenteredButton("exit", 100)) {
+    settingsOption = 0;
+  }
+
+  updateButtonStates();
+}
+
+void settingsDisplay() {
+  static int brightnessTemp = 5;
+
+  display.setCursor(0, 10);
+  display.print("display");
+
+  drawAdjustable(80, 30, brightnessTemp, 1, 10, "brightness:", false);
+
+  display.setContrast(brightnessTemp * 25.5);
+
+  if (drawCenteredButton("exit", 90)) {
+    settingsOption = 0;
+  }
+
+  updateButtonStates();
+}
+
+void settingsMisc() {
+  display.setCursor(0, 10);
+  display.println("misc\n");
+
+  updateButtonStates();
+  
+  if (drawCenteredButton("deep sleep", 20)) {
+    display.clearDisplay();
+    display.print("the device will enter deep sleep in 5 seconds. to turn it back on, disconnect and reconnect the battery.");
+    display.display();
+    delay(5000);
+    prepareForSleepyTime();
+    Serial.println("going into deep sleep as requested by user goodnight");
+    esp_deep_sleep_start();
+  }
+
+  if (drawCenteredButton("display test", 32)) {
+    display.clearDisplay();
+    display.display();
+    testdrawline();
+  }
+  
+  if (drawCenteredButton("peripheral test", 44)) {
+    peripheralTest();
+  }
+
+  if (drawCenteredButton("random song", 56)) {
+    playRandomSong();
+  }
+
+  if (drawCenteredButton("exit", 90)) {
+    settingsOption = 0;
+  }
 }
 
 void drawSettings() {
@@ -2191,240 +2322,10 @@ void drawSettings() {
     case 0: settingsMainMenu(); break;
     case 1: settingsDateTime(); break;
     case 2: settingsGyro(); break;
-    case 3: {
-      static int delayTemp = loopDelay;     
-
-      display.setCursor(0, 10);
-      display.print("loop delay");
-
-      String labels[] = {"delay (ms):"};
-      int *values[] = {&delayTemp};
-      int startY = 50;
-
-      for (int i = 0; i < 1; i++) {
-        int y = startY + i * 20;
-
-        // Label
-        display.setCursor(0, y);
-        display.setTextColor(SH110X_WHITE);
-        display.print(labels[i]);
-
-        // + button
-        display.setCursor(60, y);
-        if (detectCursorTouch(60, y, 10, 10)) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-          if (rightButtonState) {
-            (*values[i])++;
-            if (*values[i] > 100) *values[i] = 100; // Optional upper limit
-            waitForSelectRelease();
-          }
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print("+");
-
-        // Value
-        display.setCursor(80, y);
-        display.setTextColor(SH110X_WHITE);
-        display.print(*values[i]);
-
-        // - button
-        display.setCursor(110, y);
-        if (detectCursorTouch(110, y, 10, 10)) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-          if (rightButtonState) {
-            (*values[i])--;
-            if (*values[i] < 0) *values[i] = 0; // Optional lower limit
-            waitForSelectRelease();
-          }
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print("-");
-      }
-
-      // Confirm button
-      bool confirmPressed = detectCursorTouch(30, 100, 60, 10);
-      display.setCursor(30, 100);
-      if (confirmPressed) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          loopDelay = delayTemp;
-          settingsOption = 0;
-          waitForSelectRelease();
-        }
-      } else {
-        display.setTextColor(SH110X_WHITE);
-      }
-      display.print("confirm");
-
-      updateButtonStates();
-      break;
-    }
-    case 4: {
-      drawCenteredText(display, "save manager", 10);
-
-      if (drawCenteredButton("save to eeprom", 22)) {
-        saveGameToEEPROM();
-      }
-
-      if (drawCenteredButton("save to ram", 32)) {
-        saveGameToRam();
-      }
-
-      if (drawCenteredButton("load from eeprom", 42)) {
-        loadGameFromEEPROM();
-      }
-
-      if (drawCenteredButton("load from ram", 52)) {
-        loadGameFromRam();
-      }
-
-      drawCenteredText(display, "save interval (mins):", 65);
-
-      // + button
-      display.setCursor(60, 76);
-      if (detectCursorTouch(60, 76, 10, 10)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          saveInterval++;
-          waitForSelectRelease();
-        }
-      } else {
-        display.setTextColor(SH110X_WHITE);
-      }
-      display.print("+");
-
-      // Value
-      display.setCursor(80, 76);
-      display.setTextColor(SH110X_WHITE);
-      display.print(saveInterval);
-
-      // - button
-      display.setCursor(110, 76);
-      if (detectCursorTouch(110, 76, 10, 10)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          saveInterval--;
-          if (saveInterval < 0) saveInterval = 0; 
-          waitForSelectRelease();
-        }
-      } else {
-        display.setTextColor(SH110X_WHITE);
-      }
-      display.print("-");
-
-      if (drawCenteredButton("exit", 90)) {
-        settingsOption = 0;
-      }
-
-      break;
-    }
-    case 5: {
-      static int brightnessTemp = 5;
-
-      display.setCursor(0, 10);
-      display.print("display");
-
-      String labels[] = {"brightness:"};
-      int *values[] = {&brightnessTemp};
-      int startY = 50;
-
-      for (int i = 0; i < 1; i++) {
-        int y = startY + i * 20;
-
-        // Label
-        display.setCursor(0, y);
-        display.setTextColor(SH110X_WHITE);
-        display.print(labels[i]);
-
-        // + button
-        display.setCursor(60, y);
-        if (detectCursorTouch(60, y, 10, 10)) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-          if (rightButtonState) {
-            (*values[i])++;
-            if (*values[i] > 10) *values[i] = 10; // Optional upper limit
-            delay(10);
-          }
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print("+");
-
-        // Value
-        display.setCursor(80, y);
-        display.setTextColor(SH110X_WHITE);
-        display.print(*values[i]);
-
-        // - button
-        display.setCursor(110, y);
-        if (detectCursorTouch(110, y, 10, 10)) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-          if (rightButtonState) {
-            (*values[i])--;
-            if (*values[i] < 0) *values[i] = 0; // Optional lower limit
-            delay(10);
-          }
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print("-");
-      }
-
-      display.setContrast(brightnessTemp * 25.5);
-
-      // Confirm button
-      bool confirmPressed = detectCursorTouch(30, 100, 60, 10);
-      display.setCursor(30, 100);
-      if (confirmPressed) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          //set
-          settingsOption = 0;
-          waitForSelectRelease();
-        }
-      } else {
-        display.setTextColor(SH110X_WHITE);
-      }
-      display.print("confirm");
-
-      updateButtonStates();
-      break;
-    }
-    case 6: {
-      display.setCursor(0, 10);
-      display.println("misc\n");
-    
-      display.println("deep sleep");
-      display.println("display test");
-      display.println("peripheral test");
-      updateButtonStates();
-      if (detectCursorTouch(0, 26, 100, 8) && rightButtonState) {
-        display.clearDisplay();
-        display.print("the device will enter deep sleep in 5 seconds. to turn it back on, disconnect and reconnect the battery.");
-        display.display();
-        delay(5000);
-        prepareForSleepyTime();
-        Serial.println("going into deep sleep as requested by user goodnight");
-        esp_deep_sleep_start();
-      }
-      if (detectCursorTouch(0, 34, 100, 8) && rightButtonState) {
-        display.clearDisplay();
-        display.display();
-        testdrawline();
-      }
-      
-      if (detectCursorTouch(0, 42, 100, 8) && rightButtonState) {
-        peripheralTest();
-      }
-
-      if (detectCursorTouch)
-      if (drawCenteredButton("exit", 90)) {
-        settingsOption = 0;
-      }
-      break;
-    }
+    case 3: settingsPerformance(); break;
+    case 4: settingsSaveManager(); break;
+    case 5: settingsDisplay(); break;
+    case 6: settingsMisc(); break;
   }
 }
 
@@ -2671,13 +2572,7 @@ public:
       if (petX == itemX && petY == itemY) {
         //Serial.println("pet has reached piano");
         
-        clearTones();
-
-        int numNotes = sizeof(odeToJoy) / sizeof(odeToJoy[0]);
-
-        for (int i = 0; i < numNotes; i++) {
-          queueTone(odeToJoy[i].freq, odeToJoy[i].length);
-        }
+        playRandomSong();
 
         petMessage(pianoLines[random(0, pianoLinesCount)]);
         petStatus = 0;
