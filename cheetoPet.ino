@@ -350,7 +350,37 @@ void audioEngine() {
   }
 }
 
+void peripheralTest() {
+  waitForSelectRelease();
+  while (!rightButtonState) {
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+    display.setTextSize(2);
+    updateGyro();
+    
+    now = rtc.now();
+    display.print(now.hour());
+    display.print(":");
+    if (now.minute() < 10) {
+      display.print("0");
+      display.println(now.minute());
+    } else {
+      display.println(now.minute());
+    }
+    display.print("X: "); display.println(angleX);
+    display.print("Y: "); display.println(angleY);
+    display.print("Z: "); display.println(angleZ);
+    
+    display.display();
 
+    screenRecord();
+
+    updateButtonStates();
+    
+    delay(5);
+  }
+}
 
 void printItemList(const ItemList* list, int length) {
   Serial.println("Item List:");
@@ -943,6 +973,61 @@ void waitForSelectRelease() {
     }
   }
   updateButtonStates();
+}
+
+bool drawButton(int x, int y, int w, int h, const char* label) {
+  display.setCursor(x, y);
+  bool touched = detectCursorTouch(x, y, w, h);
+  if (touched) {
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+    display.print(label);
+    updateButtonStates();
+    if (rightButtonState) {
+      waitForSelectRelease();
+      return true;
+    }
+    return false;
+  } else {
+    display.setTextColor(SH110X_WHITE);
+    display.print(label);
+    return false;
+  }
+}
+
+// Adjustable control with + / value / -
+bool drawAdjustable(int x, int y, int& value, int minVal, int maxVal, const char* label, bool selected = false) {
+  // Label (optional, can be empty string)
+  if (label && strlen(label) > 0) {
+    
+    display.setCursor(x - (label.length() * 6) - 1, y);
+    display.setTextColor(SH110X_WHITE);
+    display.print(label);
+  }
+
+  // + button
+  if (drawButton(x, y - 10, 20, 10, "+")) {
+    value++;
+    if (value > maxVal) value = minVal;  // wrap around
+    return true;
+  }
+
+  // Value
+  display.setCursor(x, y);
+  if (selected) {
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+  } else {
+    display.setTextColor(SH110X_WHITE);
+  }
+  display.print(value);
+
+  // - button
+  if (drawButton(x, y + 10, 20, 10, "-")) {
+    value--;
+    if (value < minVal) value = maxVal;  // wrap around
+    return true;
+  }
+
+  return false;
 }
 
 void killPet(String deathReason = "") {
@@ -1749,9 +1834,6 @@ int averageADC(int pin, int samples = 64) {
   return total / samples;
 }
 
-
-
-
 void startMovingPet(int x, int y, int speed) {
   if (petSitTimer < 1) {
     petMoveX = x;
@@ -1945,7 +2027,6 @@ void drawShop() {
     display.print(" - $");
     display.println(currentShopPrices[i]);
   }
-
 }
 
 bool drawCenteredButton(String label, int y) {
@@ -1980,6 +2061,114 @@ bool drawCenteredButton(String label, int y) {
   return buttonClicked;
 }
 
+//SETTINGS PAGES
+
+void settingsMainMenu() {
+  int y = 10;
+
+  if (drawButton(0, y, 102, 8, "set date and time")) settingsOption = 1;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "gyro sensitivity")) settingsOption = 2;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "loop delay")) settingsOption = 3;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "save manager")) settingsOption = 4;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "display")) settingsOption = 5;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "misc")) settingsOption = 6;
+  y = 84;
+
+  // Toggle screen recording
+  if (drawButton(0, y, 102, 8, screenRecording ? "stop record" : "start record")) {
+    screenRecording = !screenRecording;
+  }
+  y += 8;
+
+  // Toggle speaker
+  if (drawButton(0, y, 102, 8, spkrEnable ? "mute" : "unmute")) {
+    spkrEnable = !spkrEnable;
+  }
+  y += 8;
+
+  // Restart
+  if (drawButton(0, y, 102, 8, "restart")) {
+    esp_restart();
+  }
+}
+
+void settingsDateTime() {
+  static bool dateTimeInitialized = false;
+  static int year, month, day, hour, minute;
+
+  if (!dateTimeInitialized) {
+    DateTime now = rtc.now();
+    year = now.year();
+    month = now.month();
+    day = now.day();
+    hour = now.hour();
+    minute = now.minute();
+    dateTimeInitialized = true;
+  }
+
+  display.setCursor(0, 10);
+  display.print("edit date & time");
+  //   X VALUES   Y  Mon  D  H   Min
+  int fieldX[] = {0, 33, 55, 85, 100};
+  int fieldY   = 40;
+
+  // Year
+  drawAdjustable(fieldX[0], fieldY, year, 2000, 2099, "", selectedField == 0);
+
+  // Month
+  drawAdjustable(fieldX[1], fieldY, month, 1, 12, "", selectedField == 1);
+
+  // Day
+  drawAdjustable(fieldX[2], fieldY, day, 1, 31, "", selectedField == 2);
+
+  // Hour
+  drawAdjustable(fieldX[3], fieldY, hour, 0, 23, "", selectedField == 3);
+
+  // Minute
+  drawAdjustable(fieldX[4], fieldY, minute, 0, 59, "", selectedField == 4);
+
+  // Confirm button
+  if (drawButton(30, 80, 60, 10, "confirm")) {
+    rtc.adjust(DateTime(year, month, day, hour, minute, 0));
+    settingsOption = 0;
+    selectedField = 0;
+    dateTimeInitialized = false;
+  }
+}
+
+void settingsGyro() {
+  static int sensitivityX = gyroSensitivityX;
+  static int sensitivityY = gyroSensitivityY;
+  static int sensitivityZ = gyroSensitivityZ;
+
+  display.setCursor(0, 10);
+  display.print("gyro sensitivity");
+  
+  drawAdjustable(10, 50, sensitivityX, -5, 5, "X:", false);
+  drawAdjustable(40, 50, sensitivityY, -5, 5, "Y:", false);
+  drawAdjustable(100, 50, sensitivityZ, -5, 5, "Z:", false);
+
+  if (drawButton(30, 80, 60, 10, "confirm")) {
+      gyroSensitivityX = sensitivityX;
+      gyroSensitivityY = sensitivityY;
+      gyroSensitivityZ = sensitivityZ;
+      settingsOption = 0;
+      waitForSelectRelease();
+  }
+
+  updateButtonStates();
+}
+
 void drawSettings() {
   uiTimer = 100;
   display.fillRect(0, 0, 128, 112, SH110X_BLACK);
@@ -1992,6 +2181,7 @@ void drawSettings() {
   updateButtonStates();
 
   switch (settingsOption) {
+<<<<<<< Updated upstream
     case 0: {    
       if (detectCursorTouch(0, 10, 102, 8)) {
         display.setTextColor(SH110X_BLACK, SH110X_WHITE);
@@ -2268,6 +2458,11 @@ void drawSettings() {
       updateButtonStates();
       break;
     }
+=======
+    case 0: settingsMainMenu(); break;
+    case 1: settingsDateTime(); break;
+    case 2: settingsGyro(); break;
+>>>>>>> Stashed changes
     case 3: {
       static int delayTemp = loopDelay;     
 
@@ -2475,6 +2670,7 @@ void drawSettings() {
     
       display.println("deep sleep");
       display.println("display test");
+      display.println("peripheral test");
       updateButtonStates();
       if (detectCursorTouch(0, 26, 100, 8) && rightButtonState) {
         display.clearDisplay();
@@ -2490,6 +2686,12 @@ void drawSettings() {
         display.display();
         testdrawline();
       }
+      
+      if (detectCursorTouch(0, 42, 100, 8) && rightButtonState) {
+        peripheralTest();
+      }
+
+      if (detectCursorTouch)
       if (drawCenteredButton("exit", 90)) {
         settingsOption = 0;
       }
