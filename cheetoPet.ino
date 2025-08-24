@@ -355,7 +355,37 @@ void audioEngine() {
   }
 }
 
+void peripheralTest() {
+  waitForSelectRelease();
+  while (!rightButtonState) {
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+    display.setTextSize(2);
+    updateGyro();
+    
+    now = rtc.now();
+    display.print(now.hour());
+    display.print(":");
+    if (now.minute() < 10) {
+      display.print("0");
+      display.println(now.minute());
+    } else {
+      display.println(now.minute());
+    }
+    display.print("X: "); display.println(angleX);
+    display.print("Y: "); display.println(angleY);
+    display.print("Z: "); display.println(angleZ);
+    
+    display.display();
 
+    screenRecord();
+
+    updateButtonStates();
+    
+    delay(5);
+  }
+}
 
 void printItemList(const ItemList* list, int length) {
   Serial.println("Item List:");
@@ -951,6 +981,61 @@ void waitForSelectRelease() {
     }
   }
   updateButtonStates();
+}
+
+bool drawButton(int x, int y, int w, int h, const char* label) {
+  display.setCursor(x, y);
+  bool touched = detectCursorTouch(x, y, w, h);
+  if (touched) {
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+    display.print(label);
+    updateButtonStates();
+    if (rightButtonState) {
+      waitForSelectRelease();
+      return true;
+    }
+    return false;
+  } else {
+    display.setTextColor(SH110X_WHITE);
+    display.print(label);
+    return false;
+  }
+}
+
+// Adjustable control with + / value / -
+bool drawAdjustable(int x, int y, int& value, int minVal, int maxVal, const char* label, bool selected = false) {
+  // Label (optional, can be empty string)
+  if (label && strlen(label) > 0) {
+    
+    display.setCursor(x - (label.length() * 6) - 1, y);
+    display.setTextColor(SH110X_WHITE);
+    display.print(label);
+  }
+
+  // + button
+  if (drawButton(x, y - 10, 20, 10, "+")) {
+    value++;
+    if (value > maxVal) value = minVal;  // wrap around
+    return true;
+  }
+
+  // Value
+  display.setCursor(x, y);
+  if (selected) {
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+  } else {
+    display.setTextColor(SH110X_WHITE);
+  }
+  display.print(value);
+
+  // - button
+  if (drawButton(x, y + 10, 20, 10, "-")) {
+    value--;
+    if (value < minVal) value = maxVal;  // wrap around
+    return true;
+  }
+
+  return false;
 }
 
 void killPet(String deathReason = "") {
@@ -1756,9 +1841,6 @@ int averageADC(int pin, int samples = 64) {
   return total / samples;
 }
 
-
-
-
 void startMovingPet(int x, int y, int speed) {
   if (petSitTimer < 1) {
     petMoveX = x;
@@ -1952,7 +2034,6 @@ void drawShop() {
     display.print(" - $");
     display.println(currentShopPrices[i]);
   }
-
 }
 
 bool drawCenteredButton(String label, int y) {
@@ -1987,6 +2068,114 @@ bool drawCenteredButton(String label, int y) {
   return buttonClicked;
 }
 
+//SETTINGS PAGES
+
+void settingsMainMenu() {
+  int y = 10;
+
+  if (drawButton(0, y, 102, 8, "set date and time")) settingsOption = 1;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "gyro sensitivity")) settingsOption = 2;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "loop delay")) settingsOption = 3;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "save manager")) settingsOption = 4;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "display")) settingsOption = 5;
+  y += 8;
+
+  if (drawButton(0, y, 102, 8, "misc")) settingsOption = 6;
+  y = 84;
+
+  // Toggle screen recording
+  if (drawButton(0, y, 102, 8, screenRecording ? "stop record" : "start record")) {
+    screenRecording = !screenRecording;
+  }
+  y += 8;
+
+  // Toggle speaker
+  if (drawButton(0, y, 102, 8, spkrEnable ? "mute" : "unmute")) {
+    spkrEnable = !spkrEnable;
+  }
+  y += 8;
+
+  // Restart
+  if (drawButton(0, y, 102, 8, "restart")) {
+    esp_restart();
+  }
+}
+
+void settingsDateTime() {
+  static bool dateTimeInitialized = false;
+  static int year, month, day, hour, minute;
+
+  if (!dateTimeInitialized) {
+    DateTime now = rtc.now();
+    year = now.year();
+    month = now.month();
+    day = now.day();
+    hour = now.hour();
+    minute = now.minute();
+    dateTimeInitialized = true;
+  }
+
+  display.setCursor(0, 10);
+  display.print("edit date & time");
+  //   X VALUES   Y  Mon  D  H   Min
+  int fieldX[] = {0, 33, 55, 85, 100};
+  int fieldY   = 40;
+
+  // Year
+  drawAdjustable(fieldX[0], fieldY, year, 2000, 2099, "", selectedField == 0);
+
+  // Month
+  drawAdjustable(fieldX[1], fieldY, month, 1, 12, "", selectedField == 1);
+
+  // Day
+  drawAdjustable(fieldX[2], fieldY, day, 1, 31, "", selectedField == 2);
+
+  // Hour
+  drawAdjustable(fieldX[3], fieldY, hour, 0, 23, "", selectedField == 3);
+
+  // Minute
+  drawAdjustable(fieldX[4], fieldY, minute, 0, 59, "", selectedField == 4);
+
+  // Confirm button
+  if (drawButton(30, 80, 60, 10, "confirm")) {
+    rtc.adjust(DateTime(year, month, day, hour, minute, 0));
+    settingsOption = 0;
+    selectedField = 0;
+    dateTimeInitialized = false;
+  }
+}
+
+void settingsGyro() {
+  static int sensitivityX = gyroSensitivityX;
+  static int sensitivityY = gyroSensitivityY;
+  static int sensitivityZ = gyroSensitivityZ;
+
+  display.setCursor(0, 10);
+  display.print("gyro sensitivity");
+  
+  drawAdjustable(10, 50, sensitivityX, -5, 5, "X:", false);
+  drawAdjustable(40, 50, sensitivityY, -5, 5, "Y:", false);
+  drawAdjustable(100, 50, sensitivityZ, -5, 5, "Z:", false);
+
+  if (drawButton(30, 80, 60, 10, "confirm")) {
+      gyroSensitivityX = sensitivityX;
+      gyroSensitivityY = sensitivityY;
+      gyroSensitivityZ = sensitivityZ;
+      settingsOption = 0;
+      waitForSelectRelease();
+  }
+
+  updateButtonStates();
+}
+
 void drawSettings() {
   uiTimer = 100;
   display.fillRect(0, 0, 128, 112, SH110X_BLACK);
@@ -1999,300 +2188,9 @@ void drawSettings() {
   updateButtonStates();
 
   switch (settingsOption) {
-    case 0: {    
-      if (detectCursorTouch(0, 10, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          settingsOption = 1;
-        }
-      }
-
-      display.println("set date and time");
-
-      display.setTextColor(SH110X_WHITE);
-
-      if (detectCursorTouch(0, 18, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          settingsOption = 2;
-        }
-      }
-
-      display.println("gyro sensitivity");
-
-      display.setTextColor(SH110X_WHITE);
-
-      if (detectCursorTouch(0, 26, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          settingsOption = 3;if (detectCursorTouch(0, 34, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          settingsOption = 4;
-        }
-      }
-
-      display.println("save manager");
-
-      display.setTextColor(SH110X_WHITE);
-      break;
-        }
-      }
-
-      display.println("loop delay");
-
-      display.setTextColor(SH110X_WHITE);
-
-      if (detectCursorTouch(0, 34, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          settingsOption = 4;
-        }
-      }
-
-      display.println("save manager");
-
-      display.setTextColor(SH110X_WHITE);
-
-      if (detectCursorTouch(0, 42, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          settingsOption = 5;
-        }
-      }
-
-      display.println("display");
-
-      display.setTextColor(SH110X_WHITE);
-
-      if (detectCursorTouch(0, 50, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          settingsOption = 6;
-        }
-      }
-
-      display.println("misc");
-
-      display.setTextColor(SH110X_WHITE);
-
-      display.setCursor(0, 84);
-
-      if (detectCursorTouch(0, 84, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          screenRecording = !screenRecording;
-          waitForSelectRelease();
-        }
-      }
-
-      if (screenRecording) {
-        display.println("stop record");
-      } else {
-        display.println("start record");
-      }
-
-      display.setTextColor(SH110X_WHITE);
-
-      display.setCursor(0, 92);
-
-      if (detectCursorTouch(0, 92, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          spkrEnable = !spkrEnable;
-          waitForSelectRelease();
-        }
-      }
-
-      if (spkrEnable) {
-        display.println("mute");
-      } else {
-        display.println("unmute");
-      }
-
-      display.setTextColor(SH110X_WHITE);
-
-      display.setCursor(0, 100);
-
-      if (detectCursorTouch(0, 100, 102, 8)) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          esp_restart();
-        }
-      }
-
-      display.println("restart");
-
-      display.setTextColor(SH110X_WHITE);
-      break;
-    }
-    case 1: {
-      static bool dateTimeInitialized = false;
-      static int year, month, day, hour, minute;
-
-      if (!dateTimeInitialized) {
-        DateTime now = rtc.now(); // Get current RTC time once
-        year = now.year();
-        month = now.month();
-        day = now.day();
-        hour = now.hour();
-        minute = now.minute();
-        dateTimeInitialized = true;
-      }
-
-      display.setCursor(0, 10);
-      display.print("edit date & time");
-
-      // Field positions
-      int fieldX[] = {0, 40, 60, 80, 100};
-      int fieldY = 40;
-
-      int *values[] = {&year, &month, &day, &hour, &minute};
-      String labels[] = {
-        String(year), String(month), String(day),
-        String(hour), String(minute)
-      };
-
-      for (int i = 0; i < 5; i++) {
-        int x = fieldX[i];
-
-        // Draw + button
-        display.setCursor(x, fieldY - 10);
-        if (detectCursorTouch(x, fieldY - 10, 20, 10)) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-          if (rightButtonState) {
-            *values[i] += 1;
-            if (i == 1 && *values[i] > 12) *values[i] = 1; // Month max
-            if (i == 2 && *values[i] > 31) *values[i] = 1; // Day max
-            if (i == 3 && *values[i] > 23) *values[i] = 0; // Hour max
-            if (i == 4 && *values[i] > 59) *values[i] = 0; // Minute max
-            waitForSelectRelease();
-          }
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print("+");
-
-        // Draw value
-        display.setCursor(x, fieldY);
-        if (selectedField == i) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print(labels[i]);
-
-        // Draw - button
-        display.setCursor(x, fieldY + 10);
-        if (detectCursorTouch(x, fieldY + 10, 20, 10)) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-          if (rightButtonState) {
-            *values[i] -= 1;
-            if (i == 1 && *values[i] < 1) *values[i] = 12;
-            if (i == 2 && *values[i] < 1) *values[i] = 31;
-            if (i == 3 && *values[i] < 0) *values[i] = 23;
-            if (i == 4 && *values[i] < 0) *values[i] = 59;
-            waitForSelectRelease();
-          }
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print("-");
-      }
-
-      // Confirm button
-      bool confirmPressed = detectCursorTouch(30, 80, 60, 10);
-      display.setCursor(30, 80);
-      if (confirmPressed) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          rtc.adjust(DateTime(year, month, day, hour, minute, 0));
-          settingsOption = 0;
-          selectedField = 0;
-          dateTimeInitialized = false;
-        }
-      } else {
-        display.setTextColor(SH110X_WHITE);
-      }
-      display.print("confirm");
-
-      updateButtonStates();
-      break;
-    }
-    case 2: {
-      static int sensitivityX = gyroSensitivityX;
-      static int sensitivityY = gyroSensitivityY;
-      static int sensitivityZ = gyroSensitivityZ;
-
-      display.setCursor(0, 10);
-      display.print("gyro sensitivity");
-
-      String labels[] = {"X:", "Y:", "Z:"};
-      int *values[] = {&sensitivityX, &sensitivityY, &sensitivityZ};
-      int startY = 30;
-
-      for (int i = 0; i < 3; i++) {
-        int y = startY + i * 20;
-
-        // Label
-        display.setCursor(10, y);
-        display.setTextColor(SH110X_WHITE);
-        display.print(labels[i]);
-
-        // + button
-        display.setCursor(40, y);
-        if (detectCursorTouch(40, y, 10, 10)) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-          if (rightButtonState) {
-            (*values[i])++;
-            if (*values[i] > 100) *values[i] = 100; // Optional upper limit
-            waitForSelectRelease();
-          }
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print("+");
-
-        // Value
-        display.setCursor(60, y);
-        display.setTextColor(SH110X_WHITE);
-        display.print(*values[i]);
-
-        // - button
-        display.setCursor(90, y);
-        if (detectCursorTouch(90, y, 10, 10)) {
-          display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-          if (rightButtonState) {
-            (*values[i])--;
-            if (*values[i] < 0) *values[i] = 0; // Optional lower limit
-            waitForSelectRelease();
-          }
-        } else {
-          display.setTextColor(SH110X_WHITE);
-        }
-        display.print("-");
-      }
-
-      // Confirm button
-      bool confirmPressed = detectCursorTouch(30, 100, 60, 10);
-      display.setCursor(30, 100);
-      if (confirmPressed) {
-        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-        if (rightButtonState) {
-          gyroSensitivityX = sensitivityX;
-          gyroSensitivityY = sensitivityY;
-          gyroSensitivityZ = sensitivityZ;
-          settingsOption = 0;
-          waitForSelectRelease();
-        }
-      } else {
-        display.setTextColor(SH110X_WHITE);
-      }
-      display.print("confirm");
-
-      updateButtonStates();
-      break;
-    }
+    case 0: settingsMainMenu(); break;
+    case 1: settingsDateTime(); break;
+    case 2: settingsGyro(); break;
     case 3: {
       static int delayTemp = loopDelay;     
 
@@ -2500,6 +2398,7 @@ void drawSettings() {
     
       display.println("deep sleep");
       display.println("display test");
+      display.println("peripheral test");
       updateButtonStates();
       if (detectCursorTouch(0, 26, 100, 8) && rightButtonState) {
         display.clearDisplay();
@@ -2515,6 +2414,12 @@ void drawSettings() {
         display.display();
         testdrawline();
       }
+      
+      if (detectCursorTouch(0, 42, 100, 8) && rightButtonState) {
+        peripheralTest();
+      }
+
+      if (detectCursorTouch)
       if (drawCenteredButton("exit", 90)) {
         settingsOption = 0;
       }
