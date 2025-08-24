@@ -8,6 +8,7 @@ fully open source - do whatever you want with it!
 you dont have to, but it would be great if you could credit me if you use any of this stuff!
 
 repo: https://github.com/Cheet0sDelet0s/cheetoPet
+website blog: https://www.cloudables.net/2025/08/22/cheetopet/ (why not have a look at the rest of the site as well!)
 
 components:
 
@@ -289,7 +290,6 @@ DRAM_ATTR uint8_t loopDelay = 5;
 DRAM_ATTR SaveGame currentSaveGame;
 
 //gamer rgb
-
 const uint8_t fadeSteps = 100;        // Number of steps between colors
 const uint16_t fadeInterval = 10;     // Time between steps (ms)
 DRAM_ATTR unsigned long lastRGBUpdate = 0;
@@ -308,10 +308,101 @@ const uint8_t numColors = sizeof(colors) / sizeof(colors[0]);
 DRAM_ATTR uint8_t currentColor = 0;
 DRAM_ATTR uint8_t step = 0;
 
+struct UIButton {
+  int x, y;          // Bitmap draw position
+  int w, h;          // Hitbox width + height
+  int bitmapId;      // Index into your bitmap array
+  void (*onPress)(); // Action when pressed
+};
+
+
+// -------------------- MENU SYSTEM --------------------
+
+/// ============================
+/// Actions
+/// ============================
+
+// depth 0
+void selectEdit()     { firstOption = 1; depth = 1; }
+void selectMenu()     { firstOption = 2; depth = 1; }
+void selectSettings() { firstOption = 3; depth = 1; }
+
+// back buttons
+void goBackToDepth0() { firstOption = 0; depth = 0; }
+void goBackToEdit()   { firstOption = 1; depth = 1; }
+void goBackToMenu()   { firstOption = 2; depth = 1; }
+
+// depth 1: edit
+void openInventory()  { secondOption = 1; depth = 2; }
+void openShop()       { secondOption = 2; thirdOption = 1; depth = 2; }
+
+// depth 1: menu
+void openApple()      { secondOption = 1; depth = 2; }
+void openController() { secondOption = 2; depth = 2; }
+
+// depth 2: inventory/shop
+void reopenInventory(){ firstOption = 1; depth = 1; }
+void reopenShop()     { firstOption = 1; depth = 1; }
+
+// depth 2: food menu
+void reopenFood()     { firstOption = 2; depth = 1; }
+void reopenGames()    { firstOption = 2; depth = 1; }
+
+/// ============================
+/// Button definitions
+/// ============================
+
+// Depth 0 (root menu)
+UIButton depth0Buttons[] = {
+  {0,   115, 41, 15,  9,  selectEdit},     // Pencil
+  {41,  115, 45, 15,  8,  selectMenu},     // Menu
+  {86,  115, 41, 15, 10,  selectSettings}, // Settings
+};
+
+// Depth 1 → Edit submenu
+UIButton editMenuButtons[] = {
+  {0,   115, 41, 15, 12, goBackToDepth0}, // Back
+  {41,  115, 45, 15, 13, openInventory},  // Inventory
+  {86,  115, 41, 15, 11, openShop},       // Shop
+};
+
+// Depth 1 → Main menu submenu
+UIButton mainMenuButtons[] = {
+  {0,   115, 41, 15, 12, goBackToDepth0}, // Back
+  {41,  115, 45, 15, 16, openApple},      // Apple
+  {86,  115, 41, 15, 20, openController}, // Controller
+};
+
+// Depth 1 → Settings submenu
+UIButton settingsButtons[] = {
+  {0,   115, 41, 15, 12, goBackToDepth0}, // Back
+};
+
+// Depth 2 → Inventory
+UIButton inventoryButtons[] = {
+  {0,   115, 41, 15, 12, reopenInventory}, // Back
+};
+
+// Depth 2 → Shop
+UIButton shopButtons[] = {
+  {0,   115, 41, 15, 12, reopenShop}, // Back
+};
+
+// Depth 2 → Food inventory
+UIButton foodButtons[] = {
+  {0,   115, 41, 15, 12, reopenFood}, // Back
+};
+
+// Depth 2 → Game library
+UIButton gameButtons[] = {
+  {0,   115, 41, 15, 12, reopenGames}, // Back
+};
+
 // Helper to extract R/G/B from uint32_t
 uint8_t getR(uint32_t color) { return (color >> 16) & 0xFF; }
 uint8_t getG(uint32_t color) { return (color >> 8) & 0xFF; }
 uint8_t getB(uint32_t color) { return color & 0xFF; }
+
 
 void clearTones() {
   toneCount = 0;
@@ -1039,6 +1130,32 @@ bool drawButton(int x, int y, int w, int h, const char* label) {
   }
 }
 
+void drawBitmapButton(const UIButton& btn) {
+  const BitmapInfo& bmp = bitmaps[btn.bitmapId];
+
+  // Draw bitmap
+  display.drawBitmap(btn.x + (btn.w / 2 - bmp.width / 2), btn.y, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
+
+  // Check hitbox
+  if (detectCursorTouch(btn.x, btn.y - 2, btn.w, btn.h)) {
+    if (rightButtonState) {
+      btn.onPress();
+      waitForSelectRelease();
+    } else {
+      // highlight at hitbox edges
+      display.drawFastVLine(btn.x + 2, 115, 11, SH110X_WHITE);
+      display.drawFastVLine(btn.x + btn.w - 2, 115, 11, SH110X_WHITE);
+    }
+  }
+}
+
+void drawButtonSet(UIButton* buttons, int count) {
+  drawBottomBar();
+  for (int i = 0; i < count; i++) {
+    drawBitmapButton(buttons[i]);
+  }
+}
+
 // Adjustable control with + / value / -
 bool drawAdjustable(int x, int y, int& value, int minVal, int maxVal, const char* label, bool selected = false) {
   // Label (optional, can be empty string)
@@ -1108,25 +1225,6 @@ void killPet(String deathReason = "") {
     esp_restart();
 }
 
-// void debug() {
-//   DateTime now = rtc.now();
-
-//   String yearStr = String(now.year(), DEC);
-//   String monthStr = (now.month() < 10 ? "0" : "") + String(now.month(), DEC);
-//   String dayStr = (now.day() < 10 ? "0" : "") + String(now.day(), DEC);
-//   String hourStr = (now.hour() < 10 ? "0" : "") + String(now.hour(), DEC);
-//   String minuteStr = (now.minute() < 10 ? "0" : "") + String(now.minute(), DEC);
-//   String secondStr = (now.second() < 10 ? "0" : "") + String(now.second(), DEC);
-//   String dayOfWeek = daysOfTheWeek[now.dayOfTheWeek()];
-
-//   String formattedTime = dayOfWeek + ", " + yearStr + "-" + monthStr + "-" + dayStr + " " + hourStr + ":" + minuteStr + ":" + secondStr;
-
-//   display.setCursor(0, 0);
-//   display.println(formattedTime);
-//   display.print("gyro: X:");
-//   display.print(String(angleX) + " Y:" + String(angleY) + " Z:" + String(angleZ));
-// }
-
 bool detectCursorTouch(int startX, int startY, int endX, int endY) {
   if (cursorX > startX && cursorX < startX + endX && cursorY > startY && cursorY < startY + endY) {
     return true;
@@ -1136,7 +1234,6 @@ bool detectCursorTouch(int startX, int startY, int endX, int endY) {
 }
 
 void drawCursor() {
-
   // bitmap cursor:
   if (itemBeingPlaced != -1) {
     cursorBitmap = itemBeingPlaced;
@@ -1194,252 +1291,58 @@ void drawBottomBar() {
 void drawBottomUI() {
   switch (depth) {
     case 0:
-      {
-        drawBottomBar();
-        display.drawBitmap(16, 115, ui_pencil, 11, 11, SH110X_WHITE);
-        display.drawBitmap(58, 116, ui_menu, 12, 9, SH110X_WHITE);
-        display.drawBitmap(102, 115, ui_settings, 11, 11, SH110X_WHITE);
+      drawButtonSet(depth0Buttons, 3);
+      break;
 
-        if (detectCursorTouch(0, 113, 40, 15)) {  //edit buttton check
-          if (rightButtonState) {
-            firstOption = 1;
-            depth = 1;
-            waitForSelectRelease();
-          } else {
-            display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-            display.drawFastVLine(39, 115, 11, SH110X_WHITE);
-          }
-        }
-
-        if (detectCursorTouch(41, 113, 45, 15)) {  //menu button check
-          if (rightButtonState) {
-            firstOption = 2;
-            depth = 1;
-            waitForSelectRelease();
-          } else {
-            display.drawFastVLine(43, 115, 11, SH110X_WHITE);
-            display.drawFastVLine(84, 115, 11, SH110X_WHITE);
-          }
-        }
-
-        if (detectCursorTouch(87, 113, 41, 15)) {  //settings button check
-          if (rightButtonState) {
-            firstOption = 3;
-            depth = 1;
-            waitForSelectRelease();
-          } else {
-            display.drawFastVLine(88, 115, 11, SH110X_WHITE);
-            display.drawFastVLine(125, 115, 11, SH110X_WHITE);
-          }
-        }
-        break;
-      }
-    case 1: {
-        switch (firstOption) {
-          case 1:     //edit menu inside
-            {
-              drawBottomBar();
-              display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-              display.drawBitmap(58, 116, ui_inventory, 16, 9, SH110X_WHITE);
-              display.drawBitmap(102, 115, ui_shop, 16, 11, SH110X_WHITE);
-
-              if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
-                if (rightButtonState) {
-                  firstOption = 0;
-                  depth = 0;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(39, 115, 11, SH110X_WHITE);
-                }
-              }
-
-              if (detectCursorTouch(41, 113, 45, 15)) {  //inventory button check
-                if (rightButtonState) {
-                  secondOption = 1;
-                  depth = 2;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(43, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(84, 115, 11, SH110X_WHITE);
-                }
-              }
-
-              if (detectCursorTouch(86, 113, 41, 15)) {  //shop button check
-                if (rightButtonState) {
-                  secondOption = 2;
-                  thirdOption = 1;
-                  depth = 2;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(88, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(125, 115, 11, SH110X_WHITE);
-                }
-              }
-              break;
-            }
-          case 2:
-            {  //main menu inside
-              drawBottomBar();
-              display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-              display.drawBitmap(58, 116, item_apple, 11, 11, SH110X_WHITE);
-              const BitmapInfo& bmp = bitmaps[20];
-              display.drawBitmap(102, 115, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
-
-              if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
-                if (rightButtonState) {
-                  firstOption = 0;
-                  depth = 0;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(39, 115, 11, SH110X_WHITE);
-                }
-              }
-
-              if (detectCursorTouch(41, 113, 45, 15)) {  //apple button check
-                if (rightButtonState) {
-                  secondOption = 1;
-                  depth = 2;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(43, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(84, 115, 11, SH110X_WHITE);
-                }
-              }
-
-              if (detectCursorTouch(86, 113, 41, 15)) {  //controller button check
-                
-                if (rightButtonState) {
-                  secondOption = 2;
-                  depth = 2;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(88, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(125, 115, 11, SH110X_WHITE);
-                }
-              }
-              break;
-            }
-          case 3: {
+    case 1:
+      switch (firstOption) {
+        case 1: // edit submenu
+          drawButtonSet(editMenuButtons, 3);
+          break;
+        case 2: // main menu submenu
+          drawButtonSet(mainMenuButtons, 3);
+          break;
+        case 3: // settings
           updateButtonStates();
-              if (!startHandlingPlacing) {
-                drawSettings();
-              }
-              drawBottomBar();
-              display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-
-              if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
-                if (rightButtonState) {
-                  firstOption = 0;
-                  depth = 0;
-                  waitForSelectRelease();
-                } else {
-                  display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                  display.drawFastVLine(39, 115, 11, SH110X_WHITE);
-                }
-              }
-            break;
-          }
-        }
-        break;
+          if (!startHandlingPlacing) drawSettings();
+          drawButtonSet(settingsButtons, 1);
+          break;
       }
+      break;
+
     case 2:
-      {
-        switch (firstOption) {
-          case 1: {  //inventory
-            switch (secondOption) {
-              case 1: {
-                updateButtonStates();
-                if (!startHandlingPlacing) {
-                  drawInventory();
-                }
-                drawBottomBar();
-                display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-
-                if (detectCursorTouch(0, 113, 40, 15)) {  //back buttton check
-                  if (rightButtonState) {
-                    firstOption = 1;
-                    depth = 1;
-                    waitForSelectRelease();
-                  } else {
-                    display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                    display.drawFastVLine(39, 115, 11, SH110X_WHITE);
-                  }
-                }
-                break;
-              }
-              case 2: { //shop
-                updateButtonStates();
-                if (!startHandlingPlacing) {
-                  drawShop();
-                }
-                drawBottomBar();
-                display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-
-                if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
-                  if (rightButtonState) {
-                    firstOption = 1;
-                    depth = 1;
-                    waitForSelectRelease();
-                  } else {
-                    display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                    display.drawFastVLine(39, 115, 11, SH110X_WHITE);
-                  }
-                }
-                break;
-              }
-            }
-            break;
-            }
-            case 2: {  
-              switch (secondOption) {
-                case 1: {   //food inventory
-                  updateButtonStates();
-                  if (!handleFoodPlacing) {
-                    drawFoodInventory();
-                  }
-                  drawBottomBar();
-                  display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-
-                  if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
-                    if (rightButtonState) {
-                      firstOption = 2;
-                      depth = 1;
-                      waitForSelectRelease();
-                    } else {
-                      display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                      display.drawFastVLine(39, 115, 11, SH110X_WHITE);
-                    }
-                  }
-                  break;
-                }
-                case 2: {   //game library
-                  updateButtonStates();
-                  if (!handleFoodPlacing) {
-                    drawGameLibrary();
-                  }
-                  drawBottomBar();
-                  display.drawBitmap(16, 115, ui_back, 9, 8, SH110X_WHITE);
-
-                  if (detectCursorTouch(0, 113, 40, 15)) {  //back button check
-                    if (rightButtonState) {
-                      firstOption = 2;
-                      depth = 1;
-                      waitForSelectRelease();
-                    } else {
-                      display.drawFastVLine(2, 115, 11, SH110X_WHITE);
-                      display.drawFastVLine(39, 115, 11, SH110X_WHITE);
-                    }
-                  }
-                  break;
-                }
-              }
+      switch (firstOption) {
+        case 1: // inventory/shop branch
+          switch (secondOption) {
+            case 1: // inventory
+              updateButtonStates();
+              if (!startHandlingPlacing) drawInventory();
+              drawButtonSet(inventoryButtons, 1);
               break;
-            }
-        }
-        break;
+            case 2: // shop
+              updateButtonStates();
+              if (!startHandlingPlacing) drawShop();
+              drawButtonSet(shopButtons, 1);
+              break;
+          }
+          break;
+
+        case 2: // food/games branch
+          switch (secondOption) {
+            case 1: // food inventory
+              updateButtonStates();
+              if (!handleFoodPlacing) drawFoodInventory();
+              drawButtonSet(foodButtons, 1);
+              break;
+            case 2: // game library
+              updateButtonStates();
+              if (!handleFoodPlacing) drawGameLibrary();
+              drawButtonSet(gameButtons, 1);
+              break;
+          }
+          break;
       }
+      break;
   }
 }
 
@@ -1551,7 +1454,7 @@ void drawFoodInventory() {
 }
 
 void drawEmotionUI() {
-  display.setCursor(0, 0);
+  display.setCursor(0, -2);
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
   display.setFont(&Picopixel);
@@ -1746,6 +1649,7 @@ void updatePetNeeds() {
 
 void drawLiveData() {
   display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  display.setFont(&Picopixel);
   now = rtc.now();
   display.setCursor(55, 0);
   if (liveDataTimer < 100) {
@@ -1767,6 +1671,7 @@ void drawLiveData() {
   }
   
   display.setTextColor(SH110X_WHITE);
+  display.setFont(NULL);
 }
 
 void drawPetMessage() { 
@@ -2773,6 +2678,14 @@ public:
   }
 };
 
+/* THIS IS THE SHIT. RIGHT HERE. THIS IS WHERE ITS AT. OH MY GOD LOOK AT IT
+*ahem* behaviour tree setup. put all actions in order, the higher they are in the list the higher their priority.
+each node will pass to the next one FAILURE, RUNNING or SUCCESS.
+if its failure, it runs the next sequence below it.
+if its running, it doesnt run the next node or next sequence.
+if its success, it runs the next node in the current sequence.
+for example, dying is a higher priority than asking for food.
+*/
 DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() }),
                                       new Sequence({ new IsBeingShaken(), new ComplainAboutBeingShaken() }),
                                       new Sequence({ new BeingCarried(), new ComplainAboutBeingCarried() }),
@@ -2786,139 +2699,7 @@ DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() 
                                       new Idle()
                                       });
 
-void loop() {
-  if (totalG > 11) {   //kinda funny but annoying
-    killPet("got shaken to death"); 
-  }
-
-  if (loadIndicator > 0) {
-    loadIndicator -= 0.5;
-  }
-
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;     //interval passed
-    
-    if (movePet) {
-      updatePetMovement();
-    }
-  }
-  tree->tick();  //behaviour tree update
-  //Serial.println(petStatus);
-
-  DateTime now = rtc.now();
-
-  //Serial.println(now.second());
-  updatePetNeeds();
-
-
-  if (currentMillis - lastRGBUpdate >= fadeInterval) {
-    lastRGBUpdate = currentMillis;
-
-    // Get start and end colors
-    uint32_t colorStart = colors[currentColor];
-    uint32_t colorEnd = colors[(currentColor + 1) % numColors];
-
-    // Linear interpolate between the colors
-    float t = step / float(fadeSteps);
-    uint8_t r = (1 - t) * getR(colorStart) + t * getR(colorEnd);
-    uint8_t g = (1 - t) * getG(colorStart) + t * getG(colorEnd);
-    uint8_t b = (1 - t) * getB(colorStart) + t * getB(colorEnd);
-
-    rgb.setPixelColor(0, rgb.Color(r, g, b));
-    rgb.show();
-
-    step++;
-    if (step > fadeSteps) {
-      step = 0;
-      currentColor = (currentColor + 1) % numColors;
-    }
-  }
-
-  updateButtonStates();
-
-  display.clearDisplay();
-
-  if (middleButtonState) {
-    uiTimer = 100;
-  }
-
-  updateGyro();
-
-  if (!leftButtonState) {
-    angleX = 0;
-    angleY = 0;
-    angleZ = 0;
-    if (cursorTimer > 0) {
-      shouldDrawCursor = true;
-      cursorTimer = cursorTimer - 0.1;
-    } else {
-      shouldDrawCursor = false;
-    }
-  } else {
-    cursorX = constrain(angleX + 64, 0, 126);
-    if (itemBeingPlaced == 5) {
-      cursorY = 27;
-    } else {
-      cursorY = constrain(angleY + 64, 0, 126);
-    }
-    shouldDrawCursor = true;
-    cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
-  }
-  drawAreaItems();
-  if (movingPet) {
-    petX = cursorX;
-    petY = cursorY;
-    constrain(petY, 43, 127);
-    updateButtonStates();
-    if (rightButtonState) {
-      movingPet = false;
-    }
-  }
-
-  drawPet(0, petX, petY);
-
-  if (messageDisplayTime < messageMaxTime) {
-    drawPetMessage();
-  }
-
-  updateButtonStates();
-
-  if (itemBeingPlaced != -1 && rightButtonState && startHandlingPlacing) {
-    handleItemPlacing();
-  }
-
-  if (itemBeingPlaced != -1 && rightButtonState && handleFoodPlacing) {
-    handleFoodPlacingLogic();
-  }
-
-  if (uiTimer > 0) {
-    if (detectCursorTouch(0, 113, 128, 15)) {
-      uiTimer = 100;
-    }
-    uiTimer--; 
-    drawEmotionUI();
-
-    drawLiveData();
-
-    drawBottomUI();
-  }
-
-  if (showPetMenu) {
-    drawPetMenu();
-  }
-
-  if (shouldDrawCursor) {
-    drawCursor();
-  }
-
-  display.display();
-
-  screenRecord();
-
-  audioEngine();
-
+void handleSleepMode() {
   if (powerSwitchState) {
     clearTones();
     blindCloseAnimation();
@@ -2938,11 +2719,11 @@ void loop() {
     delay(1000);
     prepareForSleepyTime();
     DateTime timeWhenSlept = rtc.now();
-    gpio_wakeup_enable(SWITCH_PIN, GPIO_INTR_HIGH_LEVEL);
+    gpio_wakeup_enable(SWITCH_PIN, GPIO_INTR_HIGH_LEVEL); // wake device up when switch goes high
 
     esp_sleep_enable_gpio_wakeup();
 
-    esp_light_sleep_start();  //yoo he said the thing
+    esp_light_sleep_start();  // sleepy time! program will resume after wake up
 
     mpu9250_wake();
     DateTime now = rtc.now();
@@ -2986,6 +2767,142 @@ void loop() {
       delay(1000);
     }
   }
+}
+
+void loop() {
+  if (totalG > 11) {   //kinda funny but annoying. kills the pet if the device experiences over 11 g's of force. hard to do on accident unless you're in a fighter jet or something
+    killPet("got shaken to death"); 
+  }
+
+  if (loadIndicator > 0) { // load indicator is the little bar below the cursor. ticks it down by 0.5 
+    loadIndicator -= 0.5;
+  }
+
+  unsigned long currentMillis = millis(); // this is for non-blocking delta time, you can't use delay() most of the time as it blocks the whole program
+
+  if (currentMillis - previousMillis >= interval) { // if the interval has happened, move the pet
+    previousMillis = currentMillis;     //interval passed
+    
+    if (movePet) {
+      updatePetMovement(); //moves pet towards its desired position
+    }
+  }
+  tree->tick();  //behaviour tree update
+
+  DateTime now = rtc.now(); // get the current time from the RTC chip
+
+  updatePetNeeds(); // update pet fun hun slp ect
+
+  if (currentMillis - lastRGBUpdate >= fadeInterval) { // handle RGB led on some dev boards
+    lastRGBUpdate = currentMillis;
+
+    // Get start and end colors
+    uint32_t colorStart = colors[currentColor];
+    uint32_t colorEnd = colors[(currentColor + 1) % numColors];
+
+    // Linear interpolate between the colors
+    float t = step / float(fadeSteps);
+    uint8_t r = (1 - t) * getR(colorStart) + t * getR(colorEnd);
+    uint8_t g = (1 - t) * getG(colorStart) + t * getG(colorEnd);
+    uint8_t b = (1 - t) * getB(colorStart) + t * getB(colorEnd);
+
+    rgb.setPixelColor(0, rgb.Color(r, g, b));
+    rgb.show();
+
+    step++;
+    if (step > fadeSteps) {
+      step = 0;
+      currentColor = (currentColor + 1) % numColors;
+    }
+  }
+
+  updateButtonStates(); // update button states
+
+  display.clearDisplay(); // clear the display before calling all functions that draw to it. this happens every tick.
+
+  if (middleButtonState) { // if you press X it shows the UI again by setting the UI timeout to 100.
+    uiTimer = 100;
+  }
+
+  updateGyro(); // update gyro values, x y and z
+
+  if (!leftButtonState) { // handle cursor movement. if B isnt held, set gyro values to 0.
+    angleX = 0;
+    angleY = 0;
+    angleZ = 0;
+    if (cursorTimer > 0) { // only draw cursor if cursor timeout is above 0.
+      shouldDrawCursor = true;
+      cursorTimer = cursorTimer - 0.1;
+    } else {
+      shouldDrawCursor = false;
+    }
+  } else {
+    cursorX = constrain(angleX + 64, 0, 126); // make sure cursor doesn't go offscreen.
+    if (itemBeingPlaced == 5) { // item 5 is the fireplace. you can only place the fireplace on the wall, so this constrains it.
+      cursorY = 27;
+    } else {
+      cursorY = constrain(angleY + 64, 0, 126); // if you aren't placing a fireplace, allow free Y movement of the cursor.
+    }
+    shouldDrawCursor = true;
+    cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
+  }
+
+  drawAreaItems(); // draw the current area items
+  
+  if (movingPet) { // if the user is manually moving the pet, set the pets position to the cursors position. if the user presses A, stop moving the pet.
+    petX = cursorX;
+    petY = cursorY;
+    constrain(petY, 43, 127);
+    updateButtonStates();
+    if (rightButtonState) {
+      movingPet = false;
+    }
+  }
+
+  drawPet(0, petX, petY); // draw the pet to the display in its current state
+
+  if (messageDisplayTime < messageMaxTime) {
+    drawPetMessage(); // draw speech bubble on pet if it hasn't expired
+  }
+
+  updateButtonStates(); // update state of 3 buttons. functions usually do this themselves, but we need to do it in the loop too.
+
+  if (itemBeingPlaced != -1 && rightButtonState && startHandlingPlacing) {
+    handleItemPlacing(); // if an item is being placed, sort it out
+  }
+
+  if (itemBeingPlaced != -1 && rightButtonState && handleFoodPlacing) {
+    handleFoodPlacingLogic(); // if food is being placed, sort it out
+  }
+
+  if (uiTimer > 0) { //only draw UI elements if the UI timeout hasnt expired
+    if (detectCursorTouch(0, 113, 128, 15)) { 
+      uiTimer = 100; // reset UI timeout if cursor is touching bottom bar
+    }
+
+    uiTimer--; // tick UI timeout
+    drawEmotionUI(); // draw pet status in top left corner
+
+    drawLiveData(); // draw time and date at top of screen
+
+    drawBottomUI(); // draw bottom bar and any other ui elements along with it (settings, shop, ect)
+  }
+
+  if (showPetMenu) { // only draw pet menu if pet is clicked
+    drawPetMenu();
+  }
+
+  if (shouldDrawCursor) { // cursor disappears after no movement
+    drawCursor();
+  }
+
+  display.display(); // final push to display buffer
+
+  screenRecord(); // push display buffer to serial if enabled (use oled_viewer.py to view)
+
+  audioEngine(); // write current tone to speaker pin
+
+  handleSleepMode(); // check if switch is in off position, if it is, trigger sleep mode, and handle wake up
 
   delay(loopDelay);
 }
