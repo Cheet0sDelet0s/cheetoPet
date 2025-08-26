@@ -22,6 +22,9 @@ TP4056 charging board
 3x smd push buttons
 2 position 3 pin switch
 
+if you are having trouble updating the esp32 core, run this command in terminal:
+arduino-cli config set network.connection_timeout 600s
+
 */
 
 #include <Arduino.h>
@@ -211,6 +214,12 @@ DRAM_ATTR float accelXOffset = 0;
 DRAM_ATTR float accelYOffset = 0;
 DRAM_ATTR float accelZOffset = 0;
 
+struct SnapPoint {
+  uint8_t x, y;
+};
+
+std::vector<SnapPoint> cursorSnapPoints;
+
 DRAM_ATTR float angleX = 0;
 DRAM_ATTR float angleY = 0;
 DRAM_ATTR float angleZ = 0;
@@ -221,10 +230,11 @@ DRAM_ATTR float totalG = 0;
 //cursor stuff
 DRAM_ATTR int cursorX = 500;
 DRAM_ATTR int cursorY = 500;
-DRAM_ATTR bool shouldDrawCursor = false;
-DRAM_ATTR float cursorTimer = 0;
-DRAM_ATTR int cursorBitmap = 14;
-DRAM_ATTR float loadIndicator = 0;
+bool shouldDrawCursor = false;
+float cursorTimer = 0;
+int cursorBitmap = 14;
+float loadIndicator = 0;
+int cursorSnapDistance = 10;
 
 DRAM_ATTR int uiTimer = 100;
 
@@ -1208,7 +1218,7 @@ bool drawAdjustable(int x, int y, int& value, int minVal, int maxVal, const char
   }
 
   // + button
-  if (drawButton(x, y - 10, 20, 10, "+")) {
+  if (drawButton(x, y - 10, 6, 6, "+")) {
     value++;
     if (value > maxVal) value = minVal;  // wrap around
     return true;
@@ -1224,7 +1234,7 @@ bool drawAdjustable(int x, int y, int& value, int minVal, int maxVal, const char
   display.print(value);
 
   // - button
-  if (drawButton(x, y + 10, 20, 10, "-")) {
+  if (drawButton(x, y + 10, 6, 6, "-")) {
     value--;
     if (value < minVal) value = maxVal;  // wrap around
     return true;
@@ -1267,11 +1277,11 @@ void killPet(String deathReason = "") {
 }
 
 bool detectCursorTouch(int startX, int startY, int endX, int endY) {
+  cursorSnapPoints.push_back({ startX + (endX / 2), startY + (endY / 2) }); // add centre of interaction point (usually a button) to cursor snap point array
   if (cursorX > startX && cursorX < startX + endX && cursorY > startY && cursorY < startY + endY) {
     return true;
-  } else {
-    return false;
   }
+  return false;
 }
 
 void drawCursor() {
@@ -2056,7 +2066,7 @@ void settingsMainMenu() {
   if (drawButton(0, y, 102, 8, "set date and time")) settingsOption = 1;
   y += 8;
 
-  if (drawButton(0, y, 102, 8, "gyro sensitivity")) settingsOption = 2;
+  if (drawButton(0, y, 102, 8, "cursor/gyro")) settingsOption = 2;
   y += 8;
 
   if (drawButton(0, y, 102, 8, "performance")) settingsOption = 3;
@@ -2137,16 +2147,22 @@ void settingsGyro() {  // LOOK. AT. THAT. BEAUTIFUL
   static int sensitivityX = gyroSensitivityX;
   static int sensitivityY = gyroSensitivityY;
   static int sensitivityZ = gyroSensitivityZ;
+  static int snapDistance = cursorSnapDistance;
   
   display.setCursor(0, 10);
-  display.print("gyro sensitivity");
+  display.print("cursor/gyro");
   
-  drawAdjustable(20, 50, sensitivityX, -5, 5, "X:", false);
-  drawAdjustable(50, 50, sensitivityY, -5, 5, "Y:", false);
-  drawAdjustable(80, 50, sensitivityZ, -5, 5, "Z:", false);
+  drawAdjustable(20, 30, sensitivityX, -5, 5, "X:", false);
+  drawAdjustable(50, 30, sensitivityY, -5, 5, "Y:", false);
+  drawAdjustable(80, 30, sensitivityZ, -5, 5, "Z:", false);
+  drawAdjustable(50, 60, snapDistance, 0, 20, "snap:", false);
 
   if (drawButton(30, 80, 60, 10, "confirm")) {
       settingsOption = 0;
+      gyroSensitivityX = sensitivityX;
+      gyroSensitivityY = sensitivityY;
+      gyroSensitivityZ = sensitivityZ;
+      cursorSnapDistance = snapDistance;
       waitForSelectRelease();
   }
 
@@ -2803,7 +2819,48 @@ void handleSleepMode() {
   }
 }
 
+void cursorSnap() {
+  for (int i = 0; i < cursorSnapPoints.size(); i++) {
+    SnapPoint point = cursorSnapPoints[i];
+    int distX = point.x - cursorX;
+    int distY = point.y - cursorY;
+    if (distX < cursorSnapDistance && distX > cursorSnapDistance * -1  &&  distY < cursorSnapDistance && distY > cursorSnapDistance * -1) {
+      cursorX += distX / 2;
+      cursorY += distY / 2;
+      break;
+    } 
+  }
+}
+
+void updateCursor() {
+  if (!leftButtonState) { // handle cursor movement. if B isnt held, set gyro values to 0.
+    angleX = 0;
+    angleY = 0;
+    angleZ = 0;
+    if (cursorTimer > 0) { // only draw cursor if cursor timeout is above 0.
+      shouldDrawCursor = true;
+      cursorTimer = cursorTimer - 0.1;
+    } else {
+      shouldDrawCursor = false;
+    }
+  } else {
+    cursorX = constrain(angleX + 64, 0, 126); // make sure cursor doesn't go offscreen.
+    if (itemBeingPlaced == 5) { // item 5 is the fireplace. you can only place the fireplace on the wall, so this constrains it.
+      cursorY = 27;
+    } else {
+      cursorY = constrain(angleY + 64, 0, 126); // if you aren't placing a fireplace, allow free Y movement of the cursor.
+    }
+    shouldDrawCursor = true;
+    cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
+
+    cursorSnap();
+
+  }
+}
+
 void loop() {
+  cursorSnapPoints.clear(); // clear all snap points for cursor
+
   if (totalG > 11) {   //kinda funny but annoying. kills the pet if the device experiences over 11 g's of force. hard to do on accident unless you're in a fighter jet or something
     killPet("got shaken to death"); 
   }
@@ -2860,27 +2917,6 @@ void loop() {
 
   updateGyro(); // update gyro values, x y and z
 
-  if (!leftButtonState) { // handle cursor movement. if B isnt held, set gyro values to 0.
-    angleX = 0;
-    angleY = 0;
-    angleZ = 0;
-    if (cursorTimer > 0) { // only draw cursor if cursor timeout is above 0.
-      shouldDrawCursor = true;
-      cursorTimer = cursorTimer - 0.1;
-    } else {
-      shouldDrawCursor = false;
-    }
-  } else {
-    cursorX = constrain(angleX + 64, 0, 126); // make sure cursor doesn't go offscreen.
-    if (itemBeingPlaced == 5) { // item 5 is the fireplace. you can only place the fireplace on the wall, so this constrains it.
-      cursorY = 27;
-    } else {
-      cursorY = constrain(angleY + 64, 0, 126); // if you aren't placing a fireplace, allow free Y movement of the cursor.
-    }
-    shouldDrawCursor = true;
-    cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
-  }
-
   drawAreaItems(); // draw the current area items
   
   if (movingPet) { // if the user is manually moving the pet, set the pets position to the cursors position. if the user presses A, stop moving the pet.
@@ -2929,6 +2965,8 @@ void loop() {
   if (shouldDrawCursor) { // cursor disappears after no movement
     drawCursor();
   }
+
+  updateCursor();
 
   display.display(); // final push to display buffer
 
