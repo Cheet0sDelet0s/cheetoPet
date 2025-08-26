@@ -76,8 +76,8 @@ const int rightButton = 7;
 bool spkrEnable = true;
 
 struct Note {
-  float freq; // hz
-  int length; // ms
+  float freq;
+  int length;
 };
 
 // Tone queue
@@ -90,14 +90,6 @@ unsigned long lastStepTime = 0;
 int currentTone = 0;
 bool isPlaying = false;
 DRAM_ATTR int playTime = 50;
-
-/* ----------SONGS----------
-
-write your own songs and put them here and in the songs[] array!
-
-the syntax for each note is: { note frequency (hz) , note duration (ms) }
-
-*/
 
 Note odeToJoy[15] = {
   {329.63, 500}, {329.63, 500}, {349.23, 500}, {392.00, 500}, {392.00, 500}, {349.23, 500}, {329.63, 500},
@@ -167,8 +159,8 @@ DRAM_ATTR int saveInterval = 5;
 
 DRAM_ATTR int liveDataTimer = 0;
 
-std::vector<ItemList> homePlot = {
-  {7, 98, 4}
+struct ItemList {
+  int type, x, y;
 };
 
 std::vector<ItemList> outsidePlot = {
@@ -178,10 +170,15 @@ std::vector<ItemList> outsidePlot = {
     {36, 46, 6}
 };
 
+DRAM_ATTR int outsidePlotPlaced = 4;
+
 //item inventory
 DRAM_ATTR int inventory[8] = {};
 DRAM_ATTR int inventoryItems = 0;
-
+DRAM_ATTR ItemList placedHomeItems[30] = {
+  {7, 98, 4, true}
+};
+DRAM_ATTR int amountItemsPlaced = 1;
 DRAM_ATTR int itemBeingPlaced = -1;
 DRAM_ATTR bool startHandlingPlacing = false;
 
@@ -194,7 +191,8 @@ DRAM_ATTR int placedFoodX[10] = {};
 DRAM_ATTR int placedFoodY[10] = {};
 DRAM_ATTR bool handleFoodPlacing = false;
 
-DRAM_ATTR std::vector<ItemList>* currentAreaPtr = nullptr;
+DRAM_ATTR int* areaItemsPlaced;
+DRAM_ATTR ItemList* currentAreaPtr = nullptr;
 
 //game library
 DRAM_ATTR int gameLibrary[8] = { 0, 1, 2, 3};
@@ -412,16 +410,6 @@ uint8_t getR(uint32_t color) { return (color >> 16) & 0xFF; }
 uint8_t getG(uint32_t color) { return (color >> 8) & 0xFF; }
 uint8_t getB(uint32_t color) { return color & 0xFF; }
 
-// put standalone functions / functions that don't rely on other functions at the top here!
-
-int findIndexByType(const std::vector<ItemList>& vec, uint8_t type) {
-    for (size_t i = 0; i < vec.size(); i++) {
-        if (vec[i].type == type) {
-            return i;  // found
-        }
-    }
-    return -1; // not found
-}
 
 void clearTones() {
   toneCount = 0;
@@ -551,9 +539,11 @@ void printItemList(const ItemList* list, int length) {
 
 void updateAreaPointers() {
   if (currentArea == 0) {
-    currentAreaPtr = &homePlot;
+    areaItemsPlaced = &amountItemsPlaced;
+    currentAreaPtr = placedHomeItems;
   } else if (currentArea == 1) {
-    currentAreaPtr = &outsidePlot;
+    areaItemsPlaced = &outsidePlotPlaced;
+    currentAreaPtr = outsidePlot;
   }
 }
 
@@ -804,29 +794,11 @@ void saveGameToEEPROM(bool showUI = true) {
     drawCenteredText(display, "saving...", 60);
     display.display();
   }
-
+  
   saveGameToRam();
 
-  uint16_t addr = 0;
-
-  eepromWriteByte(addr++, currentSaveGame.hunger);
-  eepromWriteByte(addr++, currentSaveGame.sleep);
-  eepromWriteByte(addr++, currentSaveGame.fun);
-  eepromWriteByte(addr++, currentSaveGame.money);
-  eepromWriteByte(addr++, currentSaveGame.pongXP);
-  eepromWriteByte(addr++, currentSaveGame.pongLVL);
-
-  for (int i = 0; i < 8; i++) eepromWriteByte(addr++, currentSaveGame.invent[i]);
-  eepromWriteByte(addr++, currentSaveGame.inventItems);
-
-  addr = saveVectorToEEPROM(addr, currentSaveGame.homePlot);
-  addr = saveVectorToEEPROM(addr, currentSaveGame.outsidePlot);
-
-  for (int i = 0; i < 8; i++) eepromWriteByte(addr++, currentSaveGame.foodInv[i]);
-  eepromWriteByte(addr++, currentSaveGame.foodInvItems);
-
-  eepromWriteByte(addr++, currentSaveGame.saveVersion);
-
+  writeStructEEPROM(EEPROM_ADDRESS, currentSaveGame);
+  
   if (showUI) {
     drawCenteredText(display, "saved!", 68);
     display.display();
@@ -848,9 +820,13 @@ void saveGameToRam() {
 
   currentSaveGame.inventItems = inventoryItems;
 
-  currentSaveGame.homePlot = homePlot;
+  for (int i = 0; i < amountItemsPlaced; i++) {
+    currentSaveGame.placed[i] = placedHomeItems[i].type;
+    currentSaveGame.placedX[i] = placedHomeItems[i].x;
+    currentSaveGame.placedY[i] = placedHomeItems[i].y;
+  }
 
-  currentSaveGame.outsidePlot = outsidePlot;
+  currentSaveGame.placedItems = amountItemsPlaced;
 
   for (int i = 0; i < 8; i++) {
     currentSaveGame.foodInv[i] = foodInventory[i];
@@ -874,9 +850,16 @@ void loadGameFromRam() {
 
   inventoryItems = currentSaveGame.inventItems;
   
-  homePlot = currentSaveGame.homePlot;
+  for (int i = 0; i < currentSaveGame.placedItems; i++) {
+    placedHomeItems[i] = {
+      (int)currentSaveGame.placed[i],
+      (int)currentSaveGame.placedX[i],
+      (int)currentSaveGame.placedY[i],
+      true
+    };
+  }
 
-  outsidePlot = currentSaveGame.outsidePlot;
+  amountItemsPlaced = currentSaveGame.placedItems;
 
   for (int i = 0; i < 8; i++) {
     foodInventory[i] = currentSaveGame.foodInv[i];
@@ -890,26 +873,7 @@ void loadGameFromEEPROM() {
   display.setTextColor(SH110X_BLACK, SH110X_WHITE);
   drawCenteredText(display, "loading game...", 60);
   display.display();
-
-  uint16_t addr = 0;
-
-  currentSaveGame.hunger = eepromReadByte(addr++);
-  currentSaveGame.sleep = eepromReadByte(addr++);
-  currentSaveGame.fun = eepromReadByte(addr++);
-  currentSaveGame.money = eepromReadByte(addr++);
-  currentSaveGame.pongXP = eepromReadByte(addr++);
-  currentSaveGame.pongLVL = eepromReadByte(addr++);
-
-  for (int i = 0; i < 8; i++) currentSaveGame.invent[i] = eepromReadByte(addr++);
-  currentSaveGame.inventItems = eepromReadByte(addr++);
-
-  addr = loadVectorFromEEPROM(addr, currentSaveGame.homePlot);
-  addr = loadVectorFromEEPROM(addr, currentSaveGame.outsidePlot);
-
-  for (int i = 0; i < 8; i++) currentSaveGame.foodInv[i] = eepromReadByte(addr++);
-  currentSaveGame.foodInvItems = eepromReadByte(addr++);
-
-  currentSaveGame.saveVersion = eepromReadByte(addr++);
+  currentSaveGame = readStructEEPROM(EEPROM_ADDRESS);
 
   loadGameFromRam();
 
@@ -918,45 +882,45 @@ void loadGameFromEEPROM() {
   delay(500);
 }
 
-// void printSaveGame(const SaveGame& save) {
-//   Serial.println("=== SaveGame ===");
+void printSaveGame(const SaveGame& save) {
+  Serial.println("=== SaveGame ===");
 
-//   Serial.print("Hunger: "); Serial.println(save.hunger);
-//   Serial.print("Sleep: "); Serial.println(save.sleep);
-//   Serial.print("Fun: "); Serial.println(save.fun);
-//   Serial.print("Money: "); Serial.println(save.money);
-//   Serial.print("Pong XP: "); Serial.println(save.pongXP);
-//   Serial.print("Pong LVL: "); Serial.println(save.pongLVL);
+  Serial.print("Hunger: "); Serial.println(save.hunger);
+  Serial.print("Sleep: "); Serial.println(save.sleep);
+  Serial.print("Fun: "); Serial.println(save.fun);
+  Serial.print("Money: "); Serial.println(save.money);
+  Serial.print("Pong XP: "); Serial.println(save.pongXP);
+  Serial.print("Pong LVL: "); Serial.println(save.pongLVL);
   
-//   Serial.print("Inventory Items: "); Serial.println(save.inventItems);
-//   Serial.print("Inventory: ");
-//   for (uint8_t i = 0; i < save.inventItems && i < 8; i++) {
-//     Serial.print(save.invent[i]);
-//     Serial.print(i < save.inventItems - 1 ? ", " : "\n");
-//   }
+  Serial.print("Inventory Items: "); Serial.println(save.inventItems);
+  Serial.print("Inventory: ");
+  for (uint8_t i = 0; i < save.inventItems && i < 8; i++) {
+    Serial.print(save.invent[i]);
+    Serial.print(i < save.inventItems - 1 ? ", " : "\n");
+  }
 
-//   Serial.print("Food Inventory Items: "); Serial.println(save.foodInvItems);
-//   Serial.print("Food Inventory: ");
-//   for (uint8_t i = 0; i < save.foodInvItems && i < 8; i++) {
-//     Serial.print(save.foodInv[i]);
-//     Serial.print(i < save.foodInvItems - 1 ? ", " : "\n");
-//   }
+  Serial.print("Food Inventory Items: "); Serial.println(save.foodInvItems);
+  Serial.print("Food Inventory: ");
+  for (uint8_t i = 0; i < save.foodInvItems && i < 8; i++) {
+    Serial.print(save.foodInv[i]);
+    Serial.print(i < save.foodInvItems - 1 ? ", " : "\n");
+  }
 
-//   Serial.print("Placed Items: "); Serial.println(save.placedItems);
-//   for (uint8_t i = 0; i < save.placedItems && i < 30; i++) {
-//     Serial.print("  Placed["); Serial.print(i); Serial.print("]: ");
-//     Serial.print(save.placed[i]);
-//     Serial.print(" at (");
-//     Serial.print(save.placedX[i]);
-//     Serial.print(", ");
-//     Serial.print(save.placedY[i]);
-//     Serial.println(")");
-//   }
+  Serial.print("Placed Items: "); Serial.println(save.placedItems);
+  for (uint8_t i = 0; i < save.placedItems && i < 30; i++) {
+    Serial.print("  Placed["); Serial.print(i); Serial.print("]: ");
+    Serial.print(save.placed[i]);
+    Serial.print(" at (");
+    Serial.print(save.placedX[i]);
+    Serial.print(", ");
+    Serial.print(save.placedY[i]);
+    Serial.println(")");
+  }
 
-//   Serial.print("Save Version: "); Serial.println(save.saveVersion);
+  Serial.print("Save Version: "); Serial.println(save.saveVersion);
 
-//   Serial.println("================");
-// }
+  Serial.println("================");
+}
 
 
 void drawBitmapFlippedX(int16_t x, int16_t y,
@@ -1533,15 +1497,13 @@ void drawAreaItems() {
   updateButtonStates();
 
 
-  for (int i = 0; i < currentAreaPtr->size(); i++) {
-    ItemList currentItem = (*currentAreaPtr)[i];
-
-    uint8_t type = currentItem.type;
+  for (int i = 0; i < *areaItemsPlaced; i++) {
+    uint8_t type = currentAreaPtr[i].type;
     if (type == 0) continue;  // stop foolish behavoir1!1!!!1!
 
     const BitmapInfo& bmp = bitmaps[type];
-    int x = currentItem.x;
-    int y = currentItem.y;
+    int x = currentAreaPtr[i].x;
+    int y = currentAreaPtr[i].y;
 
     display.drawBitmap(x, y, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
 
@@ -1596,10 +1558,13 @@ void handleItemPlacing() {
   ItemList newItem = {
     itemBeingPlaced,
     cursorX,
-    (itemBeingPlaced == 5 ? 27 : cursorY)
+    (itemBeingPlaced == 5 ? 27 : cursorY),
+    true
   };
 
-  currentAreaPtr->push_back({newItem});
+  currentAreaPtr[*areaItemsPlaced] = newItem;
+
+  (*areaItemsPlaced)++;
 
   removeFromList(inventory, inventoryItems, indexOfList(inventory, inventoryItems, itemBeingPlaced));
   inventoryItems--;
@@ -2317,8 +2282,8 @@ void runSaveInterval() {
 
 bool checkItemIsPlaced(int item) {
   updateAreaPointers();
-  for (int i = 0; i < currentAreaPtr->size(); i++) {
-    if ((*currentAreaPtr)[i].type == item) {
+  for (int i = 0; i < *areaItemsPlaced; i++) {
+    if (currentAreaPtr[i].type == item) {
       return true;
     }
   }
@@ -2501,9 +2466,9 @@ public:
   NodeStatus tick() override {
     if (checkItemIsPlaced(37)) {
       updateAreaPointers();
-      int index = findIndexByType(*currentAreaPtr, 37);
-      int itemX = (*currentAreaPtr)[index].x + 4;
-      int itemY = (*currentAreaPtr)[index].y + 10;
+      int index = indexOf(currentAreaPtr, *areaItemsPlaced, 37);
+      int itemX = currentAreaPtr[index].x + 4;
+      int itemY = currentAreaPtr[index].y + 10;
       if (!movePet) {
         startMovingPet(itemX, itemY, 1);
       }
@@ -2540,9 +2505,9 @@ public:
   NodeStatus tick() override {
     if (checkItemIsPlaced(5)) {
       updateAreaPointers();
-      int index = findIndexByType(*currentAreaPtr, 5);
-      int itemX = (*currentAreaPtr)[index].x - 15;
-      int itemY = (*currentAreaPtr)[index].y + 3;
+      int index = indexOf(currentAreaPtr, *areaItemsPlaced, 5);
+      int itemX = currentAreaPtr[index].x - 15;
+      int itemY = currentAreaPtr[index].y + 3;
       if (!movePet) {
         startMovingPet(itemX, itemY, 2);
       }
@@ -2579,7 +2544,7 @@ class IsCouchAvailable : public Node {
 public:
   NodeStatus tick() override {
     updateAreaPointers();
-    if (findIndexByType(*currentAreaPtr, 3) != -1) {
+    if (indexOf(currentAreaPtr, *areaItemsPlaced, 3) != -1) {
       return SUCCESS; 
     } else {
       petStatus = 0;
@@ -2593,10 +2558,10 @@ public:
   NodeStatus tick() override {
     if (petStatus == 1) {
       updateAreaPointers();
-      int index = findIndexByType(*currentAreaPtr, 3);
+      int index = indexOf(currentAreaPtr, *areaItemsPlaced, 3);
       if (index != -1) {
-        int itemX = (*currentAreaPtr)[index].x + 4;
-        int itemY = (*currentAreaPtr)[index].y + 2;
+        int itemX = currentAreaPtr[index].x + 4;
+        int itemY = currentAreaPtr[index].y + 2;
         if (!movePet) {
           startMovingPet(itemX, itemY, 2);
         }

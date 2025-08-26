@@ -2,11 +2,6 @@
 #define EEPROMHANDLER_H
 
 #include <Arduino.h>
-#include <vector>
-
-struct ItemList {
-  uint8_t type, x, y;
-};
 
 struct SaveGame {
   uint8_t hunger;
@@ -17,19 +12,19 @@ struct SaveGame {
   uint8_t pongLVL;
   uint8_t invent[8];
   uint8_t inventItems;
-  std::vector<ItemList> homePlot;
-  std::vector<ItemList> outsidePlot;
+  uint8_t placed[30];
+  uint8_t placedItems;
+  uint8_t placedX[30];
+  uint8_t placedY[30];
+  uint8_t outsidePlot[30];
+  uint8_t outsidePlotPlaced;
   uint8_t foodInv[8];
   uint8_t foodInvItems;
   uint8_t saveVersion;
 };
 
-// void writeStructEEPROM(uint16_t addr, SaveGame& savegame); // legacy save game
-// SaveGame readStructEEPROM(uint16_t addr);
+void writeStructEEPROM(uint16_t addr, SaveGame& savegame);
+SaveGame readStructEEPROM(uint16_t addr);
 
-void eepromWriteByte(uint16_t addr, uint8_t data);
-uint8_t eepromReadByte(uint16_t addr);
-uint16_t saveVectorToEEPROM(uint16_t addr, const std::vector<ItemList> &vec);
-uint16_t loadVectorFromEEPROM(uint16_t addr, std::vector<ItemList> &vec);
 
 #endif
