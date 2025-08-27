@@ -12,6 +12,7 @@ struct SaveGame {
   uint8_t hunger;
   uint8_t sleep;
   uint8_t fun;
+  uint8_t poop;
   uint8_t money;
   uint8_t pongXP;
   uint8_t pongLVL;

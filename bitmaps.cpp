@@ -316,6 +316,11 @@ const unsigned char item_piano [] PROGMEM = {
 	0x14, 0xf2, 0x80, 0x1c, 0x93, 0x80
 };
 
+const unsigned char item_poop [] PROGMEM = {
+	// 'poop, 8x8px
+	0x20, 0x58, 0x24, 0x22, 0x41, 0x95, 0x81, 0x7e
+};
+
 const BitmapInfo bitmaps[] = {
   { pet_gooseStill, 12, 15 },         //0
   { pet_gooseStillBig, 16, 26 },      //1
@@ -354,7 +359,8 @@ const BitmapInfo bitmaps[] = {
   { item_grass, 9, 7},                //34
   { item_grass2, 10, 9 },             //35
   { item_house, 37, 36 },             //36
-  { item_piano, 20, 18}               //37
+  { item_piano, 20, 18},              //37
+  { item_poop, 8, 8}                  //38
 };
 
 String displayNames[] = {
@@ -395,5 +401,6 @@ String displayNames[] = {
   { "grass" },          //34
   { "grass 2" },        //35
   { "house" },          //36
-  { "piano" }           //37
+  { "piano" },          //37
+  ( "poop" )            //38
 };

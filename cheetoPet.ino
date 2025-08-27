@@ -218,6 +218,10 @@ struct SnapPoint {
   uint8_t x, y;
 };
 
+struct Door {
+  uint8_t x, y, area, type;
+}
+
 std::vector<SnapPoint> cursorSnapPoints;
 
 DRAM_ATTR float angleX = 0;
@@ -235,12 +239,14 @@ float cursorTimer = 0;
 int cursorBitmap = 14;
 float loadIndicator = 0;
 int cursorSnapDistance = 10;
+int cursorSnapDivider = 2;
 
 DRAM_ATTR int uiTimer = 100;
 
 DRAM_ATTR int petHunger = 60;
 DRAM_ATTR int petFun = 60;
 DRAM_ATTR int petSleep = 60;
+DRAM_ATTR int petPoop = 50;
 DRAM_ATTR int petX = 64;
 DRAM_ATTR int petY = 32;
 DRAM_ATTR bool showPetMenu = false;
@@ -822,6 +828,7 @@ void saveGameToEEPROM(bool showUI = true) {
   eepromWriteByte(addr++, currentSaveGame.hunger);
   eepromWriteByte(addr++, currentSaveGame.sleep);
   eepromWriteByte(addr++, currentSaveGame.fun);
+  eepromWriteByte(addr++, currentSaveGame.poop);
   eepromWriteByte(addr++, currentSaveGame.money);
   eepromWriteByte(addr++, currentSaveGame.pongXP);
   eepromWriteByte(addr++, currentSaveGame.pongLVL);
@@ -848,6 +855,7 @@ void saveGameToRam() {
   currentSaveGame.hunger = petHunger;
   currentSaveGame.sleep = petSleep;
   currentSaveGame.fun = petFun;
+  currentSaveGame.poop = petPoop;
   currentSaveGame.money = money;
   currentSaveGame.pongXP = petPongXP;
   currentSaveGame.pongLVL = petPongLVL;
@@ -874,6 +882,7 @@ void loadGameFromRam() {
   petHunger = currentSaveGame.hunger;
   petSleep = currentSaveGame.sleep;
   petFun = currentSaveGame.fun;
+  petPoop = currentSaveGame.poop;
   money = currentSaveGame.money;
   petPongXP = currentSaveGame.pongXP;
   petPongLVL = currentSaveGame.pongLVL;
@@ -906,6 +915,7 @@ void loadGameFromEEPROM() {
   currentSaveGame.hunger = eepromReadByte(addr++);
   currentSaveGame.sleep = eepromReadByte(addr++);
   currentSaveGame.fun = eepromReadByte(addr++);
+  currentSaveGame.poop = eepromReadByte(addr++);
   currentSaveGame.money = eepromReadByte(addr++);
   currentSaveGame.pongXP = eepromReadByte(addr++);
   currentSaveGame.pongLVL = eepromReadByte(addr++);
@@ -927,47 +937,6 @@ void loadGameFromEEPROM() {
   display.display();
   delay(500);
 }
-
-// void printSaveGame(const SaveGame& save) {
-//   Serial.println("=== SaveGame ===");
-
-//   Serial.print("Hunger: "); Serial.println(save.hunger);
-//   Serial.print("Sleep: "); Serial.println(save.sleep);
-//   Serial.print("Fun: "); Serial.println(save.fun);
-//   Serial.print("Money: "); Serial.println(save.money);
-//   Serial.print("Pong XP: "); Serial.println(save.pongXP);
-//   Serial.print("Pong LVL: "); Serial.println(save.pongLVL);
-  
-//   Serial.print("Inventory Items: "); Serial.println(save.inventItems);
-//   Serial.print("Inventory: ");
-//   for (uint8_t i = 0; i < save.inventItems && i < 8; i++) {
-//     Serial.print(save.invent[i]);
-//     Serial.print(i < save.inventItems - 1 ? ", " : "\n");
-//   }
-
-//   Serial.print("Food Inventory Items: "); Serial.println(save.foodInvItems);
-//   Serial.print("Food Inventory: ");
-//   for (uint8_t i = 0; i < save.foodInvItems && i < 8; i++) {
-//     Serial.print(save.foodInv[i]);
-//     Serial.print(i < save.foodInvItems - 1 ? ", " : "\n");
-//   }
-
-//   Serial.print("Placed Items: "); Serial.println(save.placedItems);
-//   for (uint8_t i = 0; i < save.placedItems && i < 30; i++) {
-//     Serial.print("  Placed["); Serial.print(i); Serial.print("]: ");
-//     Serial.print(save.placed[i]);
-//     Serial.print(" at (");
-//     Serial.print(save.placedX[i]);
-//     Serial.print(", ");
-//     Serial.print(save.placedY[i]);
-//     Serial.println(")");
-//   }
-
-//   Serial.print("Save Version: "); Serial.println(save.saveVersion);
-
-//   Serial.println("================");
-// }
-
 
 void drawBitmapFlippedX(int16_t x, int16_t y,
                                 const uint8_t *bitmap, int16_t w, int16_t h,
@@ -1062,7 +1031,8 @@ void setup() {
   display.setTextSize(1);
   display.println("welcome to your\nsecond life!\n");
   display.println("loading modules\n\n");
-  display.print("made by\nCheet0sDelet0s");
+  display.println("made by\n@Cheet0sDelet0s");
+  display.print("cloudables.net");
   display.display();
   dumpBufferASCII();
   delay(500);
@@ -1080,7 +1050,7 @@ void setup() {
     // Set the RTC to the current date & time
     rtc.adjust(DateTime(2025, 6, 6, 7, 53, 0));
     display.clearDisplay();
-    display.println("rtc module lost power! time, date and save data has been reset. oh dear. booting in 5 secs");
+    display.println("rtc module lost power! time, date has been reset. oh dear. booting in 5 secs");
     display.println("make sure the coin cell didnt fall out or has lost charge!");
     display.display();
     delay(5000);
@@ -1559,9 +1529,10 @@ void drawAreaItems() {
       display.fillRect(x + 6, y, 3, -27, SH110X_WHITE);
     }
 
-    if (detectCursorTouch(x, y, bmp.width, bmp.height)) {
+    if (detectCursorTouch(x, y, bmp.width, bmp.height) && currentItem.type != 36) {
       if (rightButtonState && loadIndicator > 9) {
-        // remove item
+        addToList(inventory, inventoryItems, 8, currentItem.type);
+        currentAreaPtr->erase(currentAreaPtr->begin()+i);
         loadIndicator = 0;
       } else if (rightButtonState) {
         loadIndicator++;
@@ -1691,6 +1662,7 @@ void updatePetNeeds() {
       petHunger -= 1;
       petFun -= 1;
       petSleep -= 5;
+      petPoop += 10;
     }
   }
 }
@@ -2148,6 +2120,7 @@ void settingsGyro() {  // LOOK. AT. THAT. BEAUTIFUL
   static int sensitivityY = gyroSensitivityY;
   static int sensitivityZ = gyroSensitivityZ;
   static int snapDistance = cursorSnapDistance;
+  static int snapDivider  = cursorSnapDivider;
   
   display.setCursor(0, 10);
   display.print("cursor/gyro");
@@ -2156,6 +2129,7 @@ void settingsGyro() {  // LOOK. AT. THAT. BEAUTIFUL
   drawAdjustable(50, 30, sensitivityY, -5, 5, "Y:", false);
   drawAdjustable(80, 30, sensitivityZ, -5, 5, "Z:", false);
   drawAdjustable(50, 60, snapDistance, 0, 20, "snap:", false);
+  drawAdjustable(90, 60, snapDivider, 1, 5, "str:", false);
 
   if (drawButton(30, 80, 60, 10, "confirm")) {
       settingsOption = 0;
@@ -2693,6 +2667,7 @@ public:
       removeFromList(placedFoodY, lastFoodIndex, lastFoodIndex);
       amountFoodPlaced--;
       petHunger += 30;
+      petPoop += 30;
       movePet = false;
       petMessage("yum!");
       return SUCCESS;
@@ -2702,6 +2677,34 @@ public:
       }
       return RUNNING;
     }
+  }
+};
+
+class ShouldPoop : public Node {
+public:
+  NodeStatus tick() override {
+    if (petPoop > 99) {
+      return SUCCESS;
+    } else {
+      return FAILURE;
+    }
+  }
+};
+
+class Poop : public Node {
+public:
+  NodeStatus tick() override {
+    updateAreaPointers();
+
+    ItemList newItem = {
+      38, petX + 5, petY + 5
+    };
+
+    currentAreaPtr->push_back({newItem});
+
+    petPoop = 0;
+    
+    return SUCCESS;
   }
 };
 
@@ -2737,6 +2740,7 @@ if its success, it runs the next node in the current sequence.
 for example, dying is a higher priority than asking for food.
 */
 DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() }),
+                                      new Sequence({ new ShouldPoop(), new Poop() }),
                                       new Sequence({ new IsBeingShaken(), new ComplainAboutBeingShaken() }),
                                       new Sequence({ new BeingCarried(), new ComplainAboutBeingCarried() }),
                                       new Sequence({ new IsFoodAvailable(), new EatFood() }),
@@ -2784,6 +2788,8 @@ void handleSleepMode() {
     int32_t minutesSinceSlept = seconds / 60;
 
     petSleep += minutesSinceSlept;
+
+    petPoop += constrain(minutesSinceSlept * 4, 0, 100);
     
     petHunger -= minutesSinceSlept / 30;
     
@@ -2825,8 +2831,8 @@ void cursorSnap() {
     int distX = point.x - cursorX;
     int distY = point.y - cursorY;
     if (distX < cursorSnapDistance && distX > cursorSnapDistance * -1  &&  distY < cursorSnapDistance && distY > cursorSnapDistance * -1) {
-      cursorX += distX / 2;
-      cursorY += distY / 2;
+      cursorX += distX / cursorSnapDivider;
+      cursorY += distY / cursorSnapDivider;
       break;
     } 
   }
