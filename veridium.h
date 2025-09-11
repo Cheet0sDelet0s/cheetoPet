@@ -21,6 +21,12 @@ extern bool rightButtonState;
 extern void updateButtonStates();
 extern void updateGyro();
 extern bool detectCursorTouch(int startX, int startY, int endX, int endY);
+extern void audioEngine();
+extern void queueTone(float freq, int length);
+extern void priorityQueueTone(int freq);
+extern void clearTones();
+extern void screenRecord();
+extern void waitForSelectRelease();
 
 void veridium();
 

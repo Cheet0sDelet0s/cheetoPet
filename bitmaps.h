@@ -83,6 +83,8 @@ extern const unsigned char item_piano [] PROGMEM;
 
 extern const unsigned char item_poop [] PROGMEM;
 
+extern const unsigned char misc_vex [] PROGMEM;
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;

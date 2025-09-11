@@ -122,6 +122,9 @@ void updateParticles() {
 
             particles[i].vx *= 0.8;
             particles[i].vy *= 0.8;
+
+            // have a change to generate a tone when a collision happens
+            if (random(0, 1000) == 1) { queueTone(random(180, 220), 1); }
           }
         }
       }
@@ -169,6 +172,7 @@ void drawParticles() {
 void particleSim() {
   initParticles();
   updateButtonStates();
+  clearTones();
   while (!rightButtonState) {
     updateGyro();
     updateParticles();
@@ -192,6 +196,7 @@ void particleSim() {
     
     previousLeftState = leftButtonState;
     previousMiddleState = middleButtonState;
+    audioEngine();
     delay(5); // Limit frame rate
   }
 }

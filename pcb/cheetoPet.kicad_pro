@@ -60,6 +60,70 @@
       ],
       "drc_exclusions": [
         [
+          "clearance|168450000|95875000|7d90a6fa-b081-4b01-abcf-a39394494013|ebcdaad7-a1ec-46dc-a506-a0043cb49885",
+          ""
+        ],
+        [
+          "clearance|168875000|96300000|7d90a6fa-b081-4b01-abcf-a39394494013|4a7a4665-3afb-4d99-8633-ccec8281fab8",
+          ""
+        ],
+        [
+          "clearance|168950000|95300000|ebcdaad7-a1ec-46dc-a506-a0043cb49885|07a7c48e-9311-4c8a-8ee9-d40ecee17462",
+          ""
+        ],
+        [
+          "clearance|169450000|95800000|4a7a4665-3afb-4d99-8633-ccec8281fab8|07a7c48e-9311-4c8a-8ee9-d40ecee17462",
+          ""
+        ],
+        [
+          "clearance|169950000|95300000|07a7c48e-9311-4c8a-8ee9-d40ecee17462|9d3276c8-ea50-4bc7-ba46-d212569ba994",
+          ""
+        ],
+        [
+          "clearance|169950000|96300000|4a7a4665-3afb-4d99-8633-ccec8281fab8|afab2af8-9aa4-4855-8c1f-211a64b8e4ec",
+          ""
+        ],
+        [
+          "clearance|170450000|95800000|afab2af8-9aa4-4855-8c1f-211a64b8e4ec|9d3276c8-ea50-4bc7-ba46-d212569ba994",
+          ""
+        ],
+        [
+          "clearance|170950000|95300000|9d3276c8-ea50-4bc7-ba46-d212569ba994|2e27fe72-813e-47bf-90d9-22305d0a30f0",
+          ""
+        ],
+        [
+          "clearance|170950000|96300000|afab2af8-9aa4-4855-8c1f-211a64b8e4ec|e0b11ae3-d147-4d85-9067-cdda001e698a",
+          ""
+        ],
+        [
+          "clearance|171450000|95800000|e0b11ae3-d147-4d85-9067-cdda001e698a|2e27fe72-813e-47bf-90d9-22305d0a30f0",
+          ""
+        ],
+        [
+          "clearance|171950000|95300000|2e27fe72-813e-47bf-90d9-22305d0a30f0|0b74ec49-f1ce-4a6c-9222-889a27205001",
+          ""
+        ],
+        [
+          "clearance|171950000|96300000|e0b11ae3-d147-4d85-9067-cdda001e698a|f1f78a33-cc33-49e1-8034-7a4e2ad59c23",
+          ""
+        ],
+        [
+          "clearance|172450000|95800000|f1f78a33-cc33-49e1-8034-7a4e2ad59c23|0b74ec49-f1ce-4a6c-9222-889a27205001",
+          ""
+        ],
+        [
+          "clearance|172950000|95300000|0b74ec49-f1ce-4a6c-9222-889a27205001|8247cbda-c71f-4b93-ad3c-5581252d2601",
+          ""
+        ],
+        [
+          "clearance|172950000|96300000|f1f78a33-cc33-49e1-8034-7a4e2ad59c23|2a04af94-0b0c-4ee7-8ecd-3bbba743b9e3",
+          ""
+        ],
+        [
+          "clearance|173450000|95800000|2a04af94-0b0c-4ee7-8ecd-3bbba743b9e3|8247cbda-c71f-4b93-ad3c-5581252d2601",
+          ""
+        ],
+        [
           "lib_footprint_mismatch|148300000|125800000|10de1fbc-348b-4752-b558-ea68489e0084|00000000-0000-0000-0000-000000000000",
           ""
         ],
@@ -77,14 +141,6 @@
         ],
         [
           "lib_footprint_mismatch|168300000|125800000|2097f805-0263-41c6-8269-fe2e65369a32|00000000-0000-0000-0000-000000000000",
-          ""
-        ],
-        [
-          "starved_thermal|161550000|122555000|d750dd9f-8e81-48df-ba87-b585d337cb1a|0d27d19a-4452-4132-a577-b2343d761e90|B.Cu",
-          ""
-        ],
-        [
-          "starved_thermal|161550000|122555000|d750dd9f-8e81-48df-ba87-b585d337cb1a|aebc60b5-b509-4f13-9189-49520e5c0539|B.Cu",
           ""
         ]
       ],
@@ -183,7 +239,7 @@
       "teardrop_parameters": [
         {
           "td_allow_use_two_tracks": true,
-          "td_curve_segcount": 0,
+          "td_curve_segcount": 1,
           "td_height_ratio": 1.0,
           "td_length_ratio": 0.5,
           "td_maxheight": 2.0,
@@ -194,7 +250,7 @@
         },
         {
           "td_allow_use_two_tracks": true,
-          "td_curve_segcount": 0,
+          "td_curve_segcount": 1,
           "td_height_ratio": 1.0,
           "td_length_ratio": 0.5,
           "td_maxheight": 2.0,
@@ -528,7 +584,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "/home/cheeto/kicad/cheetoPet/gerbs/",
+      "plot": "/home/cheeto/Arduino/cheetoPet/pcb/gerbs/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",

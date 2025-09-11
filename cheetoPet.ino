@@ -203,7 +203,7 @@ DRAM_ATTR std::vector<ItemList>* currentAreaPtr = nullptr;
 DRAM_ATTR int gameLibrary[8] = { 0, 1, 2, 3};
 DRAM_ATTR int gameLibraryCount = 4;
 
-const String gameNames[5] = {"pong", "veridium", "flappy bird", "bubblebox"};
+const String gameNames[5] = {"pong", "shooty", "flappy bur", "bubblebox"};
 
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
@@ -220,7 +220,7 @@ struct SnapPoint {
 
 struct Door {
   uint8_t x, y, area, type;
-}
+};
 
 std::vector<SnapPoint> cursorSnapPoints;
 
@@ -517,6 +517,13 @@ void playRandomSong() {
     queueTone(chosen.notes[i].freq, chosen.notes[i].length);
   }
 }
+
+void thisVexesMe() {
+  display.clearDisplay();
+  drawBitmapFromList(0, 0, 1, 39, SH110X_WHITE);
+  display.display();
+  delay(2000);
+};
 
 void peripheralTest() {
   waitForSelectRelease();
@@ -1888,10 +1895,10 @@ void drawGameLibrary() {
       if (name == "pong") {
         drawCheckerboard(petPongLVL + 1);
         pong();
-      } else if (name == "veridium") {
+      } else if (name == "shooty") {
         drawCheckerboard(petVeridiumLVL + 1);
         veridium();
-      } else if (name == "flappy bird") {
+      } else if (name == "flappy bur") {
         drawCheckerboard(3);
         flappyBird();
       } else if (name == "bubblebox") {
@@ -2233,6 +2240,10 @@ void settingsMisc() {
 
   if (drawCenteredButton("random song", 56)) {
     playRandomSong();
+  }
+
+  if (drawCenteredButton("this vexes me", 68)) {
+    thisVexesMe();
   }
 
   if (drawCenteredButton("exit", 90)) {

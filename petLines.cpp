@@ -31,7 +31,8 @@ DRAM_ATTR String idleLines[] = {
   "heard he got fired",
   "heard he got electrocuted",
   "see if your device needs charging",
-  "what is my purpose?"
+  "what is my purpose?",
+  "this vexes me"
 };
 
 const size_t idleLinesCount = sizeof(idleLines) / sizeof(idleLines[0]);
@@ -134,20 +135,20 @@ const char* nouns[] = {
 
 const char* adjectives[] = {
   "fast", "red", "lazy", "funny", "bright", "silent", "tall", "ancient",
-  "wild", "happy", "bitter", "cold", "gentle", "sharp", "brave", "calm"
+  "wild", "happy", "bitter", "cold", "gentle", "sharp", "brave", "calm", "vexed"
 };
 
 const char* verbs[] = {
   "run", "jump", "drive", "fly", "sing", "laugh", "shine", "whisper",
   "dance", "climb", "swim", "dream", "wander", "hide", "glow", "build",
-  "fart"
+  "fart", "vex"
 };
 
 
 const char* adverbs[] = {
   "quickly", "silently", "gracefully", "happily", "sadly", "loudly", "bravely",
   "carefully", "eagerly", "boldly", "slowly", "fiercely", "softly", "wildly",
-  "brightly", "gently", "musically"
+  "brightly", "gently", "musically", "vexedly"
 };
 
 const int nounCount = sizeof(nouns) / sizeof(nouns[0]);

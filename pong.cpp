@@ -60,7 +60,7 @@ DRAM_ATTR int petPongLVL = 1;
 // }
 
 void handlePongEnemyAI() {
-  int difference = ballY - enemyPaddleY;
+  int difference = (ballY + 1) - (enemyPaddleY + enemyHeight / 2); // Adjust for ball center
   enemyPaddleY += difference / 4;
 
   enemyPaddleY = constrain(enemyPaddleY, 0, 128 - enemyHeight);
