@@ -175,6 +175,16 @@ const char* templates[] = {
 
 const int templateCount = sizeof(templates) / sizeof(templates[0]);
 
+const char* prefixes[] = {"Al", "Be", "Car", "Da", "El", "Fi"};
+const char* suffixes[] = {"ton", "ria", "vin", "nor", "das", "lith"};
+
+const int prefixCount = sizeof(prefixes) / sizeof(prefixes[0]);
+const int suffixCount = sizeof(suffixes) / sizeof(suffixes[0]);
+
+String randomName() {
+  return String(prefixes[random(prefixCount)]) + String(suffixes[random(suffixCount)]);
+}
+
 const char* randomNoun() {
   return nouns[random(nounCount)];
 }

@@ -91,6 +91,26 @@ extern const unsigned char item_trashcan [] PROGMEM;
 
 extern const unsigned char item_mailbox [] PROGMEM;
 
+extern const unsigned char pet_hedgehog [] PROGMEM;
+
+extern const unsigned char pet_hedgehogMask [] PROGMEM;
+
+extern const unsigned char pet_hedgehogWalk1 [] PROGMEM;
+
+extern const unsigned char pet_hedgehogWalk1Mask [] PROGMEM;
+
+extern const unsigned char pet_hedgehogWalk2 [] PROGMEM;
+
+extern const unsigned char pet_hedgehogWalk2Mask [] PROGMEM;
+
+extern const unsigned char pet_hedgehogMarshmellow [] PROGMEM;
+
+extern const unsigned char pet_hedgehogMarshmellowMask [] PROGMEM;
+
+extern const unsigned char pet_hedgehogSit [] PROGMEM;
+
+extern const unsigned char pet_hedgehogSitMask [] PROGMEM;
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;
@@ -100,5 +120,7 @@ struct BitmapInfo {
 extern const BitmapInfo bitmaps[];
 
 extern String displayNames[];
+
+extern int bitmapCount;
 
 #endif

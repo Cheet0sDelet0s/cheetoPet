@@ -27,6 +27,32 @@ uint8_t eepromReadByte(uint16_t addr) {
   return 0xFF; // Default on fail
 }
 
+// Write an Arduino String to EEPROM
+void eepromWriteString(uint16_t addr, const String &str) {
+  for (uint16_t i = 0; i < str.length(); i++) {
+    eepromWriteByte(addr++, str[i]);
+  }
+  eepromWriteByte(addr, 0); // Null terminator
+}
+
+// Read a string from EEPROM into an Arduino String
+String eepromReadString(uint16_t addr) {
+  String result = "";
+  uint8_t c;
+
+  while (true) {
+    c = eepromReadByte(addr++);
+    if (c == 0 || c == 0xFF) { // Stop at null terminator or invalid read
+      break;
+    }
+    result += (char)c;
+  }
+
+  return result;
+}
+
+
+
 uint16_t saveVectorToEEPROM(uint16_t addr, const std::vector<ItemList> &vec) {
   eepromWriteByte(addr++, vec.size()); // Save size
   for (const auto &item : vec) {

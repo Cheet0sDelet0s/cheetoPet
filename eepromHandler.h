@@ -24,6 +24,8 @@ struct SaveGame {
   uint8_t foodInvItems;
   uint8_t saveVersion;
   uint8_t mouseMode;
+  uint8_t petType;
+  String petName;
 };
 
 // void writeStructEEPROM(uint16_t addr, SaveGame& savegame); // legacy save game
@@ -33,5 +35,7 @@ void eepromWriteByte(uint16_t addr, uint8_t data);
 uint8_t eepromReadByte(uint16_t addr);
 uint16_t saveVectorToEEPROM(uint16_t addr, const std::vector<ItemList> &vec);
 uint16_t loadVectorFromEEPROM(uint16_t addr, std::vector<ItemList> &vec);
+void eepromWriteString(uint16_t addr, const String &str);
+String eepromReadString(uint16_t addr);
 
 #endif

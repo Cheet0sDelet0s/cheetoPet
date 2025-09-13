@@ -1,35 +1,50 @@
 #include <Arduino.h>
 #include <RTClib.h>
 #include "newsgenerator.h"
+#include "bitmaps.h"
 
 // Arrays of data
 const char* newsTemplates[] = {
     "On {DATE}, {CITY} reported {EVENT}.",
-    "{EVENT} shocked {CITY} on {DATE}.",
-    "Residents of {CITY} were met with {EVENT} this {DATE}.",
-    "People in {CITY} can't stop\ntalking about {EVENT}\nthat happened on {DATE}.",
-    "Breaking News from {CITY}:\n{EVENT} occurred on {DATE}.",
+    "{EVENT} shocked {CITY} on {DAY}.",
+    "Residents of {CITY} were met with {EVENT} this {DAY}.",
+    "People in {CITY} can't stop talking about {EVENT} that happened on {DATE}.",
+    "Breaking News from {CITY}: {EVENT} occurred on {DAY}.",
     "{CITY} experiences {EVENT} on {DATE}.",
-    "In {CITY}, {EVENT} took place on {DATE}.",
+    "In {CITY}, {EVENT} took place this {DAY}.",
     "{EVENT} was the talk of {CITY} on {DATE}.",
-    "On {DATE},\n{CITY} was the scene of {EVENT}.",
-    "{CITY} woke up to {EVENT} on {DATE}.",
+    "On {DATE}, {CITY} was the scene of {EVENT}.",
+    "{CITY} woke up to {EVENT} this {DAY}.",
     "{EVENT} disrupted life in {CITY} on {DATE}.",
     "Citizens of {CITY} witnessed {EVENT} on {DATE}.",
-    "{EVENT} made headlines in {CITY} on {DATE}.",
+    "{EVENT} made headlines in {CITY} this {DAY}.",
     "The city of {CITY} saw {EVENT} on {DATE}.",
-    "{EVENT} took {CITY} by surprise on {DATE}.",
+    "{EVENT} took {CITY} by surprise on {DAY}.",
     "{CITY} was abuzz with news of {EVENT} on {DATE}.",
     "On {DATE}, {CITY} was rocked by {EVENT}.",
     "{EVENT} captured the attention of {CITY} on {DATE}.",
     "{CITY} residents recall {EVENT} from {DATE}.",
     "{EVENT} was reported in {CITY} on {DATE}.",
-    "{CITY} was the location of {EVENT} on {DATE}.",
+    "{CITY} was the location of {EVENT} this {DAY}.",
     "{EVENT} unfolded in {CITY} on {DATE}.",
-    "{CITY} was the center of {EVENT} on {DATE}.",
+    "{CITY} was the center of {EVENT} this {DAY}.",
     "{EVENT} occurred in {CITY} on {DATE}.",
-    "{CITY} was the site of {EVENT} on {DATE}."
-  };
+    "{CITY} was the site of {EVENT} this {DAY}.",
+    "{EVENT} captured on CCTV in {CITY} this {DAY}.",
+    "{EVENT} ruined lives in {CITY} on {DAY}."
+};
+
+const char* adTemplates[] = {
+    "Buy yourself a {ITEM} today!",
+    "Play {GAME} now!",
+    "Get half price off {ITEM}!",
+    "Limited time offer on {ITEM}!",
+    "New {ITEM}s just arrived!",
+    "Don't miss out on {ITEM}!",
+    "Upgrade to {ITEM} now!",
+    "Experience the best with {ITEM}!",
+    "Try {GAME} for a great time!"
+};
   
 const char* cities[] = {"New York", "London", "Tokyo", "Sydney", "Bristol", "Hobbiton", "Metropolis", "Atlantis", "El Dorado",
     "Springfield", "Smallville", "Rivendell", "Narnia", "Hogsmeade", "Wakanda", "Zootopia", "Asgard",
@@ -111,32 +126,63 @@ int dayOfYear(DateTime dt) {
     return doy;
 }  
 
-int seededRandom(int max, int seed) {
-    srand(seed);
-    return rand() % max;
+int seededRandom(int max, unsigned long seed) {
+    // Mix the seed into something that looks more random
+    seed ^= (seed >> 16);
+    seed *= 0x7FEB352DUL;
+    seed ^= (seed >> 15);
+    seed *= 0x846CA68BUL;
+    seed ^= (seed >> 16);
+    return seed % max;
 }
+
+// Mixes an integer seed using a variant of Knuth's multiplicative hash
+unsigned long mixSeed(unsigned long base, unsigned long salt) {
+    unsigned long x = base ^ (salt * 0x9E3779B9UL); // 0x9E3779B9 is the golden ratio constant
+    x ^= (x >> 16);
+    x *= 0x85EBCA6BUL;  // MurmurHash constant
+    x ^= (x >> 13);
+    x *= 0xC2B2AE35UL;
+    x ^= (x >> 16);
+    return x;
+}
+
+//  PROCEDUAL NEWS GENERATION !!
 
 String generateNewsHeadline(int seedModifier) {
     DateTime now = rtc.now();
     int seed = now.year() * 365 + dayOfYear(now);
+    String story = "";
+    int adChance = seededRandom(100, seed + 3 + seedModifier);
+    if (adChance < 20) { // 20% chance for an ad
+        int tIndex = seededRandom(sizeof(adTemplates) / sizeof(adTemplates[0]), mixSeed(seed, seedModifier));
+        int iIndex = seededRandom(bitmapCount, mixSeed(seed, seedModifier + 1));
+        int gIndex = seededRandom(gameLibraryCount, mixSeed(seed, seedModifier + 2));
 
-    // Pick template, city, and event
-    int tIndex = seededRandom(sizeof(newsTemplates) / sizeof(newsTemplates[0]), seed + seedModifier);
-    int cIndex = seededRandom(sizeof(cities) / sizeof(cities[0]), seed + 1 + seedModifier);
-    int eIndex = seededRandom(sizeof(events) / sizeof(events[0]), seed + 2 + seedModifier);
+        story = adTemplates[tIndex];
+        
+        story.replace("{ITEM}", displayNames[iIndex]);
+        story.replace("{GAME}", gameNames[gIndex]);
+    } else {
+        // Pick template, city, and event
+        int tIndex = seededRandom(sizeof(newsTemplates) / sizeof(newsTemplates[0]), mixSeed(seed, seedModifier));
+        int cIndex = seededRandom(sizeof(cities) / sizeof(cities[0]), mixSeed(seed, seedModifier + 1));
+        int eIndex = seededRandom(sizeof(events) / sizeof(events[0]), mixSeed(seed, seedModifier + 2));
 
-    // Format date
-    char dateChar[32];
-    snprintf(dateChar, sizeof(dateChar), "%04d-%02d-%02d", now.year(), now.month(), now.day());
+        // Format date
+        char dateChar[32];
+        snprintf(dateChar, sizeof(dateChar), "%04d-%02d-%02d", now.year(), now.month(), now.day());
 
-    String dateStr = String(dateChar);
+        String dateStr = String(dateChar);
+        // Replace tokens
+        story = newsTemplates[tIndex];
 
-    // Replace tokens
-    String story = newsTemplates[tIndex];
+        story.replace("{DATE}", dateStr);
+        story.replace("{CITY}", cities[cIndex]);
+        story.replace("{EVENT}", events[eIndex]);
+        story.replace("{DAY}", String(daysOfTheWeek[now.dayOfTheWeek()]));
+    }
+    
 
-    story.replace("{DATE}", dateStr);
-    story.replace("{CITY}", cities[cIndex]);
-    story.replace("{EVENT}", events[eIndex]);
-
-    return String(story);
+    return story;
 }

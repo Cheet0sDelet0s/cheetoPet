@@ -28,5 +28,6 @@ extern String pianoLines[];
 extern const size_t pianoLinesCount;
 
 extern String generateSentence();
+String randomName();
 
 #endif

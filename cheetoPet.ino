@@ -176,7 +176,8 @@ RTC_DS3231 rtc;
 DateTime tempDateTime;
 MPU9250_asukiaaa mpu(0x69);
 
-char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+const char* daysOfTheWeek[7] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+
 DRAM_ATTR int lastSecond = -1;
 DRAM_ATTR DateTime lastRunTime;
 DRAM_ATTR int saveInterval = 5;
@@ -239,6 +240,20 @@ struct Door {
   uint8_t x, y, area, type;
 };
 
+struct Pet {
+  String name;
+  int stillID; // bitmap for standing still
+  int walk1ID; // bitmap for walking animation frame 1
+  int walk2ID; // bitmap for walking animation frame 2
+  int sitID;   // bitmap for sitting
+  int marshmellowID;  // bitmap for marshmellow roasting
+}
+
+const pets[] = {
+  {"goose", 1, 21, 23, 26, 28},
+  {"hedgehog", 43, 45, 47, 51, 49}
+};
+
 std::vector<SnapPoint> cursorSnapPoints;
 
 DRAM_ATTR float angleX = 0;
@@ -263,6 +278,8 @@ int previousCursorY = 0;
 
 DRAM_ATTR int uiTimer = 100;
 
+int userPet = 0;
+String petName = "";
 DRAM_ATTR int petHunger = 60;
 DRAM_ATTR int petFun = 60;
 DRAM_ATTR int petSleep = 60;
@@ -934,7 +951,7 @@ void spiralFill(Adafruit_GFX &d, uint16_t color) {
   }
 }
 
-void sitPet(int time, int type = 26) {
+void sitPet(int time, int type) {
   petSitTimer = time;
   petSitType = type;
 }
@@ -971,6 +988,10 @@ void saveGameToEEPROM(bool showUI = true) {
 
   eepromWriteByte(addr++, currentSaveGame.mouseMode);
 
+  eepromWriteByte(addr++, currentSaveGame.petType);
+
+  eepromWriteString(addr++, currentSaveGame.petName);
+
   if (showUI) {
     drawCenteredText(display, "saved!", 68);
     display.display();
@@ -987,6 +1008,8 @@ void saveGameToRam() {
   currentSaveGame.pongXP = petPongXP;
   currentSaveGame.pongLVL = petPongLVL;
   currentSaveGame.mouseMode = cursorMode;
+  currentSaveGame.petType = userPet;
+  currentSaveGame.petName = petName;
 
   for (int i = 0; i < 8; i++) {
     currentSaveGame.invent[i] = inventory[i];
@@ -1015,6 +1038,8 @@ void loadGameFromRam() {
   petPongXP = currentSaveGame.pongXP;
   petPongLVL = currentSaveGame.pongLVL;
   cursorMode = currentSaveGame.mouseMode;
+  userPet = currentSaveGame.petType;
+  petName = currentSaveGame.petName;
   
   for (int i = 0; i < 8; i++) {
     inventory[i] = currentSaveGame.invent[i];
@@ -1061,6 +1086,10 @@ void loadGameFromEEPROM() {
   currentSaveGame.saveVersion = eepromReadByte(addr++);
 
   currentSaveGame.mouseMode = eepromReadByte(addr++);
+
+  currentSaveGame.petType = eepromReadByte(addr++);
+
+  currentSaveGame.petName = eepromReadString(addr++);
 
   loadGameFromRam();
 
@@ -1132,117 +1161,6 @@ int indexOfList(int array[], int length, int target) {
     }
   }
   return -1;  // Not found
-}
-
-
-void setup() {
-  pinMode(SWITCH_PIN, INPUT_PULLUP);
-  pinMode(leftButton, INPUT_PULLUP);
-  pinMode(middleButton, INPUT_PULLUP);
-  pinMode(rightButton, INPUT_PULLUP);
-  pinMode(SPKR_PIN, OUTPUT);
-
-  ledcAttach(SPKR_PIN, 5000, 8);
-
-  ledcWriteTone(SPKR_PIN, 0);           // start silent
-
-  Serial.begin(921600);
-  analogReadResolution(12);
-
-  Wire.begin(SDA_ALT, SCL_ALT);
-  display.begin(0x3C, true);
-  // delay(500);
-  // display.display();
-  // delay(2000);
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.setTextColor(SH110X_WHITE);
-  display.setTextSize(2);
-  display.println("cheetoPet");
-  display.setTextSize(1);
-  display.println("welcome to your\nsecond life!\n");
-  display.println("loading modules\n\n");
-  display.println("made by\n@Cheet0sDelet0s");
-  display.print("cloudables.net");
-  drawBitmapFromList(55, 100, 1, 0, SH110X_WHITE);
-  display.display();
-  dumpBufferASCII();
-  delay(500);
-  if (!rtc.begin()) {
-    Serial.println("Couldn't find RTC");
-    Serial.flush();
-    display.clearDisplay();
-    display.println("bro i cant find the rtc module you are screwed");
-    display.display();
-    while (1) delay(10);
-  }
-
-  if (rtc.lostPower()) {
-    Serial.println("RTC lost power, setting time!");
-    // Set the RTC to the current date & time
-    rtc.adjust(DateTime(2025, 6, 6, 7, 53, 0));
-    display.clearDisplay();
-    display.println("rtc module lost power!\ntime & date has been reset.\noh dear. booting in 5 secs");
-    display.println("make sure the coin cell\ndidnt fall out\nor has lost charge!");
-    display.display();
-    delay(5000);
-  }
-
-  mpu.setWire(&Wire);
-  mpu.beginGyro();
-  mpu.beginAccel();
-
-  rgb.begin();            // Initialize
-  rgb.setBrightness(50);  // Optional: reduce brightness
-  rgb.show();             // Initialize all pixels to 'off'
-
-  lastUpdate = millis();
-  bool readyToStart = false;
-  while (!readyToStart) {
-      updateButtonStates();
-      if (leftButtonState) {
-      //load game
-      loadGameFromEEPROM();
-      break;
-    } else if (rightButtonState) {
-      display.clearDisplay();
-      drawCenteredText(display, "are you sure?", 0);
-      drawCenteredText(display, "A = yes", 10);
-      drawCenteredText(display, "B = no", 20);
-      display.display();
-      dumpBufferASCII();
-      bool confirmed = false;
-      waitForSelectRelease();
-      while (!confirmed) {
-        updateButtonStates();
-        if (rightButtonState) {confirmed = true;}
-        if (leftButtonState) {break;}
-        delay(50);
-      }
-      if (confirmed) {
-        saveGameToEEPROM();
-        readyToStart = true;
-        break;
-      }      
-    } else if (middleButtonState) {
-      break;
-    } else {
-      display.clearDisplay();
-      display.setTextSize(2);
-      drawCenteredText(display, "cheetoPet", 0);
-      display.setTextSize(1);
-      drawCenteredText(display, "what would you like", 20);
-      drawCenteredText(display, "to do?", 29);
-      display.setCursor(0, 118);
-      display.print("B: continue");
-      display.setCursor(91, 118);
-      display.print("new: A");
-      drawCenteredText(display, "X: RAM game", 105);
-      display.display();
-      screenRecord();
-    }
-  }
-  
 }
 
 void cursorClickAnimation() {
@@ -1356,6 +1274,156 @@ bool drawAdjustable(int x, int y, int& value, int minVal, int maxVal, const char
   return false;
 }
 
+void newGameScreen() {
+  bool finished = false;
+  userPet = 0;
+  petName = randomName();
+  while (!finished) {
+    display.clearDisplay();
+    updateButtonStates();
+    drawCenteredText(display, "choose your pet", 0);
+    
+    BitmapInfo petBmp = bitmaps[pets[userPet].stillID];
+    int centeredX = (128 - petBmp.width) / 2;
+
+    drawBitmapFromList(centeredX, 20, 1, pets[userPet].stillID, SH110X_WHITE);
+    
+    drawCenteredText(display, pets[userPet].name, 22 + petBmp.height);
+
+    drawCenteredText(display, petName, 30 + petBmp.height);
+
+    drawAdjustable(60, 100, userPet, 0, 1, "pet", false);
+    
+    if (drawButton(0, 120, 41, 15, "OK")) {
+      finished = true;
+    }
+
+    if (drawButton(80, 120, 41, 15, "new name")) {
+      petName = randomName();
+    }
+
+    updateGyro();
+    updateCursor();
+    drawCursor();
+    updateParticles();
+    drawParticles();
+
+    display.display();
+    screenRecord();
+  }
+}
+
+void setup() {
+  pinMode(SWITCH_PIN, INPUT_PULLUP);
+  pinMode(leftButton, INPUT_PULLUP);
+  pinMode(middleButton, INPUT_PULLUP);
+  pinMode(rightButton, INPUT_PULLUP);
+  pinMode(SPKR_PIN, OUTPUT);
+
+  ledcAttach(SPKR_PIN, 5000, 8);
+
+  ledcWriteTone(SPKR_PIN, 0);           // start silent
+
+  Serial.begin(921600);
+  analogReadResolution(12);
+
+  Wire.begin(SDA_ALT, SCL_ALT);
+  display.begin(0x3C, true);
+  // delay(500);
+  // display.display();
+  // delay(2000);
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.setTextColor(SH110X_WHITE);
+  display.setTextSize(2);
+  display.println("cheetoPet");
+  display.setTextSize(1);
+  display.println("welcome to your\nsecond life!\n");
+  display.println("loading modules\n\n");
+  display.println("made by\n@Cheet0sDelet0s");
+  display.print("cloudables.net");
+  drawBitmapFromList(55, 100, 1, 0, SH110X_WHITE);
+  display.display();
+  dumpBufferASCII();
+  delay(500);
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    Serial.flush();
+    display.clearDisplay();
+    display.println("bro i cant find the rtc module you are screwed");
+    display.display();
+    while (1) delay(10);
+  }
+
+  if (rtc.lostPower()) {
+    Serial.println("RTC lost power, setting time!");
+    // Set the RTC to the current date & time
+    rtc.adjust(DateTime(2025, 6, 6, 7, 53, 0));
+    display.clearDisplay();
+    display.println("rtc module lost power!\ntime & date has been reset.\noh dear. booting in 5 secs");
+    display.println("make sure the coin cell\ndidnt fall out\nor has lost charge!");
+    display.display();
+    delay(5000);
+  }
+
+  mpu.setWire(&Wire);
+  mpu.beginGyro();
+  mpu.beginAccel();
+
+  rgb.begin();            // Initialize
+  rgb.setBrightness(50);  // Optional: reduce brightness
+  rgb.show();             // Initialize all pixels to 'off'
+
+  lastUpdate = millis();
+  bool readyToStart = false;
+  while (!readyToStart) {
+      updateButtonStates();
+      if (leftButtonState) {
+      //load game
+      loadGameFromEEPROM();
+      break;
+    } else if (rightButtonState) {
+      display.clearDisplay();
+      drawCenteredText(display, "are you sure?", 0);
+      drawCenteredText(display, "A = yes", 10);
+      drawCenteredText(display, "B = no", 20);
+      display.display();
+      dumpBufferASCII();
+      bool confirmed = false;
+      waitForSelectRelease();
+      while (!confirmed) {
+        updateButtonStates();
+        if (rightButtonState) {confirmed = true;}
+        if (leftButtonState) {break;}
+        delay(50);
+      }
+      if (confirmed) {
+        newGameScreen();
+        saveGameToEEPROM();
+        readyToStart = true;
+        break;
+      }      
+    } else if (middleButtonState) {
+      break;
+    } else {
+      display.clearDisplay();
+      display.setTextSize(2);
+      drawCenteredText(display, "cheetoPet", 0);
+      display.setTextSize(1);
+      drawCenteredText(display, "what would you like", 20);
+      drawCenteredText(display, "to do?", 29);
+      display.setCursor(0, 118);
+      display.print("B: continue");
+      display.setCursor(91, 118);
+      display.print("new: A");
+      drawCenteredText(display, "X: RAM game", 105);
+      display.display();
+      screenRecord();
+    }
+  }
+  
+}
+
 void killPet(String deathReason = "") {
     spiralFill(display, SH110X_WHITE);
     delay(500);
@@ -1420,36 +1488,57 @@ void drawCursor() {
 }
 
 void drawPet(int petNumber, int drawX, int drawY) {
-  switch (petNumber) {
-    case 0:
-      {
-        if (!movePet) {
-          if (petSitTimer > 0) {
-            drawBitmapFromList(drawX - 1, drawY - 1, petDir, petSitType + 1, SH110X_BLACK);
-            drawBitmapFromList(drawX, drawY, petDir, petSitType, SH110X_WHITE);
-            petSitTimer--;
-          } else {
-            drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseStillBigMask, 18, 28, SH110X_BLACK);
-            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBig, 16, 26, SH110X_WHITE);
-          }
-        } else {
-          if (petMoveAnim < 3) {
-            drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
-            drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk, 16, 26, SH110X_WHITE);
-          } else {
-            drawBitmapWithDirection(drawX - 1, drawY, petDir, pet_gooseWalk2Mask, 19, 26, SH110X_BLACK);
-            drawBitmapWithDirection(drawX, drawY+1, petDir, pet_gooseWalk2, 17, 25, SH110X_WHITE);
-          }
-        }
-        updateButtonStates();
-        if (detectCursorTouch(drawX, drawY, 16, 26) && rightButtonState) {
-            showPetMenu = !showPetMenu;
-            waitForSelectRelease();
-          }
-        
-        break;
+  if (!movePet) {
+    if (petSitTimer > 0) {
+      switch (petSitType) {
+        case 0: // normal sit
+          drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].sitID + 1, SH110X_BLACK);
+          drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].sitID, SH110X_WHITE);
+          break;
+        case 1: // marshmellow
+          drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].marshmellowID + 1, SH110X_BLACK);
+          drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].marshmellowID, SH110X_WHITE);
+          break;
+        case 2: // standing, just staying still
+          drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].stillID + 1, SH110X_BLACK);
+          drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].stillID, SH110X_WHITE);
+          break;
       }
+      // drawBitmapFromList(drawX - 1, drawY - 1, petDir, petSitType + 1, SH110X_BLACK);
+      // drawBitmapFromList(drawX, drawY, petDir, petSitType, SH110X_WHITE);
+      petSitTimer--;
+    } else {
+      drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].stillID + 1, SH110X_BLACK);
+      drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].stillID, SH110X_WHITE);
+      // drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseStillBigMask, 18, 28, SH110X_BLACK);
+      // drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBig, 16, 26, SH110X_WHITE);
+    }
+  } else {
+    if (petMoveAnim < 3) {
+      drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].walk1ID + 1, SH110X_BLACK);
+      drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].walk1ID, SH110X_WHITE);
+      // drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
+      // drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk, 16, 26, SH110X_WHITE);
+    } else {
+      drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].walk2ID + 1, SH110X_BLACK);
+      drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].walk2ID, SH110X_WHITE);
+      // drawBitmapWithDirection(drawX - 1, drawY, petDir, pet_gooseWalk2Mask, 19, 26, SH110X_BLACK);
+      // drawBitmapWithDirection(drawX, drawY+1, petDir, pet_gooseWalk2, 17, 25, SH110X_WHITE);
+    }
   }
+  updateButtonStates();
+  if (detectCursorTouch(drawX, drawY, 16, 26)) {
+    display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+    display.setFont(&Picopixel);
+    int nameLength = petName.length();
+    display.setCursor(petX - (nameLength * 4) / 2, petY - 8);
+    display.print(petName);
+    display.setFont(NULL);
+    if (rightButtonState) {
+      showPetMenu = !showPetMenu;
+      waitForSelectRelease();
+    }
+  }  
 }
 
 void drawBottomBar() {
@@ -1522,28 +1611,40 @@ void drawBottomUI() {
 }
 
 void openNews() {
-  display.clearDisplay();
-  display.setTextColor(SH110X_WHITE);
-  display.setCursor(0, 0);
-  display.setTextSize(1);
-  display.println("news:");
-  display.drawFastHLine(0, 8, 127, SH110X_WHITE);
-  display.setCursor(0, 10);
+  bool exitNews = false;
+  int seedMod = 1;
 
-  display.println("today:");
-  drawWordWrappedText(generateNewsHeadline(0).c_str(), 0, 18, 128, 8);
-  drawWordWrappedText(generateNewsHeadline(1).c_str(), 0, 50, 128, 8);
-  drawWordWrappedText(generateNewsHeadline(2).c_str(), 0, 82, 128, 8);
-  
-  drawCenteredText(display, "press A to exit", 118);
+  clearTones();
 
-  display.display();
+  loadIndicator = 0;
 
-  waitForSelectRelease();
-  updateButtonStates();
-  while (!rightButtonState) {
+  while (!exitNews) {
+    display.clearDisplay();
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(0, 0);
+    display.setTextSize(1);
+    display.println("news:");
+    display.drawFastHLine(0, 8, 127, SH110X_WHITE);
+    display.setCursor(0, 10);
+
+    display.println("today:");
+    drawWordWrappedText(generateNewsHeadline(0 + seedMod * 2).c_str(), 0, 18, 128, 8);
+    drawWordWrappedText(generateNewsHeadline(1 + seedMod * 2).c_str(), 0, 60, 128, 8);
+
+    drawAdjustable(60, 110, seedMod, 1, 10, "page", false);
+    
+    if (drawButton(110, 0, 6, 8, "X")) {
+      exitNews = true;
+    }
+
     updateButtonStates();
-    delay(10);
+    updateGyro();
+    updateCursor();
+    drawCursor();
+    updateParticles();
+    drawParticles();
+
+    display.display();
   }
   waitForSelectRelease();
 }
@@ -1981,7 +2082,7 @@ void drawPetMessage() {
   if (detectCursorTouch(bubbleX - (bubbleDirection == 1 ? 0 : bubbleWidth), bubbleY - bubbleHeight, bubbleWidth, bubbleHeight) && rightButtonState) {
     messageDisplayTime = messageMaxTime + 1; // close bubble
 
-    float speed = 3; // particle speed, adjust as needed
+    float speed = 2; // particle speed, adjust as needed
     int topLeftX = bubbleDirection == 1 ? bubbleX : bubbleX - bubbleWidth;
     int topLeftY = bubbleY - bubbleHeight;
     int topRightX = bubbleDirection == 1 ? bubbleX + bubbleWidth : bubbleX;
@@ -1991,10 +2092,10 @@ void drawPetMessage() {
     int bottomRightX = bubbleDirection == 1 ? bubbleX + bubbleWidth : bubbleX;
     int bottomRightY = bubbleY - 3;
 
-    createParticle(3, topLeftX, topLeftY, -speed, -speed, 10);
-    createParticle(3, topRightX, topRightY, speed, -speed, 10);
-    createParticle(3, bottomLeftX, bottomLeftY, -speed, speed, 10);
-    createParticle(3, bottomRightX, bottomRightY, speed, speed, 10);
+    createParticle(3, topLeftX, topLeftY, -speed, -speed, 5);
+    createParticle(3, topRightX, topRightY, speed, -speed, 5);
+    createParticle(3, bottomLeftX, bottomLeftY, -speed, speed, 5);
+    createParticle(3, bottomRightX, bottomRightY, speed, speed, 5);
   }
 }
 
@@ -2722,7 +2823,8 @@ public:
     }
     if (!movePet) {
       if (random(0, 100) == 1) {
-        startMovingPet(random(0, 105), random(35, 100), 1);
+        startMovingPet(random(0, 105), random(35
+          , 100), 1);
       }
     }
     return SUCCESS;
@@ -2757,7 +2859,7 @@ public:
         
         playRandomSong();
 
-        sitPet(200, 1);
+        sitPet(2, 1);
 
         petMessage(pianoLines[random(0, pianoLinesCount)]);
         petStatus = 0;
@@ -2786,16 +2888,17 @@ public:
   NodeStatus tick() override {
     if (checkItemIsPlaced(5)) {
       updateAreaPointers();
+      BitmapInfo petBmp = bitmaps[pets[userPet].marshmellowID];
       int index = findIndexByType(*currentAreaPtr, 5);
       int itemX = (*currentAreaPtr)[index].x - 15;
-      int itemY = (*currentAreaPtr)[index].y + 3;
+      int itemY = 41 - petBmp.height;
       if (!movePet) {
         startMovingPet(itemX, itemY, 2);
       }
       //Serial.println("moving pet to fireplace");
       if (petX == itemX && petY == itemY) {
         //Serial.println("pet has reached fireplace");
-        sitPet(200, 28);
+        sitPet(200, 1);
         petHunger += random(0, 1);
         petMessage(fireplaceLines[random(0, fireplaceLinesCount)]);
         petStatus = 0;
@@ -2841,15 +2944,16 @@ public:
       updateAreaPointers();
       int index = findIndexByType(*currentAreaPtr, 3);
       if (index != -1) {
-        int itemX = (*currentAreaPtr)[index].x + 4;
-        int itemY = (*currentAreaPtr)[index].y + 2;
+        BitmapInfo petBmp = bitmaps[pets[userPet].sitID];
+        int itemX = (*currentAreaPtr)[index].x  +  (28 - petBmp.width) / 2;
+        int itemY = (*currentAreaPtr)[index].y  +  (30 - petBmp.height) / 2;
         if (!movePet) {
           startMovingPet(itemX, itemY, 2);
         }
         //Serial.println("moving pet to couch");
         if (petX == itemX && petY == itemY) {
           //Serial.println("pet has reached couch");
-          sitPet(200);
+          sitPet(200, 0);
           petStatus = 0;
           return SUCCESS;
         } else {
@@ -3240,7 +3344,7 @@ void loop() {
     }
   }
 
-  drawPet(0, petX, petY); // draw the pet to the display in its current state
+  drawPet(userPet, petX, petY); // draw the pet to the display in its current state
 
   if (messageDisplayTime < messageMaxTime) {
     drawPetMessage(); // draw speech bubble on pet if it hasn't expired
