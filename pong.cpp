@@ -3,6 +3,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
 #include "pong.h"
+#include "particlesystem.h"
 
 DRAM_ATTR int score = 0;
 DRAM_ATTR int leftPaddlePos = 0;
@@ -26,44 +27,13 @@ DRAM_ATTR int enemyScore = 0;
 DRAM_ATTR float petPongXP = 0;
 DRAM_ATTR int petPongLVL = 1;
 
-// void handlePongEnemyAI() {
-//   // Basic tracking AI
-//   if (petPongLVL >= 1 && petPongLVL <= 3) {
-//     enemySpeed = 1.5 + (petPongLVL - 1) * 0.5;  // 1.5 to 2.5
-//     enemySpeed = constrain(enemySpeed, 0, 3);
-
-//     if (ballY < enemyPaddleY + enemyHeight / 2) {
-//       enemyPaddleY -= enemySpeed;
-//     } else if (ballY > enemyPaddleY + enemyHeight / 2) {
-//       enemyPaddleY += enemySpeed;
-//     }
-//   }
-
-//   // Intermediate AI: wait until ball is halfway, then react quickly
-//   else if (petPongLVL >= 4 && petPongLVL <= 10) {
-//     int triggerX = 55 + (petPongLVL - 4) * 3;  // Gets more reactive as level increases
-
-//     if (ballX > triggerX) {
-//       enemySpeed = 2.5 + (petPongLVL - 4) * 0.5;  // Up to 4.5
-//       enemySpeed = constrain(enemySpeed, 0, 5);
-
-//       if (ballY < enemyPaddleY + enemyHeight / 2) {
-//         enemyPaddleY -= enemySpeed;
-//       } else if (ballY > enemyPaddleY + enemyHeight / 2) {
-//         enemyPaddleY += enemySpeed;
-//       }
-//     }
-//   }
-
-//   // Clamp enemy paddle within screen bounds
-//   enemyPaddleY = constrain(enemyPaddleY, 0, 128 - enemyHeight);
-// }
-
 void handlePongEnemyAI() {
-  int difference = (ballY + 1) - (enemyPaddleY + enemyHeight / 2); // Adjust for ball center
-  enemyPaddleY += difference / 4;
-
-  enemyPaddleY = constrain(enemyPaddleY, 0, 128 - enemyHeight);
+  if (ballX > 64) {
+    int difference = (ballY + 1) - (enemyPaddleY + enemyHeight / 2); // Adjust for ball center
+    enemyPaddleY += difference / 9 - petPongLVL / 2;
+  
+    enemyPaddleY = constrain(enemyPaddleY, 0, 128 - enemyHeight);
+  }
 }
 
 void drawPetLeveling(String levelType, float beginningXP, float gainedXP, int beginningLVL) {
@@ -96,7 +66,7 @@ void drawPetLeveling(String levelType, float beginningXP, float gainedXP, int be
   display.fillRect(20, 55, 88 * xpPercentage, 10, SH110X_WHITE);
   
   drawCenteredText(display, String((String(newXP) + "/" + String(newLVL * 5))), 70);
-  drawCenteredText(display, "press SELECT", 118);
+  drawCenteredText(display, "press A", 118);
   
   display.display();
   updateButtonStates();
@@ -137,6 +107,7 @@ void pong() { // PONG if you couldnt read
         ballVX *= -1;
         // reEnergizeBall(1.2);
         enemyScore += 1;
+        queueTone(200, 100);
         ballX = 40;
       }
 
@@ -144,6 +115,7 @@ void pong() { // PONG if you couldnt read
         ballVX *= -1;
         // reEnergizeBall(1.2);
         score += 1;
+        queueTone(1000, 100);
         ballX = 100;
       }
 
@@ -186,6 +158,9 @@ void pong() { // PONG if you couldnt read
         ballVY += offset * 2;
         reEnergizeBall(1.1);
         queueTone(440, 50);
+        for (int i = 0; i < 3; i++) {
+          createParticle(1, ballX, ballY, ballVX, ballVY + (random(-10, 10) / 10), 20);
+        }
       }
 
       // Ball is moving right toward enemy paddle
@@ -199,16 +174,20 @@ void pong() { // PONG if you couldnt read
         float offset = (ballY - (enemyPaddleY + enemyHeight / 2)) / (enemyHeight / 2);
         ballVY += offset;
         queueTone(440, 50);
+        for (int i = 0; i < 3; i++) {
+          createParticle(1, ballX, ballY, ballVX / 3, ballVY / 3 + (random(-10, 10) / 10), 20);
+        }
       }
-
 
       if (ballY <= 0) {
         ballY = 0;
         ballVY = abs(ballVY)*1.5; // Bounce down
+        queueTone(420, 50);
       }
       if (ballY >= 127) {
         ballY = 127;
         ballVY = -abs(ballVY)*1.5; // Bounce up
+        queueTone(420, 50);
       }
 
       
@@ -234,6 +213,10 @@ void pong() { // PONG if you couldnt read
       display.print(score);
       display.setCursor(120, 0);
       display.print(enemyScore);
+
+      updateParticles();
+      drawParticles();
+
       display.display();
       screenRecord();
       audioEngine();

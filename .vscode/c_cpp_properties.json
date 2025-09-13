@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/cheeto/Arduino/**",
+                "/home/cheeto/.arduino15/**",
+                "/home/cheeto/.arduino15/packages/esp32/hardware/esp32/3.3.0/cores/esp32/**",
+                "/home/cheeto/.arduino15/packages/esp32/hardware/esp32/3.3.0/libraries/**",
+                "/home/cheeto/.arduino15/packages/esp32/tools/**",
+                "/home/cheeto/.arduino15/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-b66b5448-v1/esp32/include/xtensa/include/xtensa/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-clang-x64"
+        }
+    ],
+    "version": 4
+}

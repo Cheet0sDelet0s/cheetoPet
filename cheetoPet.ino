@@ -25,6 +25,14 @@ TP4056 charging board
 if you are having trouble updating the esp32 core, run this command in terminal:
 arduino-cli config set network.connection_timeout 600s
 
+to compile through terminal on linux, run:
+arduino-cli compile --fqbn esp32:esp32:esp32c3 ~/Arduino/cheetoPet/cheetoPet.ino
+if on windows or mac change path accordingly
+
+to upload through terminal on linux, run:
+arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32c3 ~/Arduino/cheetoPet/cheetoPet.ino
+change port and path accordingly
+
 */
 
 #include <Arduino.h>
@@ -43,7 +51,9 @@ arduino-cli config set network.connection_timeout 600s
 #include "pong.h"
 #include "veridium.h"
 #include "flappybird.h"
-#include "particlesim.h"
+#include "bubbles.h"
+#include "particlesystem.h"
+#include "newsgenerator.h"
 #include "Picopixel.h"
 
 #define SDA_ALT 20
@@ -84,7 +94,7 @@ struct Note {
 };
 
 // Tone queue
-#define MAX_TONES 48
+#define MAX_TONES 32
 Note noteQueue[MAX_TONES];
 int toneCount = 0;  // number of tones currently in the queue
 
@@ -149,6 +159,9 @@ DRAM_ATTR bool leftButtonState = false;
 DRAM_ATTR bool middleButtonState = false;
 DRAM_ATTR bool rightButtonState = false;
 DRAM_ATTR bool powerSwitchState = false;
+DRAM_ATTR bool previousLeftState = false;
+DRAM_ATTR bool previousMiddleState = false;
+DRAM_ATTR bool previousRightState = false;
 
 //menu system
 DRAM_ATTR int firstOption = 0;
@@ -178,7 +191,8 @@ std::vector<ItemList> outsidePlot = {
     {34, 40, 50},
     {35, 60, 70},
     {33, 96, 5},
-    {36, 46, 6}
+    {36, 46, 6},
+    {42, 29, 25}
 };
 
 //item inventory
@@ -214,6 +228,9 @@ DRAM_ATTR float accelXOffset = 0;
 DRAM_ATTR float accelYOffset = 0;
 DRAM_ATTR float accelZOffset = 0;
 
+DRAM_ATTR bool cursorEnabled = false;
+DRAM_ATTR int cursorMode = 2;
+
 struct SnapPoint {
   uint8_t x, y;
 };
@@ -231,6 +248,7 @@ DRAM_ATTR float posX = 0;
 DRAM_ATTR float posY = 0;
 DRAM_ATTR float posZ = 0;
 DRAM_ATTR float totalG = 0;
+DRAM_ATTR bool pauseGyro = false; // pauses gyro reading for one frame
 //cursor stuff
 DRAM_ATTR int cursorX = 500;
 DRAM_ATTR int cursorY = 500;
@@ -240,6 +258,8 @@ int cursorBitmap = 14;
 float loadIndicator = 0;
 int cursorSnapDistance = 10;
 int cursorSnapDivider = 2;
+int previousCursorX = 0;
+int previousCursorY = 0;
 
 DRAM_ATTR int uiTimer = 100;
 
@@ -361,6 +381,14 @@ void openController() { secondOption = 2; depth = 2; }
 void reopenInventory(){ firstOption = 1; depth = 1; }
 void reopenShop()     { firstOption = 1; depth = 1; }
 
+void deleteItemBeingPlaced() {
+  removeFromList(inventory, inventoryItems, indexOfList(inventory, inventoryItems, itemBeingPlaced));
+  inventoryItems--;
+  itemBeingPlaced = -1;
+  startHandlingPlacing = false;
+  openInventory();
+}
+
 // depth 2: food menu
 void reopenFood()     { firstOption = 2; depth = 1; }
 void reopenGames()    { firstOption = 2; depth = 1; }
@@ -408,6 +436,12 @@ UIButton inventoryButtons[] = {
   {0,   115, 41, 15, 12, reopenInventory}, // Back
 };
 
+// Depth 3 → Placing item from inventory
+UIButton placingItemButtons[] = {
+  {0,   115, 41, 15, 12, goBackToEdit}, // Back
+  {41,  115, 45, 15, 41, deleteItemBeingPlaced}, // Trashcan
+};
+
 // Depth 2 → Shop
 UIButton shopButtons[] = {
   {0,   115, 41, 15, 12, reopenShop}, // Back
@@ -429,6 +463,57 @@ uint8_t getG(uint32_t color) { return (color >> 8) & 0xFF; }
 uint8_t getB(uint32_t color) { return color & 0xFF; }
 
 // put standalone functions / functions that don't rely on other functions at the top here!
+
+void drawWordWrappedText( 
+  const char *text, 
+  int16_t x, int16_t y, 
+  int16_t maxWidth, int16_t lineHeight) {
+
+    int16_t cursorX = x;
+    int16_t cursorY = y;
+
+    const char *wordStart = text;
+    while (*wordStart) {
+    // Skip spaces at the beginning
+    while (*wordStart == ' ') wordStart++;
+
+    // Find end of the word
+    const char *wordEnd = wordStart;
+    while (*wordEnd && *wordEnd != ' ') wordEnd++;
+
+    // Copy the word into a buffer
+    int wordLen = wordEnd - wordStart;
+    char wordBuf[64]; // adjust size if needed
+    if (wordLen >= sizeof(wordBuf)) wordLen = sizeof(wordBuf) - 1;
+    strncpy(wordBuf, wordStart, wordLen);
+    wordBuf[wordLen] = '\0';
+
+    // Measure word width
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds(wordBuf, 0, 0, &x1, &y1, &w, &h);
+
+    // If it doesn't fit on this line, move to next line
+    if (cursorX != x && (cursorX - x + w) > maxWidth) {
+    cursorX = x;
+    cursorY += lineHeight;
+    }
+
+    // Print the word
+    display.setCursor(cursorX, cursorY);
+    display.print(wordBuf);
+
+    cursorX += w;
+
+    // Add space if not end of string
+    if (*wordEnd == ' ') {
+    display.getTextBounds(" ", 0, 0, &x1, &y1, &w, &h);
+    cursorX += w;
+    }
+
+    wordStart = wordEnd;
+    }
+}
 
 int findIndexByType(const std::vector<ItemList>& vec, uint8_t type) {
     for (size_t i = 0; i < vec.size(); i++) {
@@ -520,9 +605,30 @@ void playRandomSong() {
 
 void thisVexesMe() {
   display.clearDisplay();
-  drawBitmapFromList(0, 0, 1, 39, SH110X_WHITE);
+  drawBitmapFromList(0, 0, 1, 40, SH110X_WHITE);
+  display.setCursor(0, 112);
+  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  display.print("did you try the\nmedicine drug?");
   display.display();
-  delay(2000);
+  delay(2500);
+  display.clearDisplay();
+  drawBitmapFromList(0, 0, 1, 39, SH110X_WHITE);
+  display.setCursor(0, 112);
+  display.print("i gave patient stupid\ndrug");
+  display.display();
+  delay(2500);
+  display.clearDisplay();
+  drawBitmapFromList(0, 0, 1, 40, SH110X_WHITE);
+  display.setCursor(0, 120);
+  display.print("you are a black man");
+  display.display();
+  delay(2500);
+  display.clearDisplay();
+  drawBitmapFromList(0, 0, 1, 39, SH110X_WHITE);
+  display.setCursor(0, 120);
+  display.print("this vexes me");
+  display.display();
+  delay(3000);
 };
 
 void peripheralTest() {
@@ -675,6 +781,18 @@ void petMessage(String message) {
     int letterNumber = currentPetMessage[i] - 'a';
     int frequency = 400 + letterNumber * 4;
     queueTone(frequency, 50);
+  }
+
+  // Spawn particles around the pet's mouth
+  float baseAngle = petDir == 1 ? 0 : PI; // Base angle depends on pet direction
+  float angleStep = 15 * DEG_TO_RAD; // 15 degrees in radians
+  float speed = 1.5; // Particle speed
+
+  for (int i = -1; i <= 1; i++) { // Generate 3 particles, spaced 15 degrees apart
+    float angle = baseAngle + i * angleStep; // Adjust angle for each particle
+    float vx = cos(angle) * speed; // Velocity in x direction
+    float vy = sin(angle) * speed; // Velocity in y direction
+    createParticle(3, petX + 8 * petDir, petY + 4, vx, vy, random(16, 24)); // Spawn particle near pet's mouth
   }
 }
 
@@ -851,6 +969,8 @@ void saveGameToEEPROM(bool showUI = true) {
 
   eepromWriteByte(addr++, currentSaveGame.saveVersion);
 
+  eepromWriteByte(addr++, currentSaveGame.mouseMode);
+
   if (showUI) {
     drawCenteredText(display, "saved!", 68);
     display.display();
@@ -866,6 +986,7 @@ void saveGameToRam() {
   currentSaveGame.money = money;
   currentSaveGame.pongXP = petPongXP;
   currentSaveGame.pongLVL = petPongLVL;
+  currentSaveGame.mouseMode = cursorMode;
 
   for (int i = 0; i < 8; i++) {
     currentSaveGame.invent[i] = inventory[i];
@@ -893,6 +1014,7 @@ void loadGameFromRam() {
   money = currentSaveGame.money;
   petPongXP = currentSaveGame.pongXP;
   petPongLVL = currentSaveGame.pongLVL;
+  cursorMode = currentSaveGame.mouseMode;
   
   for (int i = 0; i < 8; i++) {
     inventory[i] = currentSaveGame.invent[i];
@@ -937,6 +1059,8 @@ void loadGameFromEEPROM() {
   currentSaveGame.foodInvItems = eepromReadByte(addr++);
 
   currentSaveGame.saveVersion = eepromReadByte(addr++);
+
+  currentSaveGame.mouseMode = eepromReadByte(addr++);
 
   loadGameFromRam();
 
@@ -1040,6 +1164,7 @@ void setup() {
   display.println("loading modules\n\n");
   display.println("made by\n@Cheet0sDelet0s");
   display.print("cloudables.net");
+  drawBitmapFromList(55, 100, 1, 0, SH110X_WHITE);
   display.display();
   dumpBufferASCII();
   delay(500);
@@ -1057,8 +1182,8 @@ void setup() {
     // Set the RTC to the current date & time
     rtc.adjust(DateTime(2025, 6, 6, 7, 53, 0));
     display.clearDisplay();
-    display.println("rtc module lost power! time, date has been reset. oh dear. booting in 5 secs");
-    display.println("make sure the coin cell didnt fall out or has lost charge!");
+    display.println("rtc module lost power!\ntime & date has been reset.\noh dear. booting in 5 secs");
+    display.println("make sure the coin cell\ndidnt fall out\nor has lost charge!");
     display.display();
     delay(5000);
   }
@@ -1120,6 +1245,15 @@ void setup() {
   
 }
 
+void cursorClickAnimation() {
+  for (int i = 0; i < 5; i++) {
+    float angle = i * (PI / 2.5); // Divide circle into 5 parts
+    float vx = cos(angle); // Velocity in x direction
+    float vy = sin(angle); // Velocity in y direction
+    createParticle(3, cursorX, cursorY, vx, vy, 10); // Spawn particle
+  }
+}
+
 void waitForSelectRelease() {
   const unsigned long debounceDelay = 50;  // milliseconds
   unsigned long lastStableTime = millis();
@@ -1137,6 +1271,8 @@ void waitForSelectRelease() {
     }
   }
   updateButtonStates();
+  cursorClickAnimation();
+  pauseGyro = true; // stop gyro/cursor updating this frame since the pause can annoy user
 }
 
 bool drawButton(int x, int y, int w, int h, const char* label) {
@@ -1274,6 +1410,13 @@ void drawCursor() {
   const BitmapInfo& bmp = bitmaps[cursorBitmap];
   display.drawBitmap(cursorX, cursorY, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
   display.fillRect(cursorX, cursorY + bmp.height + 3, loadIndicator, 2, SH110X_WHITE);
+
+  if (cursorMode == 2 && cursorEnabled) {
+    display.fillRect(122, 0, 6, 6, 0);
+    display.fillRect(123, 0, 5, 5, 1);
+    display.drawLine(125, 3, 125, 1, 0);
+    display.drawLine(124, 1, 126, 1, 0);
+  }
 }
 
 void drawPet(int petNumber, int drawX, int drawY) {
@@ -1344,8 +1487,12 @@ void drawBottomUI() {
           switch (secondOption) {
             case 1: // inventory
               updateButtonStates();
-              if (!startHandlingPlacing) drawInventory();
-              drawButtonSet(inventoryButtons, 1);
+              if (itemBeingPlaced == -1) {
+                drawInventory();
+                drawButtonSet(inventoryButtons, 1);
+              } else {
+                drawButtonSet(placingItemButtons, 2);
+              }
               break;
             case 2: // shop
               updateButtonStates();
@@ -1372,6 +1519,33 @@ void drawBottomUI() {
       }
       break;
   }
+}
+
+void openNews() {
+  display.clearDisplay();
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(0, 0);
+  display.setTextSize(1);
+  display.println("news:");
+  display.drawFastHLine(0, 8, 127, SH110X_WHITE);
+  display.setCursor(0, 10);
+
+  display.println("today:");
+  drawWordWrappedText(generateNewsHeadline(0).c_str(), 0, 18, 128, 8);
+  drawWordWrappedText(generateNewsHeadline(1).c_str(), 0, 50, 128, 8);
+  drawWordWrappedText(generateNewsHeadline(2).c_str(), 0, 82, 128, 8);
+  
+  drawCenteredText(display, "press A to exit", 118);
+
+  display.display();
+
+  waitForSelectRelease();
+  updateButtonStates();
+  while (!rightButtonState) {
+    updateButtonStates();
+    delay(10);
+  }
+  waitForSelectRelease();
 }
 
 void drawInventory() {
@@ -1536,10 +1710,19 @@ void drawAreaItems() {
       display.fillRect(x + 6, y, 3, -27, SH110X_WHITE);
     }
 
-    if (detectCursorTouch(x, y, bmp.width, bmp.height) && currentItem.type != 36) {
+    if (detectCursorTouch(x, y, bmp.width, bmp.height) && currentItem.type != 36 && currentItem.type != 42) {
       if (rightButtonState && loadIndicator > 9) {
         addToList(inventory, inventoryItems, 8, currentItem.type);
         currentAreaPtr->erase(currentAreaPtr->begin()+i);
+        loadIndicator = 0;
+      } else if (rightButtonState) {
+        loadIndicator++;
+      }
+    }
+    
+    if (detectCursorTouch(x, y, bmp.width, bmp.height) && currentItem.type == 42) {
+      if (rightButtonState && loadIndicator > 9) {
+        openNews();
         loadIndicator = 0;
       } else if (rightButtonState) {
         loadIndicator++;
@@ -1792,6 +1975,27 @@ void drawPetMessage() {
   display.drawLine(edgeX, bubbleY, edgeX + 5 * bubbleDirection, bubbleY - 5, SH110X_WHITE);
 
   messageDisplayTime++;
+
+  updateButtonStates();
+
+  if (detectCursorTouch(bubbleX - (bubbleDirection == 1 ? 0 : bubbleWidth), bubbleY - bubbleHeight, bubbleWidth, bubbleHeight) && rightButtonState) {
+    messageDisplayTime = messageMaxTime + 1; // close bubble
+
+    float speed = 3; // particle speed, adjust as needed
+    int topLeftX = bubbleDirection == 1 ? bubbleX : bubbleX - bubbleWidth;
+    int topLeftY = bubbleY - bubbleHeight;
+    int topRightX = bubbleDirection == 1 ? bubbleX + bubbleWidth : bubbleX;
+    int topRightY = bubbleY - bubbleHeight;
+    int bottomLeftX = bubbleDirection == 1 ? bubbleX : bubbleX - bubbleWidth;
+    int bottomLeftY = bubbleY - 3; // bottom edge
+    int bottomRightX = bubbleDirection == 1 ? bubbleX + bubbleWidth : bubbleX;
+    int bottomRightY = bubbleY - 3;
+
+    createParticle(3, topLeftX, topLeftY, -speed, -speed, 10);
+    createParticle(3, topRightX, topRightY, speed, -speed, 10);
+    createParticle(3, bottomLeftX, bottomLeftY, -speed, speed, 10);
+    createParticle(3, bottomRightX, bottomRightY, speed, speed, 10);
+  }
 }
 
 
@@ -1870,7 +2074,7 @@ void drawGameLibrary() {
   display.setTextColor(SH110X_WHITE);
   display.print("games: ");
   display.print(gameLibraryCount);
-  display.print("/3");
+  display.print("/4");
 
   int charWidth = 6;     // Approximate width of one character
   int lineHeight = 8;    // Height of one text line
@@ -1903,7 +2107,7 @@ void drawGameLibrary() {
         flappyBird();
       } else if (name == "bubblebox") {
         drawCheckerboard(3);
-        particleSim();
+        bubbleSim();
       } else {
         //latinProject();
       }
@@ -1936,7 +2140,7 @@ void drawShop() {
 
   if (detectCursorTouch(1, 10, 54, 8) && rightButtonState) {
     thirdOption = 1;
-  } else if (detectCursorTouch(78, 10, 24, 8) && rightButtonState) {
+  } else if (detectCursorTouch(55, 10, 24, 8) && rightButtonState) {
     thirdOption = 2;
   }
 
@@ -2037,6 +2241,35 @@ bool drawCenteredButton(String label, int y) {
   return buttonClicked;
 }
 
+void showCredits() {
+  waitForSelectRelease();
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(SH110X_WHITE);
+  drawCenteredText(display, "cheetoPet", 0);
+  display.setTextSize(1);
+  drawCenteredText(display, "by olly jeffery", 16);
+  
+  drawCenteredText(display, "library credits:", 36);
+  drawCenteredText(display, "Adafruit GFX", 44);
+  drawCenteredText(display, "Adafruit SH110X", 52);
+  drawCenteredText(display, "RTClib", 60);
+  drawCenteredText(display, "MPU9250_asukiaa", 68);
+  display.setFont(&Picopixel);
+  drawCenteredText(display, "Picopixel", 80);
+  display.setFont(NULL);
+  drawCenteredText(display, "github.com/Cheet0sDelet0s", 112);
+  drawCenteredText(display, "cloudables.net", 120);
+  display.display();
+
+  updateButtonStates();
+  while (!rightButtonState) {
+    updateButtonStates();
+    delay(10);
+  }
+  waitForSelectRelease();
+}
+
 //SETTINGS PAGES
 
 void settingsMainMenu() {
@@ -2128,6 +2361,7 @@ void settingsGyro() {  // LOOK. AT. THAT. BEAUTIFUL
   static int sensitivityZ = gyroSensitivityZ;
   static int snapDistance = cursorSnapDistance;
   static int snapDivider  = cursorSnapDivider;
+  static int newCursorMode = cursorMode;
   
   display.setCursor(0, 10);
   display.print("cursor/gyro");
@@ -2137,13 +2371,15 @@ void settingsGyro() {  // LOOK. AT. THAT. BEAUTIFUL
   drawAdjustable(80, 30, sensitivityZ, -5, 5, "Z:", false);
   drawAdjustable(50, 60, snapDistance, 0, 20, "snap:", false);
   drawAdjustable(90, 60, snapDivider, 1, 5, "str:", false);
+  drawAdjustable(110, 30, newCursorMode, 1, 2, "M:", false);
 
-  if (drawButton(30, 80, 60, 10, "confirm")) {
+  if (drawButton(40, 80, 60, 10, "confirm")) {
       settingsOption = 0;
       gyroSensitivityX = sensitivityX;
       gyroSensitivityY = sensitivityY;
       gyroSensitivityZ = sensitivityZ;
       cursorSnapDistance = snapDistance;
+      cursorMode = newCursorMode;
       waitForSelectRelease();
   }
 
@@ -2246,7 +2482,11 @@ void settingsMisc() {
     thisVexesMe();
   }
 
-  if (drawCenteredButton("exit", 90)) {
+  if (drawCenteredButton("credits", 80)) {
+    showCredits();
+  }
+
+  if (drawCenteredButton("exit", 100)) {
     settingsOption = 0;
   }
 }
@@ -2274,32 +2514,35 @@ void drawSettings() {
 }
 
 void updateGyro() {
-  mpu.gyroUpdate();
-  mpu.accelUpdate();
+  if (!pauseGyro) {
+    mpu.gyroUpdate();
+    mpu.accelUpdate();
 
-  int gyroX = round((mpu.gyroX() + gyroXOffset) / 2) * gyroSensitivityX * 2 * -1;  //multiply gyro values by user set sensitivity. x value is inverted since gyro is upside down in hardware 
-  int gyroY = round((mpu.gyroY() + gyroYOffset) / 2) * gyroSensitivityY * 2;
-  int gyroZ = round((mpu.gyroZ() + gyroZOffset) / 2) * gyroSensitivityZ * 2;
+    int gyroX = round((mpu.gyroX() + gyroXOffset) / 2) * gyroSensitivityX * 2 * -1;  //multiply gyro values by user set sensitivity. x value is inverted since gyro is upside down in hardware 
+    int gyroY = round((mpu.gyroY() + gyroYOffset) / 2) * gyroSensitivityY * 2;
+    int gyroZ = round((mpu.gyroZ() + gyroZOffset) / 2) * gyroSensitivityZ * 2;
 
-  int accelX = round(mpu.accelX() + accelXOffset);
-  int accelY = round(mpu.accelY() + accelYOffset);
-  int accelZ = round(mpu.accelZ() + accelZOffset);
+    int accelX = round(mpu.accelX() + accelXOffset);
+    int accelY = round(mpu.accelY() + accelYOffset);
+    int accelZ = round(mpu.accelZ() + accelZOffset);
 
-  // Serial.printf("X: %f, Y: %f, Z: %f\n", accelX, accelY, accelZ);
+    // Serial.printf("X: %f, Y: %f, Z: %f\n", accelX, accelY, accelZ);
 
-  totalG = sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
+    totalG = sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
 
-  unsigned long updateNow = millis();
-  float deltaTime = (updateNow - lastUpdate) / 1000.0;
-  lastUpdate = updateNow;
+    unsigned long updateNow = millis();
+    float deltaTime = (updateNow - lastUpdate) / 1000.0;
+    lastUpdate = updateNow;
 
-  angleX += gyroX * deltaTime;
-  angleY += gyroY * deltaTime;
-  angleZ += gyroZ * deltaTime;
+    angleX += gyroX * deltaTime;
+    angleY += gyroY * deltaTime;
+    angleZ += gyroZ * deltaTime;
 
-  posX += gyroX * deltaTime;
-  posY += gyroY * deltaTime;
-  posZ += gyroZ * deltaTime;
+    posX += gyroX * deltaTime;
+    posY += gyroY * deltaTime;
+    posZ += gyroZ * deltaTime;
+  }
+  pauseGyro = false;
 }
 
 void runSaveInterval() {
@@ -2514,6 +2757,8 @@ public:
         
         playRandomSong();
 
+        sitPet(200, 1);
+
         petMessage(pianoLines[random(0, pianoLinesCount)]);
         petStatus = 0;
         return SUCCESS;
@@ -2551,7 +2796,7 @@ public:
       if (petX == itemX && petY == itemY) {
         //Serial.println("pet has reached fireplace");
         sitPet(200, 28);
-        petHunger += 1;
+        petHunger += random(0, 1);
         petMessage(fireplaceLines[random(0, fireplaceLinesCount)]);
         petStatus = 0;
         return SUCCESS;
@@ -2711,6 +2956,13 @@ public:
       38, petX + 5, petY + 5
     };
 
+    for (int i = 0; i < 8; i++) {
+      float angle = i * (PI / 4); // Divide circle into 8 parts
+      float vx = cos(angle); // Velocity in x direction
+      float vy = sin(angle); // Velocity in y direction
+      createParticle(2, petX + 5, petY + 5, vx, vy, random(80, 120)); // Spawn particle
+    }
+
     currentAreaPtr->push_back({newItem});
 
     petPoop = 0;
@@ -2804,6 +3056,8 @@ void handleSleepMode() {
     
     petHunger -= minutesSinceSlept / 30;
     
+    petHunger = constrain(petHunger, 5, 999);
+
     petSleep = constrain(petSleep, 0, 120);
 
     blindOpenAnimation();
@@ -2837,20 +3091,47 @@ void handleSleepMode() {
 }
 
 void cursorSnap() {
-  for (int i = 0; i < cursorSnapPoints.size(); i++) {
-    SnapPoint point = cursorSnapPoints[i];
-    int distX = point.x - cursorX;
-    int distY = point.y - cursorY;
-    if (distX < cursorSnapDistance && distX > cursorSnapDistance * -1  &&  distY < cursorSnapDistance && distY > cursorSnapDistance * -1) {
-      cursorX += distX / cursorSnapDivider;
-      cursorY += distY / cursorSnapDivider;
-      break;
-    } 
+  bool foundSnapPoint = false;
+  int distX = 0;
+  int distY = 0;
+  int lowestDist = 1000;
+
+  for (const SnapPoint& point : cursorSnapPoints) {
+    int currentDistX = point.x - cursorX;
+    int currentDistY = point.y - cursorY;
+    int totalDist = abs(currentDistX) + abs(currentDistY);
+
+    if (abs(currentDistX) < cursorSnapDistance && abs(currentDistY) < cursorSnapDistance && totalDist < lowestDist) {
+      lowestDist = totalDist;
+      foundSnapPoint = true;
+      distX = currentDistX;
+      distY = currentDistY;
+    }
+  }
+
+  if (foundSnapPoint) {
+    cursorX += distX / cursorSnapDivider;
+    cursorY += distY / cursorSnapDivider;
   }
 }
 
+
+
 void updateCursor() {
-  if (!leftButtonState) { // handle cursor movement. if B isnt held, set gyro values to 0.
+  
+  if (cursorMode == 1) {
+    cursorEnabled = leftButtonState; // if cursor mode is 1, cursor is enabled when left button is held
+  } else {
+    if (!leftButtonState && previousLeftState) {
+      cursorEnabled = !cursorEnabled; // if cursor mode is 2, cursor toggles on and off when left button is pressed
+    }
+  }
+
+  if (!rightButtonState && previousRightState) {
+    cursorClickAnimation();
+  }
+
+  if (!cursorEnabled) { // handle cursor movement. if mouse isnt enabled, set gyro values to 0.
     angleX = 0;
     angleY = 0;
     angleZ = 0;
@@ -2870,9 +3151,22 @@ void updateCursor() {
     shouldDrawCursor = true;
     cursorTimer = 4;  //how long cursor is displayed after releasing button, 1 = 50ms, 4 = 200ms, so on
 
-    cursorSnap();
+    float vx = (cursorX - previousCursorX) / 10.0;
+    float vy = (cursorY - previousCursorY) / 10.0;
+
+    // if (abs(vx) + abs(vy) > 2 && random(1, 2) == 1) { // spawn particles behind cursor when moving
+    //   createParticle(1, cursorX + 4, cursorY + 4, vx, vy, random(5, 12));
+    // }
+
+    cursorSnap(); // handle cursor snapping to buttons and items
 
   }
+
+  previousLeftState = leftButtonState;
+  previousMiddleState = middleButtonState;
+  previousRightState = rightButtonState;
+  previousCursorX = cursorX;
+  previousCursorY = cursorY;
 }
 
 void loop() {
@@ -2901,7 +3195,7 @@ void loop() {
 
   updatePetNeeds(); // update pet fun hun slp ect
 
-  if (currentMillis - lastRGBUpdate >= fadeInterval) { // handle RGB led on some dev boards
+  if (currentMillis - lastRGBUpdate >= fadeInterval) { // handle RGB led on some dev boards (pcb users can ignore this)
     lastRGBUpdate = currentMillis;
 
     // Get start and end colors
@@ -2936,13 +3230,13 @@ void loop() {
 
   drawAreaItems(); // draw the current area items
   
-  if (movingPet) { // if the user is manually moving the pet, set the pets position to the cursors position. if the user presses A, stop moving the pet.
+  if (movingPet) { // if the user is manually moving the pet, set the pets position to the cursors position.
     petX = cursorX;
     petY = cursorY;
-    constrain(petY, 43, 127);
+    constrain(petY, 43, 127); // make sure pet doesn't get placed on walls by user (common issue)
     updateButtonStates();
-    if (rightButtonState) {
-      movingPet = false;
+    if (rightButtonState) { // if user presses A, stop moving the pet
+      movingPet = false; 
     }
   }
 
@@ -2952,11 +3246,7 @@ void loop() {
     drawPetMessage(); // draw speech bubble on pet if it hasn't expired
   }
 
-  updateButtonStates(); // update state of 3 buttons. functions usually do this themselves, but we need to do it in the loop too.
-
-  if (itemBeingPlaced != -1 && rightButtonState && startHandlingPlacing) {
-    handleItemPlacing(); // if an item is being placed, sort it out
-  }
+  updateButtonStates(); // update state of 3 buttons. functions usually do this themselves, but we should probably do it in the loop too. just to be safe!
 
   if (itemBeingPlaced != -1 && rightButtonState && handleFoodPlacing) {
     handleFoodPlacingLogic(); // if food is being placed, sort it out
@@ -2975,6 +3265,10 @@ void loop() {
     drawBottomUI(); // draw bottom bar and any other ui elements along with it (settings, shop, ect)
   }
 
+  if (itemBeingPlaced != -1 && rightButtonState && startHandlingPlacing) {
+    handleItemPlacing(); // if an item is being placed, sort it out. alsoo we are doing this after drawing UI so deleting items works properly its so bad
+  }
+
   if (showPetMenu) { // only draw pet menu if pet is clicked
     drawPetMenu();
   }
@@ -2983,9 +3277,13 @@ void loop() {
     drawCursor();
   }
 
-  updateCursor();
+  updateCursor(); // update cursor position and state draw particles n stuff
 
-  display.display(); // final push to display buffer
+  updateParticles(); // update any particles spawned
+
+  drawParticles(); // draw any particles spawned, later in code since they go over everything
+
+  display.display(); // final push to display buffer (woohoo!)
 
   screenRecord(); // push display buffer to serial if enabled (use oled_viewer.py to view)
 
@@ -2993,5 +3291,7 @@ void loop() {
 
   handleSleepMode(); // check if switch is in off position, if it is, trigger sleep mode, and handle wake up
 
-  delay(loopDelay);
+  delay(loopDelay); // limit the framerate to reduce CPU usage, can be adjusted in settings
 }
+
+// WE'RE DONE BOYSSSSSSSSSSSSSSSS

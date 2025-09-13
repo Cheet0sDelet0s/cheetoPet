@@ -2,7 +2,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
-#include "particlesim.h"
+#include "bubbles.h"
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 128
@@ -13,37 +13,34 @@
 #define GRID_ROWS (SCREEN_HEIGHT / CELL_SIZE)
 #define MAX_PARTICLES_PER_CELL 8
 
-Particle particles[300];
+Bubble bubbles[300];
 uint8_t grid[GRID_COLS][GRID_ROWS][MAX_PARTICLES_PER_CELL];
 uint8_t gridCounts[GRID_COLS][GRID_ROWS];
 
 int8_t jitterLUT[16] = { -5, -3, -1, 0, 1, 3, 5, -4, 2, -2, 4, -1, 1, 0, -3, 3 };
 
-int particleCount = 0;
-
-bool previousLeftState = false;
-bool previousMiddleState = false;
+int bubbleCount = 0;
 
 bool zeroG = false;
 
-void initParticles() {
-  particleCount = 0;
+void initBubbles() {
+  bubbleCount = 0;
   
   for (int i = 0; i < NUM_PARTICLES; i++) {
-    particles[i].x = random(SCREEN_WIDTH);
-    particles[i].y = random(SCREEN_HEIGHT);
-    particles[i].vx = 0;
-    particles[i].vy = 0;
-    particleCount++;
+    bubbles[i].x = random(SCREEN_WIDTH);
+    bubbles[i].y = random(SCREEN_HEIGHT);
+    bubbles[i].vx = 0;
+    bubbles[i].vy = 0;
+    bubbleCount++;
   }
 }
 
-void spawnParticle() {
-  particles[particleCount].x = random(SCREEN_WIDTH);
-  particles[particleCount].y = random(SCREEN_HEIGHT);
-  particles[particleCount].vx = 0;
-  particles[particleCount].vy = 0;
-  particleCount++;
+void spawnBubble() {
+  bubbles[bubbleCount].x = random(SCREEN_WIDTH);
+  bubbles[bubbleCount].y = random(SCREEN_HEIGHT);
+  bubbles[bubbleCount].vx = 0;
+  bubbles[bubbleCount].vy = 0;
+  bubbleCount++;
 }
 
 void clearGrid() {
@@ -55,39 +52,39 @@ void clearGrid() {
 }
 
 void populateGrid() {
-  for (int i = 0; i < particleCount; i++) {
-    int gx = constrain((int)(particles[i].x) / CELL_SIZE, 0, GRID_COLS - 1);
-    int gy = constrain((int)(particles[i].y) / CELL_SIZE, 0, GRID_ROWS - 1);
-    if (gridCounts[gx][gy] < particleCount) {
+  for (int i = 0; i < bubbleCount; i++) {
+    int gx = constrain((int)(bubbles[i].x) / CELL_SIZE, 0, GRID_COLS - 1);
+    int gy = constrain((int)(bubbles[i].y) / CELL_SIZE, 0, GRID_ROWS - 1);
+    if (gridCounts[gx][gy] < bubbleCount) {
       grid[gx][gy][gridCounts[gx][gy]++] = i;
     }
   }
 }
 
-void updateParticles() {
+void updateBubbles() {
   float ax = angleX * 0.05; // Tweak this for responsiveness
   float ay = angleY * 0.05;
 
   clearGrid();
   populateGrid();
 
-  for (int i = 0; i < particleCount; i++) {
+  for (int i = 0; i < bubbleCount; i++) {
     // Add a slight bit of randomness
     int index = i % 16;
     float jitterX = jitterLUT[index] / 100.0;
     float jitterY = jitterLUT[(index + 5) % 16] / 100.0;
 
-    particles[i].vx += ax + jitterX;
-    particles[i].vy += ay + jitterY;
+    bubbles[i].vx += ax + jitterX;
+    bubbles[i].vy += ay + jitterY;
 
-    particles[i].vx = constrain(particles[i].vx, -4, 4);
-    particles[i].vy = constrain(particles[i].vy, -4, 4);
+    bubbles[i].vx = constrain(bubbles[i].vx, -4, 4);
+    bubbles[i].vy = constrain(bubbles[i].vy, -4, 4);
 
-    particles[i].x += particles[i].vx;
-    particles[i].y += particles[i].vy;
+    bubbles[i].x += bubbles[i].vx;
+    bubbles[i].y += bubbles[i].vy;
 
-    int gx = constrain((int)(particles[i].x) / CELL_SIZE, 0, GRID_COLS - 1);
-    int gy = constrain((int)(particles[i].y) / CELL_SIZE, 0, GRID_ROWS - 1);
+    int gx = constrain((int)(bubbles[i].x) / CELL_SIZE, 0, GRID_COLS - 1);
+    int gy = constrain((int)(bubbles[i].y) / CELL_SIZE, 0, GRID_ROWS - 1);
 
     for (int dx = -1; dx <= 1; dx++) {
       for (int dy = -1; dy <= 1; dy++) {
@@ -98,8 +95,8 @@ void updateParticles() {
           int j = grid[nx][ny][k];
           if (i == j) continue;
 
-          float dx = particles[j].x - particles[i].x;
-          float dy = particles[j].y - particles[i].y;
+          float dx = bubbles[j].x - bubbles[i].x;
+          float dy = bubbles[j].y - bubbles[i].y;
           float distSq = dx * dx + dy * dy;
           float minDist = 2 * PARTICLE_RADIUS;
 
@@ -115,13 +112,13 @@ void updateParticles() {
               dy = 0;
             }
 
-            particles[i].x -= dx * overlap;
-            particles[i].y -= dy * overlap;
-            particles[j].x += dx * overlap;
-            particles[j].y += dy * overlap;
+            bubbles[i].x -= dx * overlap;
+            bubbles[i].y -= dy * overlap;
+            bubbles[j].x += dx * overlap;
+            bubbles[j].y += dy * overlap;
 
-            particles[i].vx *= 0.8;
-            particles[i].vy *= 0.8;
+            bubbles[i].vx *= 0.8;
+            bubbles[i].vy *= 0.8;
 
             // have a change to generate a tone when a collision happens
             if (random(0, 1000) == 1) { queueTone(random(180, 220), 1); }
@@ -130,31 +127,31 @@ void updateParticles() {
       }
     }
 
-    if (particles[i].x < 0) {
-      particles[i].x = 0;
-      particles[i].vx *= -0.6;
+    if (bubbles[i].x < 0) {
+      bubbles[i].x = 0;
+      bubbles[i].vx *= -0.6;
     }
-    if (particles[i].x >= SCREEN_WIDTH) {
-      particles[i].x = SCREEN_WIDTH - 1;
-      particles[i].vx *= -0.6;
+    if (bubbles[i].x >= SCREEN_WIDTH) {
+      bubbles[i].x = SCREEN_WIDTH - 1;
+      bubbles[i].vx *= -0.6;
     }
-    if (particles[i].y < 0) {
-      particles[i].y = 0;
-      particles[i].vy *= -0.6;
+    if (bubbles[i].y < 0) {
+      bubbles[i].y = 0;
+      bubbles[i].vy *= -0.6;
     }
-    if (particles[i].y >= SCREEN_HEIGHT) {
-      particles[i].y = SCREEN_HEIGHT - 1;
-      particles[i].vy *= -0.6;
+    if (bubbles[i].y >= SCREEN_HEIGHT) {
+      bubbles[i].y = SCREEN_HEIGHT - 1;
+      bubbles[i].vy *= -0.6;
     }
   }
 }
 
-void drawParticles() {
+void drawBubbles() {
   display.clearDisplay();
-  for (int i = 0; i < particleCount; i++) {
-    //display.drawPixel((int)particles[i].x, (int)particles[i].y, SH110X_WHITE);
-    display.fillCircle((int)particles[i].x, (int)particles[i].y, PARTICLE_RADIUS + 1, SH110X_BLACK);
-    display.drawCircle((int)particles[i].x, (int)particles[i].y, PARTICLE_RADIUS, SH110X_WHITE);
+  for (int i = 0; i < bubbleCount; i++) {
+    //display.drawPixel((int)bubbles[i].x, (int)bubbles[i].y, SH110X_WHITE);
+    display.fillCircle((int)bubbles[i].x, (int)bubbles[i].y, PARTICLE_RADIUS + 1, SH110X_BLACK);
+    display.drawCircle((int)bubbles[i].x, (int)bubbles[i].y, PARTICLE_RADIUS, SH110X_WHITE);
   }
   if (leftButtonState) {
     display.setCursor(0, 0);
@@ -169,21 +166,21 @@ void drawParticles() {
   screenRecord();
 }
 
-void particleSim() {
-  initParticles();
+void bubbleSim() {
+  initBubbles();
   updateButtonStates();
   clearTones();
   while (!rightButtonState) {
     updateGyro();
-    updateParticles();
+    updateBubbles();
     updateButtonStates();
-    drawParticles();
+    drawBubbles();
     if (!leftButtonState && previousLeftState) {
       zeroG = !zeroG;
     }
 
     if (!middleButtonState && previousMiddleState) {
-      spawnParticle();
+      spawnBubble();
     }
 
     if (zeroG) {

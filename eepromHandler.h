@@ -23,6 +23,7 @@ struct SaveGame {
   uint8_t foodInv[8];
   uint8_t foodInvItems;
   uint8_t saveVersion;
+  uint8_t mouseMode;
 };
 
 // void writeStructEEPROM(uint16_t addr, SaveGame& savegame); // legacy save game

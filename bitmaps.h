@@ -85,6 +85,12 @@ extern const unsigned char item_poop [] PROGMEM;
 
 extern const unsigned char misc_vex [] PROGMEM;
 
+extern const unsigned char misc_doctor [] PROGMEM;
+
+extern const unsigned char item_trashcan [] PROGMEM;
+
+extern const unsigned char item_mailbox [] PROGMEM;
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;

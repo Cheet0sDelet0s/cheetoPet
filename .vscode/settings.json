@@ -4,6 +4,9 @@
         "complex": "cpp",
         "valarray": "cpp",
         "compare": "cpp",
-        "cstdint": "cpp"
-    }
+        "cstdint": "cpp",
+        "ostream": "cpp",
+        "print": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "enabled"
 }

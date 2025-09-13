@@ -1,5 +1,5 @@
-#ifndef PARTICLESIM_H
-#define PARTICLESIM_H
+#ifndef BUBBLES_H
+#define BUBBLES_H
 
 #include <Arduino.h>
 
@@ -8,6 +8,8 @@ extern Adafruit_SH1107 display;
 extern bool leftButtonState;
 extern bool middleButtonState;
 extern bool rightButtonState;
+extern bool previousLeftState;
+extern bool previousMiddleState;
 extern void updateButtonStates();
 extern void updateGyro();
 extern float angleX;
@@ -21,9 +23,9 @@ extern void audioEngine();
 extern void queueTone(float freq, int length);
 extern void priorityQueueTone(int freq);
 extern void clearTones();
-void particleSim();
+void bubbleSim();
 
-struct Particle {
+struct Bubble {
   float x, y;
   float vx, vy;
 };
