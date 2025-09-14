@@ -54,23 +54,35 @@ change port and path accordingly
 #include "bubbles.h"
 #include "particlesystem.h"
 #include "newsgenerator.h"
+#include "cheetoEngine.h"
 #include "Picopixel.h"
 
-#define SDA_ALT 20
-#define SCL_ALT 9
-#define LED_PIN 8
-#define LED_COUNT 1
-#define SWITCH_PIN GPIO_NUM_0
-#define SPKR_PIN 3
+/*
+  ---- PIN + ADDRESS DEFINITIONS ----
+  set all the pins and addresses you are using for your setup here
+*/
+
+#define SDA_ALT 20              // default 20. alternate i2c SDA (i2c data) pin assignment
+#define SCL_ALT 9               // default 9. alternate i2c SCL/SCK (i2c clock) pin assignment
+#define LED_ENABLED true        // default true. set to true if your board has an RGB LED (ws2812b / neopixel)
+#define LED_PIN 8               // default 8. pin of the rgb led
+#define SWITCH_PIN GPIO_NUM_0   // default 0. write as GPIO_NUM_{pin}
+#define SPKR_PIN 3              // default 3. pin connected to speaker (must be pwm)
+#define EEPROM_ADDRESS 0x57     // default 0x57, check your chip if unsure
+#define EEPROM_SIZE 4096        // default 4096. size in bytes. AT24C32 = 4KB
+#define MPU_ADDRESS 0x69        // default 0x69 (nice). if ADDR is pulled high, its 0x69, otherwise its 0x68. 0x68 will most likely conflict with DS3231 so dont make it that.
+#define DISPLAY_ADDRESS 0x3C    // default 0x3C. you wont need to change this most of the time
+const int leftButton = 5;       // default 5. left button / B button pin
+const int middleButton = 6;     // default 6. middle button / X button pin
+const int rightButton = 7;      // default 7. right button / A button pin
+
+#define LED_COUNT 1             // default 1. code doesn't account for more than one led, so not very useful.
 
 Adafruit_NeoPixel rgb(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-#define SCREEN_WIDTH 128   // display width
-#define SCREEN_HEIGHT 128  // display height
-#define OLED_RESET -1      // can set an oled reset pin if desired
-
-#define EEPROM_ADDRESS 0x57 // Check your chip
-#define EEPROM_SIZE 4096    // AT24C32 = 4KB
+#define SCREEN_WIDTH 128   // display width (dont need to change)
+#define SCREEN_HEIGHT 128  // display height (dont need to change)
+#define OLED_RESET -1
 
 #define OFFSET 4   // screen recording offset, adjust until it lines up
 
@@ -82,20 +94,17 @@ try to upload code as little as possible to prolong lifetime of the chip,
 it can spontaneously die if you arent careful.
 */
 
-const int leftButton = 5;
-const int middleButton = 6;
-const int rightButton = 7;
 
 bool spkrEnable = true;
 
 struct Note {
   float freq; // hz
-  int length; // ms
+  uint16_t length; // ms
 };
 
 // Tone queue
-#define MAX_TONES 32
-Note noteQueue[MAX_TONES];
+#define MAX_TONES 100
+DRAM_ATTR Note noteQueue[MAX_TONES];
 int toneCount = 0;  // number of tones currently in the queue
 
 // Playback state
@@ -149,7 +158,7 @@ const long interval = 50;
 
 DRAM_ATTR DateTime now;
 
-int saveFileVersion = 1;
+int saveFileVersion = 3;
 
 DRAM_ATTR unsigned long lastDump = 0;  // keeps track of the last time we dumped hahahah get it
 bool screenRecording = false;
@@ -174,7 +183,7 @@ DRAM_ATTR bool editingTime = false;
 
 RTC_DS3231 rtc;
 DateTime tempDateTime;
-MPU9250_asukiaaa mpu(0x69);
+MPU9250_asukiaaa mpu(MPU_ADDRESS);
 
 const char* daysOfTheWeek[7] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
@@ -215,10 +224,10 @@ DRAM_ATTR bool handleFoodPlacing = false;
 DRAM_ATTR std::vector<ItemList>* currentAreaPtr = nullptr;
 
 //game library
-DRAM_ATTR int gameLibrary[8] = { 0, 1, 2, 3};
-DRAM_ATTR int gameLibraryCount = 4;
-
-const String gameNames[5] = {"pong", "shooty", "flappy bur", "bubblebox"};
+DRAM_ATTR int gameLibrary[8] = { 0 };
+DRAM_ATTR int gameLibraryCount = 1;
+//                             0        1           2             3           4
+const String gameNames[5] = {"pong", "shooty", "flappy bur", "bubblebox", "3d test"};
 
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
@@ -251,8 +260,11 @@ struct Pet {
 
 const pets[] = {
   {"goose", 1, 21, 23, 26, 28},
-  {"hedgehog", 43, 45, 47, 51, 49}
+  {"hedgehog", 43, 45, 47, 51, 49},
+  {"bird", 53, 55, 57, 59, 61}
 };
+
+int petTypes = sizeof(pets) / sizeof(pets[0]);
 
 std::vector<SnapPoint> cursorSnapPoints;
 
@@ -284,6 +296,7 @@ DRAM_ATTR int petHunger = 60;
 DRAM_ATTR int petFun = 60;
 DRAM_ATTR int petSleep = 60;
 DRAM_ATTR int petPoop = 50;
+DRAM_ATTR float petMood = 50;
 DRAM_ATTR int petX = 64;
 DRAM_ATTR int petY = 32;
 DRAM_ATTR bool showPetMenu = false;
@@ -334,6 +347,10 @@ DRAM_ATTR int constructionShopLength = sizeof(constructionShopItems) / sizeof(co
 DRAM_ATTR int foodShopItems[] = { 16, 18 };
 DRAM_ATTR float foodShopPrices[] = { 1.50, 1.50};
 DRAM_ATTR int foodShopLength = sizeof(foodShopItems) / sizeof(foodShopItems[0]);
+
+DRAM_ATTR int gameShopItems[] = { 1, 2, 3, 4};
+DRAM_ATTR float gameShopPrices[] = { 9.50, 4.50, 6.50, 1.50};
+DRAM_ATTR int gameShopLength = sizeof(gameShopItems) / sizeof(gameShopItems[0]);
 
 //settings
 DRAM_ATTR uint8_t gyroSensitivityX = 2;
@@ -541,12 +558,22 @@ int findIndexByType(const std::vector<ItemList>& vec, uint8_t type) {
     return -1; // not found
 }
 
+int countTypes(const std::vector<ItemList>& vec, uint8_t type) {
+  int count = 0;
+  for (size_t i = 0; i < vec.size(); i++) {
+      if (vec[i].type == type) {
+          count++;
+      }
+  }
+  return count;
+}
+
 void clearTones() {
   toneCount = 0;
   ledcWrite(SPKR_PIN, 0);
 }
 
-void queueTone(float freq, int length) {
+void queueTone(float freq, uint16_t length) {
   if (toneCount < MAX_TONES) {
     noteQueue[toneCount] = { freq, length };
     toneCount++;
@@ -615,8 +642,12 @@ void playRandomSong() {
   int songIndex = random(numSongs); // Pick random song
   Song chosen = songs[songIndex];
 
-  for (int i = 0; i < chosen.length; i++) {
-    queueTone(chosen.notes[i].freq, chosen.notes[i].length);
+  playSong(chosen);
+}
+
+void playSong(Song song) {
+  for (int i = 0; i < song.length; i++) {
+    queueTone(song.notes[i].freq, song.notes[i].length);
   }
 }
 
@@ -678,6 +709,7 @@ void peripheralTest() {
     
     delay(5);
   }
+  waitForSelectRelease();
 }
 
 void printItemList(const ItemList* list, int length) {
@@ -789,6 +821,7 @@ void testdrawline() {   // -- by adafruit from their SH1107_128x128.ino example
 }
 
 void petMessage(String message) {
+  message.replace("{PETNAME}", petName);
   currentPetMessage = message;
   messageDisplayTime = 0;
   int msgLength = currentPetMessage.length();
@@ -874,7 +907,7 @@ void blindOpenAnimation() {
   }
 }
 
-bool isInArray(int item, int arr[], int arrSize) {
+bool isInArray(int item, int arr[], int arrSize) { // check if item is in array (non vector)
   for (int i = 0; i < arrSize; i++) {
     if (arr[i] == item) {
       return true;
@@ -897,7 +930,7 @@ void drawBitmapWithDirection(int16_t x, int16_t y, int dir, const uint8_t *bitma
   }
 }
 
-void drawCenteredText(Adafruit_GFX &display, const String &text, int16_t y) {
+void drawCenteredText(const String &text, int16_t y) {
   int16_t x1, y1;
   uint16_t w, h;
   
@@ -911,6 +944,22 @@ void drawCenteredText(Adafruit_GFX &display, const String &text, int16_t y) {
   display.setCursor(x, y);
   display.print(text);
 }
+
+void drawTextCenteredX(const char *text, int16_t centerX, int16_t y) {  // draw text centered to specified x y coords
+  int16_t x1, y1;
+  uint16_t w, h;
+
+  // Measure the text size
+  display.getTextBounds(text, 0, y, &x1, &y1, &w, &h);
+
+  // Calculate the left-aligned starting X
+  int16_t startX = centerX - (w / 2);
+
+  // Draw the text
+  display.setCursor(startX, y);
+  display.print(text);
+}
+
 
 void spiralFill(Adafruit_GFX &d, uint16_t color) {
   int x0 = 0;
@@ -956,10 +1005,14 @@ void sitPet(int time, int type) {
   petSitType = type;
 }
 
+int nameToNumber(String name) {
+
+}
+
 void saveGameToEEPROM(bool showUI = true) {
   if (showUI) {
     display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-    drawCenteredText(display, "saving...", 60);
+    drawCenteredText("saving...", 60);
     display.display();
   }
 
@@ -990,10 +1043,15 @@ void saveGameToEEPROM(bool showUI = true) {
 
   eepromWriteByte(addr++, currentSaveGame.petType);
 
-  eepromWriteString(addr++, currentSaveGame.petName);
+  eepromWriteByte(addr++, currentSaveGame.namePrefix);
+
+  eepromWriteByte(addr++, currentSaveGame.nameSuffix);
+
+  for (int i = 0; i < 8; i++) eepromWriteByte(addr++, currentSaveGame.games[i]);
+  eepromWriteByte(addr++, currentSaveGame.gameCount);
 
   if (showUI) {
-    drawCenteredText(display, "saved!", 68);
+    drawCenteredText("saved!", 68);
     display.display();
   }
   delay(500);
@@ -1009,7 +1067,10 @@ void saveGameToRam() {
   currentSaveGame.pongLVL = petPongLVL;
   currentSaveGame.mouseMode = cursorMode;
   currentSaveGame.petType = userPet;
-  currentSaveGame.petName = petName;
+  int pIndex, sIndex;
+  findNameIndices(petName, pIndex, sIndex);
+  currentSaveGame.namePrefix = pIndex;
+  currentSaveGame.nameSuffix = sIndex;
 
   for (int i = 0; i < 8; i++) {
     currentSaveGame.invent[i] = inventory[i];
@@ -1027,6 +1088,11 @@ void saveGameToRam() {
 
   currentSaveGame.foodInvItems = foodInventoryItems;
   currentSaveGame.saveVersion = saveFileVersion;
+
+  for (int i = 0; i < 8; i++) {
+    currentSaveGame.games[i] = gameLibrary[i];
+  }
+  currentSaveGame.gameCount = gameLibraryCount;
 }
 
 void loadGameFromRam() {
@@ -1039,7 +1105,10 @@ void loadGameFromRam() {
   petPongLVL = currentSaveGame.pongLVL;
   cursorMode = currentSaveGame.mouseMode;
   userPet = currentSaveGame.petType;
-  petName = currentSaveGame.petName;
+  int pIndex = currentSaveGame.namePrefix;
+  int sIndex = currentSaveGame.nameSuffix;
+
+  petName = decodeName(pIndex, sIndex);
   
   for (int i = 0; i < 8; i++) {
     inventory[i] = currentSaveGame.invent[i];
@@ -1057,11 +1126,16 @@ void loadGameFromRam() {
 
   foodInventoryItems = currentSaveGame.foodInvItems;
   int saveVersion = currentSaveGame.saveVersion;
+
+  for (int i = 0; i < 8; i++) {
+     gameLibrary[i] = currentSaveGame.games[i];
+  }
+  gameLibraryCount = currentSaveGame.gameCount;
 }
 
 void loadGameFromEEPROM() {
   display.setTextColor(SH110X_BLACK, SH110X_WHITE);
-  drawCenteredText(display, "loading game...", 60);
+  drawCenteredText("loading game...", 60);
   display.display();
 
   uint16_t addr = 0;
@@ -1089,11 +1163,16 @@ void loadGameFromEEPROM() {
 
   currentSaveGame.petType = eepromReadByte(addr++);
 
-  currentSaveGame.petName = eepromReadString(addr++);
+  currentSaveGame.namePrefix = eepromReadByte(addr++);
+  currentSaveGame.nameSuffix = eepromReadByte(addr++);
+
+  for (int i = 0; i < 8; i++) currentSaveGame.games[i] = eepromReadByte(addr++);
+  currentSaveGame.gameCount = eepromReadByte(addr++);
 
   loadGameFromRam();
 
-  drawCenteredText(display, "loaded!", 68);
+  drawCenteredText("loaded!", 68);
+  drawCenteredText("version: " + String(currentSaveGame.saveVersion), 68);
   display.display();
   delay(500);
 }
@@ -1165,7 +1244,7 @@ int indexOfList(int array[], int length, int target) {
 
 void cursorClickAnimation() {
   for (int i = 0; i < 5; i++) {
-    float angle = i * (PI / 2.5); // Divide circle into 5 parts
+    float angle = (i - 0.4) * (PI / 2.5); // Divide circle into 5 parts
     float vx = cos(angle); // Velocity in x direction
     float vy = sin(angle); // Velocity in y direction
     createParticle(3, cursorX, cursorY, vx, vy, 10); // Spawn particle
@@ -1274,25 +1353,48 @@ bool drawAdjustable(int x, int y, int& value, int minVal, int maxVal, const char
   return false;
 }
 
+void drawProgressBar(int16_t x, int16_t y, int16_t w, int16_t h, int32_t value, int32_t maxValue) {
+  // Clamp value so it doesn’t overflow
+  if (value < 0) value = 0;
+  if (value > maxValue) value = maxValue;
+
+  // Draw outline
+  display.drawRect(x, y, w, h, SH110X_WHITE);
+
+  // Calculate filled width
+  int32_t fillWidth = (int32_t)((float)value / maxValue * (w - 2));
+
+  // Clear inside
+  display.fillRect(x + 1, y + 1, w - 2, h - 2, SH110X_BLACK);
+
+  // Draw filled part
+  if (fillWidth > 0) {
+    display.fillRect(x + 1, y + 1, fillWidth, h - 2, SH110X_WHITE);
+  }
+}
+
+
 void newGameScreen() {
   bool finished = false;
   userPet = 0;
   petName = randomName();
   while (!finished) {
+    cursorSnapPoints.clear(); // clear all snap points for cursor
     display.clearDisplay();
+    display.setTextColor(SH110X_WHITE);
     updateButtonStates();
-    drawCenteredText(display, "choose your pet", 0);
+    drawCenteredText("choose your pet", 0);
     
     BitmapInfo petBmp = bitmaps[pets[userPet].stillID];
     int centeredX = (128 - petBmp.width) / 2;
 
     drawBitmapFromList(centeredX, 20, 1, pets[userPet].stillID, SH110X_WHITE);
     
-    drawCenteredText(display, pets[userPet].name, 22 + petBmp.height);
+    drawCenteredText(pets[userPet].name, 22 + petBmp.height);
 
-    drawCenteredText(display, petName, 30 + petBmp.height);
+    drawCenteredText(petName, 30 + petBmp.height);
 
-    drawAdjustable(60, 100, userPet, 0, 1, "pet", false);
+    drawAdjustable(60, 100, userPet, 0, petTypes - 1, "pet", false);
     
     if (drawButton(0, 120, 41, 15, "OK")) {
       finished = true;
@@ -1328,7 +1430,7 @@ void setup() {
   analogReadResolution(12);
 
   Wire.begin(SDA_ALT, SCL_ALT);
-  display.begin(0x3C, true);
+  display.begin(DISPLAY_ADDRESS, true);
   // delay(500);
   // display.display();
   // delay(2000);
@@ -1370,9 +1472,11 @@ void setup() {
   mpu.beginGyro();
   mpu.beginAccel();
 
-  rgb.begin();            // Initialize
-  rgb.setBrightness(50);  // Optional: reduce brightness
-  rgb.show();             // Initialize all pixels to 'off'
+  if (LED_ENABLED) {
+    rgb.begin();            // Initialize
+    rgb.setBrightness(50);  // Optional: reduce brightness
+    rgb.show();             // Initialize all pixels to 'off'
+  }
 
   lastUpdate = millis();
   bool readyToStart = false;
@@ -1384,9 +1488,9 @@ void setup() {
       break;
     } else if (rightButtonState) {
       display.clearDisplay();
-      drawCenteredText(display, "are you sure?", 0);
-      drawCenteredText(display, "A = yes", 10);
-      drawCenteredText(display, "B = no", 20);
+      drawCenteredText("are you sure?", 0);
+      drawCenteredText("A = yes", 10);
+      drawCenteredText("B = no", 20);
       display.display();
       dumpBufferASCII();
       bool confirmed = false;
@@ -1398,9 +1502,11 @@ void setup() {
         delay(50);
       }
       if (confirmed) {
+        openTutorial();
         newGameScreen();
         saveGameToEEPROM();
         readyToStart = true;
+        petMessage("hi! im {PETNAME}!");
         break;
       }      
     } else if (middleButtonState) {
@@ -1408,15 +1514,15 @@ void setup() {
     } else {
       display.clearDisplay();
       display.setTextSize(2);
-      drawCenteredText(display, "cheetoPet", 0);
+      drawCenteredText("cheetoPet", 0);
       display.setTextSize(1);
-      drawCenteredText(display, "what would you like", 20);
-      drawCenteredText(display, "to do?", 29);
+      drawCenteredText("what would you like", 20);
+      drawCenteredText("to do?", 29);
       display.setCursor(0, 118);
       display.print("B: continue");
       display.setCursor(91, 118);
       display.print("new: A");
-      drawCenteredText(display, "X: RAM game", 105);
+      drawCenteredText("X: RAM game", 105);
       display.display();
       screenRecord();
     }
@@ -1477,7 +1583,11 @@ void drawCursor() {
 
   const BitmapInfo& bmp = bitmaps[cursorBitmap];
   display.drawBitmap(cursorX, cursorY, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
-  display.fillRect(cursorX, cursorY + bmp.height + 3, loadIndicator, 2, SH110X_WHITE);
+  
+  if (loadIndicator > 0) {
+    display.fillRect(cursorX - 1, cursorY + bmp.height + 2, loadIndicator + 1, 3, SH110X_BLACK); //clear space behind load indicator
+    display.fillRect(cursorX, cursorY + bmp.height + 3, loadIndicator, 2, SH110X_WHITE); // draw load indicator
+  }
 
   if (cursorMode == 2 && cursorEnabled) {
     display.fillRect(122, 0, 6, 6, 0);
@@ -1526,13 +1636,16 @@ void drawPet(int petNumber, int drawX, int drawY) {
       // drawBitmapWithDirection(drawX, drawY+1, petDir, pet_gooseWalk2, 17, 25, SH110X_WHITE);
     }
   }
+
   updateButtonStates();
+
   if (detectCursorTouch(drawX, drawY, 16, 26)) {
     display.setTextColor(SH110X_WHITE, SH110X_BLACK);
     display.setFont(&Picopixel);
-    int nameLength = petName.length();
-    display.setCursor(petX - (nameLength * 4) / 2, petY - 8);
-    display.print(petName);
+
+    int x = petX + bitmaps[pets[userPet].stillID].width / 2; // get center of pet bitmap
+    
+    drawTextCenteredX(petName.c_str(), x, petY - 5); // draw name above pet
     display.setFont(NULL);
     if (rightButtonState) {
       showPetMenu = !showPetMenu;
@@ -1619,6 +1732,7 @@ void openNews() {
   loadIndicator = 0;
 
   while (!exitNews) {
+    cursorSnapPoints.clear(); // clear all snap points for cursor
     display.clearDisplay();
     display.setTextColor(SH110X_WHITE);
     display.setCursor(0, 0);
@@ -1635,6 +1749,79 @@ void openNews() {
     
     if (drawButton(110, 0, 6, 8, "X")) {
       exitNews = true;
+    }
+
+    updateButtonStates();
+    updateGyro();
+    updateCursor();
+    drawCursor();
+    updateParticles();
+    drawParticles();
+
+    display.display();
+  }
+  waitForSelectRelease();
+}
+
+void openEmotionMenu() {
+  bool exitEmotion = false;
+
+  clearTones();
+
+  loadIndicator = 0;
+
+  float hungerMultipler = constrain(petHunger / 50.00, 0.00, 2.00);
+  float funMultipler = constrain(petFun / 50.00, 0.00, 2.00);
+  float sleepMultipler = constrain(petSleep / 50.00, 0.00, 2.00);
+
+  float cleanlinessMultipler = 2.00;
+
+  updateAreaPointers();
+
+  cleanlinessMultipler = constrain(cleanlinessMultipler - countTypes(*currentAreaPtr, 38) / 2.00, 0.00, 2.00);  
+
+  waitForSelectRelease();
+
+  while (!exitEmotion) {
+    display.clearDisplay();
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(0, 0);
+    display.setTextSize(1);
+    display.println("emotions:");
+    display.drawFastHLine(0, 8, 127, SH110X_WHITE);
+    display.setCursor(0, 10);
+
+    drawProgressBar(10, 12, 118, 8, petMood, 100);
+    drawCenteredText("mood", 22);
+
+    String hungerText = "hunger: +" + String(hungerMultipler * 12.5);
+    drawCenteredText(hungerText, 34);
+    
+    String funText = "fun: +" + String(funMultipler * 12.5);
+    drawCenteredText(funText, 42);
+
+    String sleepText = "sleep: +" + String(sleepMultipler * 12.5);
+    drawCenteredText(sleepText, 50);
+    
+    String cleanlinessText = "cleanliness: +" + String(cleanlinessMultipler * 12.5);
+    drawCenteredText(cleanlinessText, 58);
+
+    String overallText = "overall: feeling ";
+
+    if (petMood >= 70) {
+      overallText += "very happy";
+    } else if (petMood >= 20) {
+      overallText += "sad";
+    } else {
+      overallText += "okay";
+    }
+
+    drawCenteredText(overallText, 70);
+
+    drawCenteredText("poop: " + String(petPoop) + "/100", 120);
+
+    if (drawButton(110, 0, 6, 8, "X")) {
+      exitEmotion = true;
     }
 
     updateButtonStates();
@@ -1759,8 +1946,26 @@ void drawFoodInventory() {
 void drawEmotionUI() {
   display.setCursor(0, -2);
   display.setTextSize(1);
-  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  
+  if (detectCursorTouch(0, 0, 30, 34)) {
+    display.setTextColor(SH110X_BLACK);
+    display.fillRect(0, 0, 28, 34, SH110X_WHITE);
+    updateButtonStates();
+    if (rightButtonState) {
+      openEmotionMenu();
+    }
+  } else {
+    display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  }
+  
   display.setFont(&Picopixel);
+  display.print("MOOD: ");
+  display.print(int(round(petMood)));
+  if (petMood < 40) {
+    display.println("!");
+  } else {
+    display.println("");
+  }
   display.print("HUN: ");
   display.print(petHunger);
   if (petHunger < 30) {
@@ -1784,6 +1989,7 @@ void drawEmotionUI() {
   }
   display.print("$");
   display.print(money);
+
   display.setTextColor(SH110X_WHITE);
   display.setFont(NULL);
 }
@@ -1926,6 +2132,8 @@ void drawPetMenu() {
   display.print("move");
   display.setCursor(petMenuX + 1, petMenuY + 11);
   display.print("pet");
+  display.setCursor(petMenuX + 1, petMenuY + 21);
+  display.print("emot.");
   display.setTextColor(SH110X_WHITE);
   updateButtonStates();
   if (rightButtonState) {
@@ -1940,6 +2148,9 @@ void drawPetMenu() {
       showPetMenu = false;
       petMessage("glorb");
       waitForSelectRelease();
+    } else if (detectCursorTouch(petMenuX, petMenuY + 20, 30, 10)) {
+      openEmotionMenu();
+      showPetMenu = false;
     }
   }
 }
@@ -2156,6 +2367,10 @@ void updatePetMovement() {
       petY = petMoveY;
     }
   }
+
+  // if (random(1, 10) == 1) {
+  //   createParticle(1, petX, petY, xDiff * -1, yDiff * -1, 20);
+  // }
   
   if (petX == petMoveX && petY == petMoveY) {
     movePet = false;
@@ -2175,7 +2390,7 @@ void drawGameLibrary() {
   display.setTextColor(SH110X_WHITE);
   display.print("games: ");
   display.print(gameLibraryCount);
-  display.print("/4");
+  display.print("/8");
 
   int charWidth = 6;     // Approximate width of one character
   int lineHeight = 8;    // Height of one text line
@@ -2209,8 +2424,9 @@ void drawGameLibrary() {
       } else if (name == "bubblebox") {
         drawCheckerboard(3);
         bubbleSim();
-      } else {
-        //latinProject();
+      } else if (name == "3d test") {
+        clearTones();
+        cheetoEngine();
       }
       waitForSelectRelease();
     }
@@ -2241,8 +2457,10 @@ void drawShop() {
 
   if (detectCursorTouch(1, 10, 54, 8) && rightButtonState) {
     thirdOption = 1;
-  } else if (detectCursorTouch(55, 10, 24, 8) && rightButtonState) {
+  } else if (detectCursorTouch(55, 10, 30, 8) && rightButtonState) {
     thirdOption = 2;
+  } else if (detectCursorTouch(85, 10, 30, 8) && rightButtonState) {
+    thirdOption = 3;
   }
 
   int* currentShopItems;
@@ -2256,23 +2474,36 @@ void drawShop() {
     display.setTextColor(SH110X_BLACK, SH110X_WHITE);
     display.print("construct");
     display.setTextColor(SH110X_WHITE);
-    display.print(" food");
+    display.print(" food games");
     currentShopItems = constructionShopItems;
     currentShopPrices = constructionShopPrices;
     currentShopLength = constructionShopLength;
     currentInventory = inventory;
     //currentInventoryItems = &inventoryItems;
-  } else { //food tab
+  } else if (thirdOption == 2) { //food tab
     display.setCursor(1, 10);
     display.setTextColor(SH110X_WHITE);
     display.print("construct ");
     display.setTextColor(SH110X_BLACK, SH110X_WHITE);
     display.print("food");
+    display.setTextColor(SH110X_WHITE);
+    display.print(" games");
     currentShopItems = foodShopItems;
     currentShopPrices = foodShopPrices;
     currentShopLength = foodShopLength;
     currentInventory = foodInventory;
     //currentInventoryItems = &foodInventoryItems;
+  } else if (thirdOption == 3) { //games tab
+    display.setCursor(1, 10);
+    display.setTextColor(SH110X_WHITE);
+    display.print("construct food ");
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+    display.print("games");
+    currentShopItems = gameShopItems;
+    currentShopPrices = gameShopPrices;
+    currentShopLength = gameShopLength;
+    currentInventory = gameLibrary;
+    //currentInventoryItems = &gameLibraryCount;
   }
 
   display.setCursor(0, 20);
@@ -2291,9 +2522,12 @@ void drawShop() {
           if (thirdOption == 1) {
             currentInventoryItems = inventoryItems;
             addToList(inventory, inventoryItems, 8, currentShopItems[i]);
-          } else {
+          } else if (thirdOption == 2) {
             currentInventoryItems = foodInventoryItems;
             addToList(foodInventory, foodInventoryItems, 8, currentShopItems[i]);
+          } else {
+            currentInventoryItems = gameLibraryCount;
+            addToList(gameLibrary, gameLibraryCount, 8, currentShopItems[i]);
           }
 
           //addToList(currentInventory, currentInventoryItems, 10, currentShopItems[i]);
@@ -2304,7 +2538,12 @@ void drawShop() {
     } else {
       display.setTextColor(SH110X_WHITE);
     }
-    display.print(displayNames[currentShopItems[i]]);
+
+    if (thirdOption == 3) {
+      display.print(gameNames[currentShopItems[i]]);
+    } else {
+      display.print(displayNames[currentShopItems[i]]);
+    }
     display.print(" - $");
     display.println(currentShopPrices[i]);
   }
@@ -2347,26 +2586,150 @@ void showCredits() {
   display.clearDisplay();
   display.setTextSize(2);
   display.setTextColor(SH110X_WHITE);
-  drawCenteredText(display, "cheetoPet", 0);
+  drawCenteredText("cheetoPet", 0);
   display.setTextSize(1);
-  drawCenteredText(display, "by olly jeffery", 16);
+  drawCenteredText("by olly jeffery", 16);
   
-  drawCenteredText(display, "library credits:", 36);
-  drawCenteredText(display, "Adafruit GFX", 44);
-  drawCenteredText(display, "Adafruit SH110X", 52);
-  drawCenteredText(display, "RTClib", 60);
-  drawCenteredText(display, "MPU9250_asukiaa", 68);
+  drawCenteredText("library credits:", 36);
+  drawCenteredText("Adafruit GFX", 44);
+  drawCenteredText("Adafruit SH110X", 52);
+  drawCenteredText("RTClib", 60);
+  drawCenteredText("MPU9250_asukiaa", 68);
   display.setFont(&Picopixel);
-  drawCenteredText(display, "Picopixel", 80);
+  drawCenteredText("Picopixel", 80);
   display.setFont(NULL);
-  drawCenteredText(display, "github.com/Cheet0sDelet0s", 112);
-  drawCenteredText(display, "cloudables.net", 120);
+  drawCenteredText("github.com/Cheet0sDelet0s", 112);
+  drawCenteredText("cloudables.net", 120);
   display.display();
 
   updateButtonStates();
   while (!rightButtonState) {
     updateButtonStates();
     delay(10);
+  }
+  waitForSelectRelease();
+}
+
+void openTutorial() {
+  bool exitTutorial = false;
+  int tutorialProgress = 1;
+  cursorTimer = 0;
+  shouldDrawCursor = false;
+  cursorEnabled = false;
+  clearTones();
+
+  loadIndicator = 0;
+
+  waitForSelectRelease();
+
+  while (!exitTutorial) {
+    cursorSnapPoints.clear(); // clear all snap points for cursor
+    display.clearDisplay();
+    display.setTextColor(SH110X_WHITE);
+
+    //ACTUAL TUTORIAL
+
+    switch (tutorialProgress) {
+      case 1: {
+        display.setTextColor(SH110X_WHITE);
+        display.setTextSize(2);
+        drawCenteredText("hello!", 10);
+        display.setTextSize(1);
+        drawCenteredText("welcome to cheetoPet!", 30);
+        drawCenteredText("press B to", 38);
+        drawCenteredText("toggle the mouse", 46);
+
+        if (cursorEnabled) {
+          tutorialProgress++;
+        }
+        break;
+      }
+      case 2: {
+        display.setTextColor(SH110X_WHITE);
+        display.setTextSize(2);
+        drawCenteredText("nice!", 10);
+        display.setTextSize(1);
+        drawCenteredText("the mouse is enabled!", 30);
+        drawCenteredText("rotate the device to", 38);
+        drawCenteredText("move the mouse", 46);
+        drawCenteredText("on the square!", 54);
+
+        display.fillRoundRect(54, 92, 20, 20, 3, 1);
+
+        if (detectCursorTouch(54, 92, 20, 20)) {
+          loadIndicator++;
+        }
+
+        if (loadIndicator > 9) {
+          tutorialProgress++;
+        }
+        break;
+      }
+      case 3: {
+        display.setTextColor(SH110X_WHITE);
+        display.setTextSize(2);
+        drawCenteredText("great!", 10);
+        display.setTextSize(1);
+        drawCenteredText("you did it!", 30);
+        drawCenteredText("now click the button", 38);
+        drawCenteredText("hover over it", 46);
+        drawCenteredText("and press A!", 54);
+
+        if (drawCenteredButton("click me!", 92)) tutorialProgress++;
+        break;
+      }
+      case 4: {
+        display.setTextColor(SH110X_WHITE);
+        display.setTextSize(2);
+        drawCenteredText("awesome!", 10);
+        display.setTextSize(1);
+        drawCenteredText("you clicked it!", 30);
+        drawCenteredText("to show the menus,", 38);
+        drawCenteredText("press X!", 46);
+        drawCenteredText("(the middle button)", 54);
+
+        updateButtonStates();
+        if (middleButtonState) {tutorialProgress++; goBackToDepth0();}
+        break;
+      }
+      case 5: {
+        display.setTextColor(SH110X_WHITE);
+        display.setTextSize(2);
+        drawCenteredText("easy!", 10);
+        display.setTextSize(1);
+        drawCenteredText("now you can do stuff!", 30);
+        drawCenteredText("try using the menu!", 38);
+        drawCenteredText("click the buttons", 46);
+        drawCenteredText("in the bar below", 54);
+
+        drawBottomUI();
+        if (depth > 1) {tutorialProgress++; goBackToDepth0();}
+        break;
+      }
+      case 6: {
+        display.setTextColor(SH110X_WHITE);
+        display.setTextSize(2);
+        drawCenteredText("great job!", 10);
+        display.setTextSize(1);
+        drawCenteredText("you did it!", 30);
+        drawCenteredText("now its time to", 38);
+        drawCenteredText("create your pet!", 46);
+        
+        if (drawCenteredButton("go to pet centre", 92)) exitTutorial = true;
+        break;
+      }
+    }
+
+    updateButtonStates();
+    updateGyro();
+    updateCursor();
+    drawCursor();
+    updateParticles();
+    drawParticles();
+
+    display.display();
+
+    audioEngine();
   }
   waitForSelectRelease();
 }
@@ -2505,7 +2868,7 @@ void settingsPerformance() { //pretty good wheyyy
 }
 
 void settingsSaveManager() {    //OH MY GOD THIS IS SO CLEAN AGHHHHH
-  drawCenteredText(display, "save manager", 10);
+  drawCenteredText("save manager", 10);
 
   if (drawCenteredButton("save to eeprom", 22)) {
     saveGameToEEPROM();
@@ -2528,6 +2891,9 @@ void settingsSaveManager() {    //OH MY GOD THIS IS SO CLEAN AGHHHHH
   if (drawCenteredButton("exit", 100)) {
     settingsOption = 0;
   }
+
+  display.setCursor(0, 105);
+  display.print("save v" + saveFileVersion);
 
   updateButtonStates();
 }
@@ -2565,12 +2931,17 @@ void settingsMisc() {
     esp_deep_sleep_start();
   }
 
-  if (drawCenteredButton("display test", 32)) {
-    display.clearDisplay();
-    display.display();
-    testdrawline();
-  }
+  // if (drawCenteredButton("display test", 32)) {
+  //   display.clearDisplay();
+  //   display.display();
+  //   testdrawline();
+  // }
   
+  if (drawCenteredButton("tutorial", 32)) {
+    openTutorial();
+    waitForSelectRelease();
+  }
+
   if (drawCenteredButton("peripheral test", 44)) {
     peripheralTest();
   }
@@ -2612,6 +2983,20 @@ void drawSettings() {
     case 5: settingsDisplay(); break;
     case 6: settingsMisc(); break;
   }
+}
+
+void updateMood() {
+  float hungerMultipler = constrain(petHunger / 50.00, 0.00, 2.00);
+  float funMultipler = constrain(petFun / 50.00, 0.00, 2.00);
+  float sleepMultipler = constrain(petSleep / 50.00, 0.00, 2.00);
+
+  float cleanlinessMultipler = 2.00;
+
+  updateAreaPointers();
+
+  cleanlinessMultipler = constrain(cleanlinessMultipler - countTypes(*currentAreaPtr, 38) / 2.00, 0.00, 2.00);  
+
+  petMood = ((hungerMultipler + funMultipler + sleepMultipler + cleanlinessMultipler) / 4.00) * 50.00;
 }
 
 void updateGyro() {
@@ -2812,19 +3197,28 @@ public:
   NodeStatus tick() override {
     //0.8% chance to yap
     if (messageDisplayTime >= messageMaxTime) {
-    if (random(0, 200) == 1) {
-      int messageRandomiser = random(0, idleLinesCount);
-      petMessage(idleLines[messageRandomiser]);
-    } else if (random(0, 200) == 2) {
-      petMessage(generateSentence());
-    }
-
-    
+      if (random(0, 200) == 1) {
+        if (random(0, 2) == 1) {  // either say a mood related line or a random line
+          if (petMood <= 20) {
+            int messageRandomiser = random(0, sadLinesCount);
+            petMessage(sadLines[messageRandomiser]);
+            return SUCCESS;
+          } else if (petMood >= 70) {
+            int messageRandomiser = random(0, happyLinesCount);
+            petMessage(happyLines[messageRandomiser]);
+            return SUCCESS;
+          }
+        } else {
+          int messageRandomiser = random(0, idleLinesCount);
+          petMessage(idleLines[messageRandomiser]);
+        }
+      } else if (random(0, 200) == 2) {
+        petMessage(generateSentence());
+      } 
     }
     if (!movePet) {
       if (random(0, 100) == 1) {
-        startMovingPet(random(0, 105), random(35
-          , 100), 1);
+        startMovingPet(random(0, 105), random(35, 100), 1);
       }
     }
     return SUCCESS;
@@ -2891,7 +3285,7 @@ public:
       BitmapInfo petBmp = bitmaps[pets[userPet].marshmellowID];
       int index = findIndexByType(*currentAreaPtr, 5);
       int itemX = (*currentAreaPtr)[index].x - 15;
-      int itemY = 41 - petBmp.height;
+      int itemY = 43 - petBmp.height;
       if (!movePet) {
         startMovingPet(itemX, itemY, 2);
       }
@@ -2899,7 +3293,7 @@ public:
       if (petX == itemX && petY == itemY) {
         //Serial.println("pet has reached fireplace");
         sitPet(200, 1);
-        petHunger += random(0, 1);
+        petHunger += random(0, 2);
         petMessage(fireplaceLines[random(0, fireplaceLinesCount)]);
         petStatus = 0;
         return SUCCESS;
@@ -3133,8 +3527,12 @@ void handleSleepMode() {
     display.setTextSize(1);
     display.setCursor(15, 50);
     display.print("going to sleep...");
-    const BitmapInfo& bmp = bitmaps[17];
-    display.drawBitmap(55, 82, bmp.data, bmp.width, bmp.height, SH110X_WHITE);
+
+    BitmapInfo petBmp = bitmaps[pets[userPet].stillID];
+    int centeredX = (128 - petBmp.width) / 2;
+
+    drawBitmapFromList(centeredX, 100, 1, pets[userPet].stillID, SH110X_WHITE);
+    
     display.display();
     dumpBufferASCII();
     delay(1000);
@@ -3180,8 +3578,12 @@ void handleSleepMode() {
     display.setCursor(17, 80);
     display.print("my HUN is at ");
     display.print(petHunger);
-    const BitmapInfo& bmp2 = bitmaps[1];
-    display.drawBitmap(55, 90, bmp2.data, bmp2.width, bmp2.height, SH110X_WHITE);
+
+    petBmp = bitmaps[pets[userPet].stillID];
+    centeredX = (128 - petBmp.width) / 2;
+
+    drawBitmapFromList(centeredX, 100, 1, pets[userPet].stillID, SH110X_WHITE);
+    
     display.display();
     dumpBufferASCII();
 
@@ -3219,10 +3621,7 @@ void cursorSnap() {
   }
 }
 
-
-
 void updateCursor() {
-  
   if (cursorMode == 1) {
     cursorEnabled = leftButtonState; // if cursor mode is 1, cursor is enabled when left button is held
   } else {
@@ -3264,6 +3663,9 @@ void updateCursor() {
 
     cursorSnap(); // handle cursor snapping to buttons and items
 
+    if (loadIndicator > 0) { // load indicator is the little bar below the cursor. ticks it down by 0.5 
+      loadIndicator -= 0.5;
+    }
   }
 
   previousLeftState = leftButtonState;
@@ -3278,10 +3680,6 @@ void loop() {
 
   if (totalG > 11) {   //kinda funny but annoying. kills the pet if the device experiences over 11 g's of force. hard to do on accident unless you're in a fighter jet or something
     killPet("got shaken to death"); 
-  }
-
-  if (loadIndicator > 0) { // load indicator is the little bar below the cursor. ticks it down by 0.5 
-    loadIndicator -= 0.5;
   }
 
   unsigned long currentMillis = millis(); // this is for non-blocking delta time, you can't use delay() most of the time as it blocks the whole program
@@ -3299,26 +3697,30 @@ void loop() {
 
   updatePetNeeds(); // update pet fun hun slp ect
 
-  if (currentMillis - lastRGBUpdate >= fadeInterval) { // handle RGB led on some dev boards (pcb users can ignore this)
-    lastRGBUpdate = currentMillis;
+  updateMood(); // update overall mood based on needs
 
-    // Get start and end colors
-    uint32_t colorStart = colors[currentColor];
-    uint32_t colorEnd = colors[(currentColor + 1) % numColors];
-
-    // Linear interpolate between the colors
-    float t = step / float(fadeSteps);
-    uint8_t r = (1 - t) * getR(colorStart) + t * getR(colorEnd);
-    uint8_t g = (1 - t) * getG(colorStart) + t * getG(colorEnd);
-    uint8_t b = (1 - t) * getB(colorStart) + t * getB(colorEnd);
-
-    rgb.setPixelColor(0, rgb.Color(r, g, b));
-    rgb.show();
-
-    step++;
-    if (step > fadeSteps) {
-      step = 0;
-      currentColor = (currentColor + 1) % numColors;
+  if (LED_ENABLED) {
+    if (currentMillis - lastRGBUpdate >= fadeInterval) { // handle RGB led on some dev boards (pcb users can ignore this)
+      lastRGBUpdate = currentMillis;
+  
+      // Get start and end colors
+      uint32_t colorStart = colors[currentColor];
+      uint32_t colorEnd = colors[(currentColor + 1) % numColors];
+  
+      // Linear interpolate between the colors
+      float t = step / float(fadeSteps);
+      uint8_t r = (1 - t) * getR(colorStart) + t * getR(colorEnd);
+      uint8_t g = (1 - t) * getG(colorStart) + t * getG(colorEnd);
+      uint8_t b = (1 - t) * getB(colorStart) + t * getB(colorEnd);
+  
+      rgb.setPixelColor(0, rgb.Color(r, g, b));
+      rgb.show();
+  
+      step++;
+      if (step > fadeSteps) {
+        step = 0;
+        currentColor = (currentColor + 1) % numColors;
+      }
     }
   }
 

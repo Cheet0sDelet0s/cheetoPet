@@ -7,6 +7,7 @@ extern Adafruit_SH1107 display;
 
 extern float petVeridiumXP;
 extern int petVeridiumLVL;
+extern int petFun;
 
 extern float angleX;
 extern float angleY;
@@ -22,7 +23,7 @@ extern void updateButtonStates();
 extern void updateGyro();
 extern bool detectCursorTouch(int startX, int startY, int endX, int endY);
 extern void audioEngine();
-extern void queueTone(float freq, int length);
+extern void queueTone(float freq, uint16_t length);
 extern void priorityQueueTone(int freq);
 extern void clearTones();
 extern void screenRecord();

@@ -65,8 +65,8 @@ void drawPetLeveling(String levelType, float beginningXP, float gainedXP, int be
   display.drawRect(20, 55, 88, 10, SH110X_WHITE);
   display.fillRect(20, 55, 88 * xpPercentage, 10, SH110X_WHITE);
   
-  drawCenteredText(display, String((String(newXP) + "/" + String(newLVL * 5))), 70);
-  drawCenteredText(display, "press A", 118);
+  drawCenteredText(String((String(newXP) + "/" + String(newLVL * 5))), 70);
+  drawCenteredText("press A", 118);
   
   display.display();
   updateButtonStates();

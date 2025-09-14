@@ -20,7 +20,7 @@ extern int petFun;
 extern void petMessage(String message);
 extern void screenRecord();
 extern void audioEngine();
-extern void queueTone(float freq, int length);
+extern void queueTone(float freq, uint16_t length);
 extern void priorityQueueTone(int freq);
 extern void clearTones();
 void bubbleSim();

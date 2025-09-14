@@ -6,6 +6,12 @@
 extern String idleLines[];
 extern const size_t idleLinesCount;
 
+extern String happyLines[];
+extern const size_t happyLinesCount;
+
+extern String sadLines[];
+extern const size_t sadLinesCount;
+
 extern String beingCarriedLines[];
 extern const size_t beingCarriedLinesCount;
 
@@ -27,7 +33,9 @@ extern const size_t fireplaceLinesCount;
 extern String pianoLines[];
 extern const size_t pianoLinesCount;
 
+extern bool findNameIndices(const String &name, int &prefixIndex, int &suffixIndex);
 extern String generateSentence();
+String decodeName(int prefixIndex, int suffixIndex);
 String randomName();
 
 #endif

@@ -3,7 +3,6 @@
 
 DRAM_ATTR String idleLines[] = {
   "whassup",
-  "am good",
   "lmao",
   "uhhh",
   "beep beep im a sheep",
@@ -13,7 +12,6 @@ DRAM_ATTR String idleLines[] = {
   "hello",
   "a red spy is in the base!",
   "protect the briefcase",
-  "wahoo",
   "are you in class",
   "sudo rm -rf /",
   "gold gold gold",
@@ -32,10 +30,56 @@ DRAM_ATTR String idleLines[] = {
   "heard he got electrocuted",
   "see if your device needs charging",
   "what is my purpose?",
-  "this vexes me"
+  "this vexes me",
+  "it is i, {PETNAME}",
+  "hello! im {PETNAME}",
+  "{PETNAME} is a pretty cool name amrite",
 };
 
 const size_t idleLinesCount = sizeof(idleLines) / sizeof(idleLines[0]);
+
+String happyLines[] = {
+  "i am very happy",
+  "this is great",
+  "i love my life",
+  "so much fun",
+  "yayyy",
+  "wooohooo",
+  "wahoo",
+  "im the happiest pet",
+  "life is good",
+  "couldnt be better",
+  "this is the best day ever",
+  "im so glad to be alive",
+  "i love you so much",
+  "you are the best owner ever",
+  "thank you for taking care of me",
+  "you are my favorite human",
+  "am good"
+};
+
+const size_t happyLinesCount = sizeof(happyLines) / sizeof(happyLines[0]);
+
+String sadLines[] = {
+  "i am very sad",
+  "this is bad",
+  "i hate my life",
+  "so much pain",
+  "booohoo",
+  "waaaah",
+  "im the saddest pet",
+  "life is bad",
+  "couldnt be worse",
+  "this is the worst day ever",
+  "im so sad to be alive",
+  "i hate you so much",
+  "you are the worst owner ever",
+  "why do you take care of me",
+  "you are my least favorite human",
+  "am bad"
+};
+
+const size_t sadLinesCount = sizeof(sadLines) / sizeof(sadLines[0]);
 
 DRAM_ATTR String beingCarriedLines[] = {
   "put me down!",
@@ -59,7 +103,8 @@ DRAM_ATTR String hungryLines[] = {
   "SERIOUSLY I WILL DIE",
   "GIVE ME FOOD.",
   "you suck man give me food",
-  "FOOD. IN. MY. MOUTH."
+  "FOOD. IN. MY. MOUTH.",
+  "give me the damn food"
 };
 
 const size_t hungryLinesCount = sizeof(hungryLines) / sizeof(hungryLines[0]);
@@ -72,7 +117,11 @@ DRAM_ATTR String boredLines[] = {
   "nothing is fun",
   "fun time?",
   "can we train for pong tournament",
-  "pooooongggg"
+  "pooooongggg",
+  "shooty?",
+  "flappy bur?",
+  "bubblebox?",
+  "im bored to death",
 };
 
 const size_t boredLinesCount = sizeof(boredLines) / sizeof(boredLines[0]);
@@ -122,7 +171,8 @@ DRAM_ATTR String pianoLines[] = {
   "bing bong bing",
   "welcome to my concert",
   "practicing arpegios or whatever",
-  "can we get some drums?"
+  "can we get some drums?",
+  "practicing scales or whatever"
 };
 
 const size_t pianoLinesCount = sizeof(pianoLines) / sizeof(pianoLines[0]);
@@ -175,11 +225,42 @@ const char* templates[] = {
 
 const int templateCount = sizeof(templates) / sizeof(templates[0]);
 
-const char* prefixes[] = {"Al", "Be", "Car", "Da", "El", "Fi"};
-const char* suffixes[] = {"ton", "ria", "vin", "nor", "das", "lith"};
+const char* prefixes[] = {"Al", "Be", "Car", "Da", "El", "Fi", "Go", "Ha", "In", "Jo", "Ka", "Li", "Mo", "Ne", "Or", "Pa", "Qu", "Re", "Si", "Ta", "Ul", "Vi", "Wi", "Xe", "Ya", "Zo"};
+const char* suffixes[] = {"ton", "ria", "vin", "nor", "das", "lith", "mus", "nus", "phy", "rus", "son", "tis", "ver", "wyn", "xen", "yus", "zen"};
 
 const int prefixCount = sizeof(prefixes) / sizeof(prefixes[0]);
 const int suffixCount = sizeof(suffixes) / sizeof(suffixes[0]);
+
+
+bool findNameIndices(const String &name, int &prefixIndex, int &suffixIndex) {
+  for (int i = 0; i < prefixCount; i++) {
+    const char* prefix = prefixes[i];
+    int prefixLen = strlen(prefix);
+
+    // Does the name start with this prefix?
+    if (name.startsWith(prefix)) {
+      for (int j = 0; j < suffixCount; j++) {
+        const char* suffix = suffixes[j];
+        int suffixLen = strlen(suffix);
+
+        // Does the name end with this suffix?
+        if (name.endsWith(suffix)) {
+          prefixIndex = i;
+          suffixIndex = j;
+          return true; // found both
+        }
+      }
+    }
+  }
+  return false; // no match found
+}
+
+String decodeName(int prefixIndex, int suffixIndex) {
+  if (prefixIndex < 0 || prefixIndex >= prefixCount || suffixIndex < 0 || suffixIndex >= suffixCount) {
+    return ""; // invalid indices
+  }
+  return String(prefixes[prefixIndex]) + String(suffixes[suffixIndex]);
+}
 
 String randomName() {
   return String(prefixes[random(prefixCount)]) + String(suffixes[random(suffixCount)]);

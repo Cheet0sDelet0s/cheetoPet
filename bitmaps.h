@@ -111,6 +111,26 @@ extern const unsigned char pet_hedgehogSit [] PROGMEM;
 
 extern const unsigned char pet_hedgehogSitMask [] PROGMEM;
 
+extern const unsigned char pet_birdStill [] PROGMEM;
+
+extern const unsigned char pet_birdStillMask [] PROGMEM;
+
+extern const unsigned char pet_birdWalk1 [] PROGMEM;
+
+extern const unsigned char pet_birdWalk1Mask [] PROGMEM;
+
+extern const unsigned char pet_birdWalk2 [] PROGMEM;
+
+extern const unsigned char pet_birdWalk2Mask [] PROGMEM;
+
+extern const unsigned char pet_birdSit [] PROGMEM;
+
+extern const unsigned char pet_birdSitMask [] PROGMEM;
+
+extern const unsigned char pet_birdMarshmellow [] PROGMEM;
+
+extern const unsigned char pet_birdMarshmellowMask [] PROGMEM;
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;

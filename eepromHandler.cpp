@@ -4,6 +4,7 @@
 
 #define EEPROM_ADDRESS 0x57 
 #define EEPROM_SIZE 4096    // AT24C32 = 4KB
+#define MAX_STRING_LENGTH 128  // Maximum string length to read/write
 
 void eepromWriteByte(uint16_t addr, uint8_t data) {
   Wire.beginTransmission(EEPROM_ADDRESS);
@@ -27,30 +28,32 @@ uint8_t eepromReadByte(uint16_t addr) {
   return 0xFF; // Default on fail
 }
 
-// Write an Arduino String to EEPROM
-void eepromWriteString(uint16_t addr, const String &str) {
-  for (uint16_t i = 0; i < str.length(); i++) {
-    eepromWriteByte(addr++, str[i]);
+// Write a C-style string to EEPROM
+void eepromWriteString(uint16_t addr, const char *str) {
+  uint16_t i = 0;
+  while (str[i] != '\0' && i < MAX_STRING_LENGTH - 1) {
+    eepromWriteByte(addr + i, str[i]);
+    i++;
   }
-  eepromWriteByte(addr, 0); // Null terminator
+  eepromWriteByte(addr + i, 0); // Null terminator
 }
 
-// Read a string from EEPROM into an Arduino String
-String eepromReadString(uint16_t addr) {
-  String result = "";
+// Read a C-style string from EEPROM into a buffer
+// The buffer must have at least MAX_STRING_LENGTH bytes
+void eepromReadString(uint16_t addr, char *buffer, uint16_t bufferSize) {
+  uint16_t i = 0;
   uint8_t c;
 
-  while (true) {
-    c = eepromReadByte(addr++);
-    if (c == 0 || c == 0xFF) { // Stop at null terminator or invalid read
-      break;
+  while (i < bufferSize - 1 && i < MAX_STRING_LENGTH - 1) {
+    c = eepromReadByte(addr + i);
+    if (c == 0 || c == 0xFF) {
+      break; // Stop at null terminator or invalid read
     }
-    result += (char)c;
+    buffer[i] = (char)c;
+    i++;
   }
-
-  return result;
+  buffer[i] = '\0'; // Ensure string is null-terminated
 }
-
 
 
 uint16_t saveVectorToEEPROM(uint16_t addr, const std::vector<ItemList> &vec) {

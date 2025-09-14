@@ -6,7 +6,9 @@
         "compare": "cpp",
         "cstdint": "cpp",
         "ostream": "cpp",
-        "print": "cpp"
+        "print": "cpp",
+        "any": "cpp",
+        "*.inc": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

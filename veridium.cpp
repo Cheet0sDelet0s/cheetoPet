@@ -379,6 +379,9 @@ void veridium() {  //launch veridium
   display.print("press A to exit");
   display.display();
 
+  petFun += veridiumScore / 5;
+  if (petFun > 100) petFun = 100;
+
   waitForSelectRelease();
   updateButtonStates();
   while (!rightButtonState) {updateButtonStates(); delay(20);}
