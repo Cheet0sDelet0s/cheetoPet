@@ -7,6 +7,14 @@
 int fov = 60.0;
 int starCount = 100;
 int speed = 2;
+int sensitivity = 40;
+
+// ====== PLAYER VARIABLES ======
+float enginePlayerY = 0;         // current vertical position
+float velocityY = 0;       // vertical velocity for jumping
+float gravity = -0.3;      // gravity force
+bool isGrounded = true;    // grounded flag
+float jumpStrength = 8.0;  // jump impulse
 
 // ================== 3D ENGINE CORE ==================
 struct Point3D {
@@ -72,7 +80,7 @@ void applyCamera(Point3D &p) {
 void initStars(Point3D starList[], int count) {
   for (int i = 0; i < count; i++) {
     starList[i].x = random(-200, 200);
-    starList[i].y = random(-200, 200);
+    starList[i].y = random(-200, -1);
     starList[i].z = random(-200, 200);
   }
 }
@@ -219,6 +227,46 @@ Edge personEdges[12] = {
 
 Object3D person(personVertices, 10, personEdges, 12);
 
+// ================== FLOOR OBJECT ==================
+// Just a big flat square at y=0
+Point3D floorVertices[4] = {
+  {-200, 0, -200}, {200, 0, -200},
+  {200, 0,  200}, {-200, 0,  200}
+};
+
+Edge floorEdges[4] = {
+  {0,1}, {1,2}, {2,3}, {3,0}
+};
+
+Object3D floorPlane(floorVertices, 4, floorEdges, 4);
+
+// ====== Cube bounding box (helper function) ======
+bool isInsideCube(float px, float py, float pz, Object3D &obj) {
+  float halfSize = 20; // since cube spans -20..20 in your vertices
+  return (px > obj.posX - halfSize && px < obj.posX + halfSize &&
+          py > obj.posY - halfSize && py < obj.posY + halfSize &&
+          pz > obj.posZ - halfSize && pz < obj.posZ + halfSize);
+}
+
+void tryMove(Camera &cam, float speed, int dir, Object3D &cube, float y) {
+  Point3D fwd = getForwardVector(cam);
+  float newX = cam.x + fwd.x * speed * dir;
+  float newZ = cam.z + fwd.z * speed * dir;
+  float newY = -y; // camera.y is -playerY
+
+  float halfSize = 20;
+  float cubeTop = cube.posY + halfSize;
+
+  bool inXZ = (newX > cube.posX - halfSize && newX < cube.posX + halfSize &&
+               newZ > cube.posZ - halfSize && newZ < cube.posZ + halfSize);
+
+  // Block only if player is NOT above cube top
+  if (!(inXZ && y < cubeTop + 1)) {
+      cam.x = newX;
+      cam.z = newZ;
+  }
+}
+
 
 void cheetoEngine() {
   waitForSelectRelease();
@@ -232,6 +280,13 @@ void cheetoEngine() {
 
   pyramid.posZ = 40;
   
+  sensitivity /= 10;
+
+  // Camera/player spawn
+  camera.x = 0;
+  camera.y = -enginePlayerY;   // place on ground
+  camera.z = -100;
+
   while (!stopEngine) {
     display.clearDisplay();
 
@@ -240,7 +295,8 @@ void cheetoEngine() {
     drawAdjustable(60, 50, starCount, 100, 300, "stars: ", false);
 
     drawAdjustable(60, 80, speed, 1, 5, "speed: ", false);
-
+    
+    drawAdjustable(110, 80, sensitivity, 4, 15, "sens: ", false);
     if (drawButton(60, 110, 6, 8, "OK")) {
       stopEngine = true;
     }
@@ -255,75 +311,103 @@ void cheetoEngine() {
     display.display();
   }
 
+  sensitivity *= 10;
+
   stopEngine = false;
   
   Point3D stars[starCount];
   initStars(stars, starCount);
 
   while (!stopEngine) {
-      display.clearDisplay();
+    display.clearDisplay();
+    updateButtonStates();
 
-      updateButtonStates();
+    // Walk forward
+    if (rightButtonState) {
+      tryMove(camera, speed, +1, cube, enginePlayerY);  // forward
+    }
 
-      if (leftButtonState) {
-          angleX = 0;
-          angleY = 0;
-          angleZ = 0;
-      }
+    if (middleButtonState) {
+      stopEngine = true;
+    }
 
-      if (middleButtonState) {
-          stopEngine = true;
-      }
+    // Jump
+    if (leftButtonState && isGrounded) {
+        velocityY = jumpStrength;
+        isGrounded = false;
+    }
 
-      if (rightButtonState) {
-        moveForward(camera, speed);
-      }
+    // Apply gravity
+    velocityY += gravity;
+    enginePlayerY += velocityY;
 
-      updateGyro();
+    // Cube top height
+    float cubeTop = cube.posY + 20;
 
-      camera.rotX = angleY / 40.00;
-      camera.rotY = angleX / 40.00 * -1;
-      //camera.rotZ = angleZ / 40.00;
+    // If inside cube’s XZ area and falling
+    if (camera.x > cube.posX - 20 && camera.x < cube.posX + 20 &&
+        camera.z > cube.posZ - 20 && camera.z < cube.posZ + 20) {
 
-      if (camera.rotX > 1.5) camera.rotX = 1.5;   // ~85 degrees up
-      if (camera.rotX < -1.5) camera.rotX = -1.5; // ~85 degrees down
-
-      for (int i = 0; i < starCount; i++) {
-        Point3D p = stars[i];    // copy so we don't overwrite original
-        applyCamera(p);
-    
-        int sx, sy;
-        projectPoint(p, sx, sy);
-    
-        // only draw if it's in front of camera & on-screen
-        if (p.z > 1 && sx >= 0 && sx < 128 && sy >= 0 && sy < 128) {
-            display.drawPixel(sx, sy, SH110X_WHITE);
+        if (enginePlayerY <= cubeTop && velocityY <= 0) {
+            enginePlayerY = cubeTop;
+            velocityY = 0;
+            isGrounded = true;
         }
-      }    
+    }
 
-      // cube.rotX = angleY / 40.00;
-      // cube.rotY = angleX / 40.00 * -1;
-      // cube.rotZ = angleZ / 40.00;
+    // Floor clamp (fallback)
+    if (enginePlayerY <= 0) {
+        enginePlayerY = 0;
+        velocityY = 0;
+        isGrounded = true;
+    }
 
-      //cube.posX = 20;
-      
 
-      cube.render(display);
 
-      // pyramid.rotX = angleY / 40.00;
-      // pyramid.rotY = angleX / 40.00 * -1;
-      // pyramid.rotZ = angleZ / 40.00;
+    // Clamp to floor height (y=0)
+    if (enginePlayerY <= 0) {
+        enginePlayerY = 0;
+        velocityY = 0;
+        isGrounded = true;
+    }
 
-      //pyramid.posX = -20;
-      //pyramid.posY = 20;
+    // Apply player vertical position to camera
+    camera.y = -enginePlayerY;
 
-      pyramid.render(display);
+    // Update camera orientation with gyro
+    updateGyro();
+    camera.rotX = angleY / sensitivity;
+    camera.rotY = angleX / sensitivity * -1;
 
-      person.render(display);
+    if (camera.rotX > 1.5) camera.rotX = 1.5;
+    if (camera.rotX < -1.5) camera.rotX = -1.5;
 
-      display.display();
+    float dx = camera.x - cube.posX;
+    float dz = camera.z - cube.posZ;
+    float dist = sqrt(dx*dx + dz*dz);
+    if (dist < 30) {
+      // too close, push back
+      moveBackward(camera, speed);
+    }
 
-      delay(10);
-  }
+    for (int i = 0; i < starCount; i++) {
+      Point3D p = stars[i]; // copy so we don't overwrite original
+      applyCamera(p);
+      int sx, sy;
+      projectPoint(p, sx, sy); // only draw if it's in front of camera & on-screen
+      if (p.z > 1 && sx >= 0 && sx < 128 && sy >= 0 && sy < 128) {
+        display.drawPixel(sx, sy, SH110X_WHITE);
+      }
+    }
+
+    // Render objects
+    floorPlane.render(display);
+    cube.render(display);
+    //pyramid.render(display);
+    //person.render(display);
+
+    display.display();
+    delay(10);
+}
   waitForSelectRelease();
 }

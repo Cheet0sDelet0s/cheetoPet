@@ -102,7 +102,7 @@ void pong() { // PONG if you couldnt read
       paddleY = angleY;
 
       stepBallForward();
-      
+    
       if (ballX <= 0) {
         ballVX *= -1;
         // reEnergizeBall(1.2);

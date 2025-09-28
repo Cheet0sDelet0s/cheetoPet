@@ -229,6 +229,7 @@ DRAM_ATTR int gameLibraryCount = 1;
 //                             0        1           2             3           4
 const String gameNames[5] = {"pong", "shooty", "flappy bur", "bubblebox", "3d test"};
 
+// create display object (ignore any vscode errors)
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
 
 DRAM_ATTR float gyroXOffset = -0.40;
@@ -1810,7 +1811,7 @@ void openEmotionMenu() {
 
     if (petMood >= 70) {
       overallText += "very happy";
-    } else if (petMood >= 20) {
+    } else if (petMood <= 20) {
       overallText += "sad";
     } else {
       overallText += "okay";
@@ -3000,9 +3001,9 @@ void updateMood() {
 }
 
 void updateGyro() {
+  mpu.gyroUpdate();
+  mpu.accelUpdate();
   if (!pauseGyro) {
-    mpu.gyroUpdate();
-    mpu.accelUpdate();
 
     int gyroX = round((mpu.gyroX() + gyroXOffset) / 2) * gyroSensitivityX * 2 * -1;  //multiply gyro values by user set sensitivity. x value is inverted since gyro is upside down in hardware 
     int gyroY = round((mpu.gyroY() + gyroYOffset) / 2) * gyroSensitivityY * 2;
