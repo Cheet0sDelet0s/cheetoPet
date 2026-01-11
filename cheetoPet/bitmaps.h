@@ -131,6 +131,8 @@ extern const unsigned char pet_birdMarshmellow [] PROGMEM;
 
 extern const unsigned char pet_birdMarshmellowMask [] PROGMEM;
 
+extern const unsigned char ui_batteryAlert [] PROGMEM;
+
 struct BitmapInfo {
   const uint8_t* data;
   uint16_t width;

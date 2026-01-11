@@ -734,6 +734,11 @@ const unsigned char pet_birdMarshmellowMask [] PROGMEM = {
 	0xfc, 0xff, 0x00, 0x00
 };
 
+const unsigned char ui_batteryAlert [] PROGMEM = {
+	// 'batteryAlert, 12x5px
+	0xfe, 0x50, 0xa3, 0x50, 0xa3, 0x50, 0xa3, 0x00, 0xfe, 0x50
+};
+
 const BitmapInfo bitmaps[] = {
   { pet_gooseStill, 12, 15 },         //0
   { pet_gooseStillBig, 16, 26 },      //1
@@ -776,8 +781,8 @@ const BitmapInfo bitmaps[] = {
   { item_poop, 8, 8},                 //38
   { misc_vex, 128, 128},              //39
   { misc_doctor, 128, 128},           //40
-  { item_trashcan, 11, 11},			  //41
-  { item_mailbox, 18, 17},			  //42
+  { item_trashcan, 11, 11},			      //41
+  { item_mailbox, 18, 17},			      //42
   { pet_hedgehog, 15, 10},            //43
   { pet_hedgehogMask, 17, 12},        //44
   { pet_hedgehogWalk1, 14, 10},       //45
@@ -797,7 +802,8 @@ const BitmapInfo bitmaps[] = {
   { pet_birdSit, 15, 11},             //59
   { pet_birdSitMask, 17, 13},         //60
   { pet_birdMarshmellow, 25, 15},     //61
-  { pet_birdMarshmellowMask, 27, 17}  //62
+  { pet_birdMarshmellowMask, 27, 17}, //62
+  { ui_batteryAlert, 12, 5}           //63
 };
 
 String displayNames[] = {
@@ -863,7 +869,8 @@ String displayNames[] = {
   { "bird" },           //59
   { "bird" },           //60
   { "bird" },           //61
-  { "bird" }            //62
+  { "bird" },           //62
+  { "battey alert" }    //63
 };
 
 int bitmapCount = sizeof(displayNames) / sizeof(displayNames[0]);

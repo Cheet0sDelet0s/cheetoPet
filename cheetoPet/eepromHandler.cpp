@@ -1,35 +1,41 @@
 #include "eepromHandler.h"
+#include <at24c04.h>
 #include <Arduino.h>
 #include <Wire.h>
 
-#define EEPROM_ADDRESS 0x57 
 #define EEPROM_SIZE 4096    // AT24C32 = 4KB
 #define MAX_STRING_LENGTH 128  // Maximum string length to read/write
 
+AT24C04 eepromChip(EEPROM_ADDRESS);
+
 void eepromWriteByte(uint16_t addr, uint8_t data) {
-  Wire.beginTransmission(EEPROM_ADDRESS);
-  Wire.write((addr >> 8) & 0xFF); // MSB
-  Wire.write(addr & 0xFF);        // LSB
-  Wire.write(data);
-  Wire.endTransmission();
-  delay(5); // EEPROM write cycle
+  eepromChip.put(addr, data);
+  // Wire.beginTransmission(EEPROM_ADDRESS);
+  // Wire.write((addr >> 8) & 0xFF); // MSB
+  // Wire.write(addr & 0xFF);        // LSB
+  // Wire.write(data);
+  // Wire.endTransmission();
+  // delay(5); // EEPROM write cycle
 }
 
 uint8_t eepromReadByte(uint16_t addr) {
-  Wire.beginTransmission(EEPROM_ADDRESS);
-  Wire.write((addr >> 8) & 0xFF);
-  Wire.write(addr & 0xFF);
-  Wire.endTransmission();
+  // Wire.beginTransmission(EEPROM_ADDRESS);
+  // Wire.write((addr >> 8) & 0xFF);
+  // Wire.write(addr & 0xFF);
+  // Wire.endTransmission();
 
-  Wire.requestFrom(EEPROM_ADDRESS, 1);
-  if (Wire.available()) {
-    return Wire.read();
-  }
-  return 0xFF; // Default on fail
+  // Wire.requestFrom(EEPROM_ADDRESS, 1);
+  // if (Wire.available()) {
+  //   return Wire.read();
+  // }
+  // return 0xFF; // Default on fail
+  int readData;
+  eepromChip.get(addr, readData);
+  return readData;
 }
 
 // Write a C-style string to EEPROM
-void eepromWriteString(uint16_t addr, const char *str) {
+void eepromWriteString(uint16_t addr, const char *str) {  // this should never of been made in the first place but im too lazy anyway
   uint16_t i = 0;
   while (str[i] != '\0' && i < MAX_STRING_LENGTH - 1) {
     eepromWriteByte(addr + i, str[i]);

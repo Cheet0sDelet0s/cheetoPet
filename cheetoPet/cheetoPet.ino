@@ -56,22 +56,25 @@ change port and path accordingly
 #include "newsgenerator.h"
 #include "cheetoEngine.h"
 #include "Picopixel.h"
+#include <Adafruit_ADS1X15.h>
 
 /*
   ---- PIN + ADDRESS DEFINITIONS ----
   set all the pins and addresses you are using for your setup here
 */
 
-#define SDA_ALT 20              // default 20. alternate i2c SDA (i2c data) pin assignment
-#define SCL_ALT 9               // default 9. alternate i2c SCL/SCK (i2c clock) pin assignment
-#define LED_ENABLED true        // default true. set to true if your board has an RGB LED (ws2812b / neopixel)
+#define SDA_ALT 9              // default 20. alternate i2c SDA (i2c data) pin assignment
+#define SCL_ALT 8               // default 9. alternate i2c SCL/SCK (i2c clock) pin assignment
+#define LED_ENABLED false        // default true. set to true if your board has an RGB LED (ws2812b / neopixel)
 #define LED_PIN 8               // default 8. pin of the rgb led
-#define SWITCH_PIN GPIO_NUM_0   // default 0. write as GPIO_NUM_{pin}
+#define SWITCH_PIN GPIO_NUM_10   // default 0. write as GPIO_NUM_{pin}
 #define SPKR_PIN 3              // default 3. pin connected to speaker (must be pwm)
-#define EEPROM_ADDRESS 0x57     // default 0x57, check your chip if unsure
+#define EEPROM_ADDRESS 0x50     // default 0x57, check your chip if unsure
 #define EEPROM_SIZE 4096        // default 4096. size in bytes. AT24C32 = 4KB
 #define MPU_ADDRESS 0x69        // default 0x69 (nice). if ADDR is pulled high, its 0x69, otherwise its 0x68. 0x68 will most likely conflict with DS3231 so dont make it that.
 #define DISPLAY_ADDRESS 0x3C    // default 0x3C. you wont need to change this most of the time
+#define CHRG_PIN 4
+#define STDBY_PIN 1
 const int leftButton = 5;       // default 5. left button / B button pin
 const int middleButton = 6;     // default 6. middle button / X button pin
 const int rightButton = 7;      // default 7. right button / A button pin
@@ -96,6 +99,9 @@ it can spontaneously die if you arent careful.
 
 
 bool spkrEnable = true;
+
+int currentBatteryPercentage = 100;
+float currentBatteryVoltage = 3.70;
 
 struct Note {
   float freq; // hz
@@ -154,6 +160,7 @@ Song songs[] = {
 int numSongs = sizeof(songs) / sizeof(songs[0]);
 
 DRAM_ATTR unsigned long previousMillis = 0;
+DRAM_ATTR unsigned long batteryReadMillis = 0; // tracking how often to read battey status
 const long interval = 50;  
 
 DRAM_ATTR DateTime now;
@@ -231,10 +238,11 @@ const String gameNames[5] = {"pong", "shooty", "flappy bur", "bubblebox", "3d te
 
 // create display object (ignore any vscode errors)
 Adafruit_SH1107 display = Adafruit_SH1107(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET, 1000000, 100000);
+Adafruit_ADS1115 ads;  // Create ADS1115 object
 
-DRAM_ATTR float gyroXOffset = -0.40;
-DRAM_ATTR float gyroYOffset = 3;
-DRAM_ATTR float gyroZOffset = 1.5;
+DRAM_ATTR float gyroXOffset = 0; // old was -0.40
+DRAM_ATTR float gyroYOffset = 0; // old was 3 
+DRAM_ATTR float gyroZOffset = 0; // old was 1.5
 DRAM_ATTR float accelXOffset = 0;
 DRAM_ATTR float accelYOffset = 0;
 DRAM_ATTR float accelZOffset = 0;
@@ -498,6 +506,50 @@ uint8_t getG(uint32_t color) { return (color >> 8) & 0xFF; }
 uint8_t getB(uint32_t color) { return color & 0xFF; }
 
 // put standalone functions / functions that don't rely on other functions at the top here!
+
+float getBatteryVoltage() {
+  int16_t adc0 = ads.readADC_SingleEnded(0); // Read channel 0
+
+  // Convert to volts (ADS1115: 0.125 mV per bit at default gain)
+  float rawVoltage = adc0 * 0.125 / 1000.0;
+
+  // Compensate for divider (2x)
+  float batteryVoltage = rawVoltage * 2.0;
+
+  return batteryVoltage; // 3 decimal places
+}
+
+int getBatteryPercentage() {
+  float batteryVoltage = getBatteryVoltage();
+  
+  // Clamp voltage to LiPo range
+  if (batteryVoltage > 4.2) batteryVoltage = 4.2;
+  if (batteryVoltage < 3.0) batteryVoltage = 3.0;
+
+  // Map voltage to percentage (linear between 3.0V = 0% and 4.2V = 100%)
+  return (int)((batteryVoltage - 3.0) / (4.2 - 3.0) * 100.0);
+}
+
+/* STATUSES:  (CHRG + STDBY)
+0: battery discharging or no battey present (HIGH + HIGH)
+1: battery charging (LOW + HIGH)
+2: battery reached end of charging (HIGH + LOW)
+3: holy shit idk wtf has happened but you are fucked (LOW + LOW)
+*/
+int getBatteryStatus() {
+  bool chrgStatus = digitalRead(CHRG_PIN) == LOW;
+  bool stdbyStatus = digitalRead(STDBY_PIN) == LOW;
+
+  if (!chrgStatus && !stdbyStatus) { // HIGH + HIGH (discharging)
+    return 0;
+  } else if (chrgStatus && !stdbyStatus) { // LOW + HIGH (charging)
+    return 1;
+  } else if (!chrgStatus && stdbyStatus) { // HIGH + LOW (finished charging)
+    return 2;
+  } else if (chrgStatus && stdbyStatus) { // LOW + LOW (error, should never happen unless short or tp4056 damaged)
+    return 3;
+  }
+}
 
 void drawWordWrappedText( 
   const char *text, 
@@ -874,39 +926,131 @@ void drawCheckerboard(uint8_t squareSize = 8) {
   delay(300);
 }
 
+// void blindCloseAnimation() {
+//   const int bars = 32;                      // Number of horizontal bars (blinds)
+//   const int barHeight = 128 / bars;         // Height of each bar
+  
+//   display.clearDisplay();
+//   display.display();
+
+//   for (int i = 0; i < bars; i++) {
+//     // Draw filled rectangle for the "blind" closing effect
+//     display.fillRect(0, i * barHeight, 128, barHeight, SH110X_WHITE);
+//     display.display();
+//     delay(10);  // Speed of closing - adjust for faster/slower animation
+//   }
+// }
+
 void blindCloseAnimation() {
-  const int bars = 32;                      // Number of horizontal bars (blinds)
-  const int barHeight = 128 / bars;         // Height of each bar
+  const int bars = 4;                      // Number of horizontal bars (blinds)
+  const int barHeight = 128 / bars / 2;         // Height of each bar
   
   display.clearDisplay();
   display.display();
 
-  for (int i = 0; i < bars; i++) {
-    // Draw filled rectangle for the "blind" closing effect
-    display.fillRect(0, i * barHeight, 128, barHeight, SH110X_WHITE);
+  for (int count = 0; count < barHeight; count++) {
+    int currentHeight = barHeight * count / barHeight;
+    display.clearDisplay();
+
+    for (int i = 0; i < bars; i++) {
+      // Draw filled rectangle for the "blind" closing effect
+      display.fillRect(0, i * barHeight * 2, 128, currentHeight, SH110X_WHITE);
+    }
+    
     display.display();
-    delay(10);  // Speed of closing - adjust for faster/slower animation
+    delay(80);  // Speed of closing - adjust for faster/slower animation
   }
 }
 
 void blindOpenAnimation() {
-  const int bars = 32;
-  const int barHeight = 128 / bars;
-
-  // Start with all blinds closed
+  const int bars = 4;                      // Number of horizontal bars (blinds)
+  const int barHeight = 128 / bars / 2;         // Height of each bar
+  
   display.clearDisplay();
-  for (int i = 0; i < bars; i++) {
-    display.fillRect(0, i * barHeight, 128, barHeight, SH110X_WHITE);
-  }
   display.display();
 
-  // Open blinds from bottom to top (reverse of shutting)
-  for (int i = bars - 1; i >= 0; i--) {
-    display.fillRect(0, i * barHeight, 128, barHeight, SH110X_BLACK);
+  for (int count = barHeight - 1; count >= barHeight; count--) {
+    int currentHeight = barHeight * count / barHeight;
+    display.clearDisplay();
+
+    for (int i = bars - 1; i >= bars; i--) {
+      display.fillRect(0, i * barHeight * 2, 128, currentHeight, SH110X_WHITE);
+    }
+    
     display.display();
-    delay(10);
+    delay(80);
   }
 }
+
+void arrowAnimation() {
+  display.setFont(&Picopixel);
+  display.setTextColor(SH110X_WHITE);
+
+  int randomiser = random(0, 4);
+
+  // total width across screen (adjust if your display is different size)
+  int screenWidth = 128;
+  int arrowY = 58; // base Y position for arrow
+
+  for (int i = 0; i < screenWidth; i += 3) {
+    display.clearDisplay();
+
+    // add a wobble effect with sine wave
+    int wobble = sin(i * 0.1) * 4; // amplitude 4px, frequency ~0.1
+    int yPos = arrowY + wobble;
+
+    // draw arrow body
+    display.drawRoundRect(-44 + i, yPos, 30, 12, 2, 1);
+
+    // draw arrowhead
+    display.drawLine(-15 + i, yPos - 10, -15 + i, yPos + 21, 1);
+    display.drawLine(-15 + i, yPos - 10, 0 + i, yPos + 5, 1);
+    display.drawLine(-15 + i, yPos + 21, 0 + i, yPos + 6, 1);
+
+    // draw random travel text (below arrow)
+    String text;
+    switch (randomiser) {
+      case 1: text = "where we going now human?"; break;
+      case 2: text = "always travelling..."; break;
+      case 3: text = "cant wait to get there!"; break;
+    }
+
+    if (random(0, 10) == 1) {
+      createParticle(3, random(5, 128), random(1, 118), -3, 0, 20);
+    }
+
+    drawTextCenteredX(text.c_str(), i, 120);
+
+    updateParticles();
+    drawParticles();
+
+    display.display();
+
+    delay(20); // slowed down a bit for smoother wobble
+  }
+
+  display.setFont(NULL);
+}
+
+
+// void blindOpenAnimation() {
+//   const int bars = 32;
+//   const int barHeight = 128 / bars;
+
+//   // Start with all blinds closed
+//   display.clearDisplay();
+//   for (int i = 0; i < bars; i++) {
+//     display.fillRect(0, i * barHeight, 128, barHeight, SH110X_WHITE);
+//   }
+//   display.display();
+
+//   // Open blinds from bottom to top (reverse of shutting)
+//   for (int i = bars - 1; i >= 0; i--) {
+//     display.fillRect(0, i * barHeight, 128, barHeight, SH110X_BLACK);
+//     display.display();
+//     delay(10);
+//   }
+// }
 
 bool isInArray(int item, int arr[], int arrSize) { // check if item is in array (non vector)
   for (int i = 0; i < arrSize; i++) {
@@ -1051,6 +1195,12 @@ void saveGameToEEPROM(bool showUI = true) {
   for (int i = 0; i < 8; i++) eepromWriteByte(addr++, currentSaveGame.games[i]);
   eepromWriteByte(addr++, currentSaveGame.gameCount);
 
+  eepromWriteByte(addr++, currentSaveGame.gyroXOffset);
+
+  eepromWriteByte(addr++, currentSaveGame.gyroYOffset);
+
+  eepromWriteByte(addr++, currentSaveGame.gyroZOffset);
+
   if (showUI) {
     drawCenteredText("saved!", 68);
     display.display();
@@ -1094,6 +1244,10 @@ void saveGameToRam() {
     currentSaveGame.games[i] = gameLibrary[i];
   }
   currentSaveGame.gameCount = gameLibraryCount;
+
+  currentSaveGame.gyroXOffset = gyroXOffset;
+  currentSaveGame.gyroYOffset = gyroYOffset;
+  currentSaveGame.gyroZOffset = gyroZOffset;
 }
 
 void loadGameFromRam() {
@@ -1132,6 +1286,10 @@ void loadGameFromRam() {
      gameLibrary[i] = currentSaveGame.games[i];
   }
   gameLibraryCount = currentSaveGame.gameCount;
+
+  gyroXOffset = currentSaveGame.gyroXOffset;
+  gyroYOffset = currentSaveGame.gyroYOffset;
+  gyroZOffset = currentSaveGame.gyroZOffset;
 }
 
 void loadGameFromEEPROM() {
@@ -1170,6 +1328,10 @@ void loadGameFromEEPROM() {
   for (int i = 0; i < 8; i++) currentSaveGame.games[i] = eepromReadByte(addr++);
   currentSaveGame.gameCount = eepromReadByte(addr++);
 
+  currentSaveGame.gyroXOffset = eepromReadByte(addr++);
+  currentSaveGame.gyroYOffset = eepromReadByte(addr++);
+  currentSaveGame.gyroZOffset = eepromReadByte(addr++);
+
   loadGameFromRam();
 
   drawCenteredText("loaded!", 68);
@@ -1195,14 +1357,14 @@ void drawBitmapFlippedX(int16_t x, int16_t y,
 }
 
 void mpu9250_sleep() {
-  Wire.beginTransmission(0x68);  // Default MPU9250 I2C address
+  Wire.beginTransmission(MPU_ADDRESS);
   Wire.write(0x6B);              // PWR_MGMT_1 register
   Wire.write(0x40);              // Set SLEEP bit (bit 6)
   Wire.endTransmission();
 }
 
 void mpu9250_wake() {
-  Wire.beginTransmission(0x68);
+  Wire.beginTransmission(MPU_ADDRESS);
   Wire.write(0x6B);
   Wire.write(0x01);  // Use PLL with X-axis gyroscope as clock source
   Wire.endTransmission();
@@ -1211,8 +1373,10 @@ void mpu9250_wake() {
 void prepareForSleepyTime() {
   display.clearDisplay();
   display.display();
-  rgb.setPixelColor(0, rgb.Color(0, 0, 0));
-  rgb.show();
+  if (LED_ENABLED) {
+    rgb.setPixelColor(0, rgb.Color(0, 0, 0));
+    rgb.show();
+  }
   mpu9250_sleep();
 }
 
@@ -1416,8 +1580,40 @@ void newGameScreen() {
   }
 }
 
+void batteryManagement() {
+  float bv = getBatteryVoltage();
+
+  if (bv < 3.4) {
+    Serial.println("battery voltage is too low at " + String(bv) + "v, going to sleep!!");
+    display.setContrast(25);
+    display.clearDisplay();
+    drawBitmapFromList(58, 62, 1, 63, SH110X_WHITE);
+    display.display();
+    delay(2000);
+
+    lightSleep();
+  }
+}
+
+void lightSleep() {
+  prepareForSleepyTime();
+
+  esp_sleep_enable_gpio_wakeup();
+  updateButtonStates();
+
+  if (powerSwitchState) { // set wakeup to opposite of current switch state
+    gpio_wakeup_enable(SWITCH_PIN, GPIO_INTR_HIGH_LEVEL); // Wake up on switch (HIGH)
+  } else {
+    gpio_wakeup_enable(SWITCH_PIN, GPIO_INTR_LOW_LEVEL); // Wake up on switch (HIGH)
+  }
+  
+  esp_light_sleep_start();  // sleepy time! program will resume after wake up
+}
+
 void setup() {
   pinMode(SWITCH_PIN, INPUT_PULLUP);
+  pinMode(CHRG_PIN, INPUT_PULLUP);
+  pinMode(STDBY_PIN, INPUT_PULLUP);
   pinMode(leftButton, INPUT_PULLUP);
   pinMode(middleButton, INPUT_PULLUP);
   pinMode(rightButton, INPUT_PULLUP);
@@ -1428,27 +1624,27 @@ void setup() {
   ledcWriteTone(SPKR_PIN, 0);           // start silent
 
   Serial.begin(921600);
+  Serial.println("begun serial at 921600 baudrate! hello world!");
   analogReadResolution(12);
 
   Wire.begin(SDA_ALT, SCL_ALT);
+
+  Serial.println("begun i2c! beginning to initialise peripherals...");
+
   display.begin(DISPLAY_ADDRESS, true);
-  // delay(500);
-  // display.display();
-  // delay(2000);
   display.clearDisplay();
-  display.setCursor(0, 0);
-  display.setTextColor(SH110X_WHITE);
-  display.setTextSize(2);
-  display.println("cheetoPet");
-  display.setTextSize(1);
-  display.println("welcome to your\nsecond life!\n");
-  display.println("loading modules\n\n");
-  display.println("made by\n@Cheet0sDelet0s");
-  display.print("cloudables.net");
-  drawBitmapFromList(55, 100, 1, 0, SH110X_WHITE);
   display.display();
-  dumpBufferASCII();
-  delay(500);
+  display.setTextColor(SH110X_WHITE);
+
+  if (!ads.begin()) {
+    Serial.println("failed to find ADS1115 chip, program halting!");
+    while (1);
+  }
+
+  Serial.println("ads1115 found!");
+
+  ads.setGain(GAIN_ONE); // ±4.096V range, 1 bit = 0.125mV
+
   if (!rtc.begin()) {
     Serial.println("Couldn't find RTC");
     Serial.flush();
@@ -1458,20 +1654,60 @@ void setup() {
     while (1) delay(10);
   }
 
+  mpu.setWire(&Wire); // setup mpu9250 / mpu6050
+  mpu.beginGyro();
+  mpu.beginAccel();
+
+  display.setContrast(25);
+  batteryManagement();
+
+  Serial.println("showing boot option menu");
+  display.clearDisplay();
+  drawCenteredText("A to boot", 60); // when powering on cheetoPet after power loss or reset, allow the user to choose whether to boot to OS
+  display.display();
+  bool shouldBoot = false;
+  for (int i = 1; i < 255; i++) {
+    updateButtonStates();
+    if (rightButtonState) {
+      Serial.println("user pressed A, booting!");
+      shouldBoot = true;
+      break;
+    }
+    delay(20);
+  }
+
+  if (!shouldBoot) { // go to sleep since user did not press A to boot. wake up when switch changes state
+    lightSleep();
+  }
+
+  // delay(500);
+  // display.display();
+  // delay(2000);
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.setTextSize(2);
+  drawCenteredText("cheetoPet", 0);
+  display.setTextSize(1);
+  drawCenteredText("booting into OS...", 20);
+  drawCenteredText("by @Cheet0sDelet0s", 29);
+  drawCenteredText("batt at " + String(getBatteryVoltage()) +"v", 50);
+  drawBitmapFromList(55, 100, 1, 0, SH110X_WHITE);
+  display.display();
+  dumpBufferASCII();
+  delay(500);
+  
+
   if (rtc.lostPower()) {
     Serial.println("RTC lost power, setting time!");
     // Set the RTC to the current date & time
     rtc.adjust(DateTime(2025, 6, 6, 7, 53, 0));
     display.clearDisplay();
-    display.println("rtc module lost power!\ntime & date has been reset.\noh dear. booting in 5 secs");
+    display.setCursor(0,0);
+    display.println("rtc module lost power!\ntime & date has been reset.\nbooting in 3 secs");
     display.println("make sure the coin cell\ndidnt fall out\nor has lost charge!");
     display.display();
-    delay(5000);
+    delay(3000);
   }
-
-  mpu.setWire(&Wire);
-  mpu.beginGyro();
-  mpu.beginAccel();
 
   if (LED_ENABLED) {
     rgb.begin();            // Initialize
@@ -2048,7 +2284,7 @@ void drawAreaItems() {
     if (rightButtonState && loadIndicator > 9) {
       currentArea = exitLinks[currentArea];
       loadIndicator = 0;
-      blindCloseAnimation();
+      arrowAnimation();
       updateDoorDimensions(exitLocations[currentArea]);
       petX = doorX;
       petY = doorY;
@@ -2171,29 +2407,43 @@ void updatePetNeeds() {
 }
 
 void drawLiveData() {
-  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  display.setTextColor(SH110X_WHITE);
   display.setFont(&Picopixel);
   now = rtc.now();
-  display.setCursor(55, 4);
+  String data = "";
   if (liveDataTimer < 100) {
-    display.print(now.hour());
-    display.print(":");
+    data += String(now.hour());
+    data += ":";
     if (now.minute() < 10) {
-      display.print("0");
-      display.print(now.minute());
+      data += "0";
+      data += String(now.minute());
     } else {
-      display.print(now.minute());
+      data += String(now.minute());
     }
   } else {
-    display.print(now.day()); display.print("/"); display.print(now.month()); display.print("/"); display.print(now.year());
+    data += String(now.day()); data += "/"; data += String(now.month()); data += "/"; data += String(now.year());
   }
+
+  int status = getBatteryStatus();
+
+  if (status == 0) { // discharging
+    data += " " + String(currentBatteryPercentage) + "%";
+  } else if (status == 1) { // charging
+    data += " CHARGE";
+  } else if (status == 2) { // finished charging
+    data += " FINISH";
+  } else if (status == 3) { // error
+    data += " BAT ERROR";
+  }
+
+  drawCenteredText(data, 5);
+  drawCenteredText(String(currentBatteryVoltage) + "v", 11);
   
   liveDataTimer++;
   if (liveDataTimer > 200) {
     liveDataTimer = 0; 
   }
   
-  display.setTextColor(SH110X_WHITE);
   display.setFont(NULL);
 }
 
@@ -2838,7 +3088,54 @@ void settingsGyro() {  // LOOK. AT. THAT. BEAUTIFUL
   drawAdjustable(90, 60, snapDivider, 1, 5, "str:", false);
   drawAdjustable(110, 30, newCursorMode, 1, 2, "M:", false);
 
-  if (drawButton(40, 80, 60, 10, "confirm")) {
+  if (drawButton(30, 80, 60, 10, "calibrate")) {
+    waitForSelectRelease();
+
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.setTextColor(SH110X_WHITE);
+    display.println("press A, then,");
+    display.println("lay device flat on a surface.");
+    display.println("wait 3 seconds, and the gyro");
+    display.println("will start calibrating.");
+    display.println("do not touch while calibrating");
+    display.display();
+
+    updateButtonStates();
+
+    while (!rightButtonState) {
+      updateButtonStates();
+      delay(10);
+    }
+
+    waitForSelectRelease();
+
+    updateButtonStates();
+
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("calibrating in 3 seconds...");
+    display.display();
+
+    delay(3000);
+
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("calibrating...");
+    display.print("do not touch!!!");
+    display.display();
+
+    calibrateGyro();
+
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("done! you can pick me up");
+    display.display();
+
+    delay(3000);
+  }
+
+  if (drawButton(40, 92, 60, 10, "confirm")) {
       settingsOption = 0;
       gyroSensitivityX = sensitivityX;
       gyroSensitivityY = sensitivityY;
@@ -2859,7 +3156,7 @@ void settingsPerformance() { //pretty good wheyyy
 
   drawAdjustable(80, 50, delayTemp, 0, 100, "delay (ms):", false);
 
-  if (drawButton(30, 80, 60, 10, "confirm")) {
+  if (drawButton(30, 90, 60, 10, "confirm")) {
     loopDelay = delayTemp;
     settingsOption = 0;
     waitForSelectRelease();
@@ -3005,12 +3302,12 @@ void updateGyro() {
   mpu.accelUpdate();
   if (!pauseGyro) {
 
-    int gyroX = round((mpu.gyroX() + gyroXOffset) / 2) * gyroSensitivityX * 2 * -1;  //multiply gyro values by user set sensitivity. x value is inverted since gyro is upside down in hardware 
-    int gyroY = round((mpu.gyroY() + gyroYOffset) / 2) * gyroSensitivityY * 2;
+    int gyroX = round((mpu.gyroY() + gyroYOffset) / 2) * gyroSensitivityX * 2 * -1;  //multiply gyro values by user set sensitivity. x value is inverted since gyro is upside down in hardware NOT IN PCB!!
+    int gyroY = round((mpu.gyroX() + gyroXOffset) / 2) * gyroSensitivityY * 2 * -1;
     int gyroZ = round((mpu.gyroZ() + gyroZOffset) / 2) * gyroSensitivityZ * 2;
 
-    int accelX = round(mpu.accelX() + accelXOffset);
-    int accelY = round(mpu.accelY() + accelYOffset);
+    int accelX = round(mpu.accelY() + accelXOffset);
+    int accelY = round(mpu.accelX() + accelYOffset);
     int accelZ = round(mpu.accelZ() + accelZOffset);
 
     // Serial.printf("X: %f, Y: %f, Z: %f\n", accelX, accelY, accelZ);
@@ -3030,6 +3327,26 @@ void updateGyro() {
     posZ += gyroZ * deltaTime;
   }
   pauseGyro = false;
+}
+
+void calibrateGyro() {
+  const int samples = 50;
+  
+  float xValues;
+  float yValues;
+  float zValues;
+
+  for (int count = 0; count < samples; count++) {
+    mpu.gyroUpdate();
+    xValues += mpu.gyroX();
+    yValues += mpu.gyroY();
+    zValues += mpu.gyroZ();
+    delay(5);
+  }
+
+  gyroXOffset = xValues / samples * -1; // get mean drift of each axis, apply offset in opposite direction! so simple! and its terrible!
+  gyroYOffset = yValues / samples * -1;
+  gyroZOffset = zValues / samples * -1;
 }
 
 void runSaveInterval() {
@@ -3518,7 +3835,7 @@ DRAM_ATTR Node* tree = new Selector({ new Sequence({ new ShouldDie(), new Die() 
 void handleSleepMode() {
   if (powerSwitchState) {
     clearTones();
-    blindCloseAnimation();
+    //blindCloseAnimation();
     Serial.println("going into light sleep, see ya later!");
     display.clearDisplay();
     display.setCursor(12, 10);
@@ -3526,8 +3843,16 @@ void handleSleepMode() {
     display.setTextColor(SH110X_WHITE);
     display.print("goodnight");
     display.setTextSize(1);
-    display.setCursor(15, 50);
-    display.print("going to sleep...");
+    int randomiser = random(0, 4);
+    String text;
+    switch (randomiser) {
+      case 0: text = "cya later human!"; break;
+      case 1: text = "g'night human..."; break;
+      case 2: text = "check on me later!"; break;
+      case 3: text = "*yawn* cya later..."; break;
+    }
+
+    drawCenteredText(text.c_str(), 50);
 
     BitmapInfo petBmp = bitmaps[pets[userPet].stillID];
     int centeredX = (128 - petBmp.width) / 2;
@@ -3539,9 +3864,10 @@ void handleSleepMode() {
     delay(1000);
     prepareForSleepyTime();
     DateTime timeWhenSlept = rtc.now();
-    gpio_wakeup_enable(SWITCH_PIN, GPIO_INTR_HIGH_LEVEL); // wake device up when switch goes high
+    //gpio_wakeup_enable(SWITCH_PIN, GPIO_INTR_HIGH_LEVEL); // wake device up when switch goes high
 
     esp_sleep_enable_gpio_wakeup();
+    gpio_wakeup_enable(SWITCH_PIN, GPIO_INTR_HIGH_LEVEL); // Wake up on GPIO10 (HIGH)
 
     esp_light_sleep_start();  // sleepy time! program will resume after wake up
 
@@ -3563,7 +3889,7 @@ void handleSleepMode() {
 
     petSleep = constrain(petSleep, 0, 120);
 
-    blindOpenAnimation();
+    //blindOpenAnimation();
 
     display.clearDisplay();
     display.setCursor(40, 10);
@@ -3692,6 +4018,15 @@ void loop() {
       updatePetMovement(); //moves pet towards its desired position
     }
   }
+
+  if (currentMillis - batteryReadMillis >= 1000) {
+    batteryReadMillis = currentMillis;
+
+    batteryManagement(); // make sure battery isn't getting too low
+    currentBatteryPercentage = getBatteryPercentage();
+    currentBatteryVoltage = getBatteryVoltage();
+  }
+
   tree->tick();  //behaviour tree update
 
   DateTime now = rtc.now(); // get the current time from the RTC chip

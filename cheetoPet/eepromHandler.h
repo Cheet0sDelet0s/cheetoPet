@@ -1,8 +1,14 @@
 #ifndef EEPROMHANDLER_H
 #define EEPROMHANDLER_H
 
+#pragma once
 #include <Arduino.h>
 #include <vector>
+#include <at24c04.h>
+
+#define EEPROM_ADDRESS 0x50 
+
+extern AT24C04 eepromChip;
 
 struct ItemList {
   uint8_t type, x, y;
@@ -29,6 +35,9 @@ struct SaveGame {
   uint8_t nameSuffix;
   uint8_t games[8];
   uint8_t gameCount;
+  float gyroXOffset;
+  float gyroYOffset;
+  float gyroZOffset;
 };
 
 // void writeStructEEPROM(uint16_t addr, SaveGame& savegame); // legacy save game
