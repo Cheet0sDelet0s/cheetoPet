@@ -30,26 +30,10 @@
 */
 
 void setup() {
-  pinMode(SWITCH_PIN, INPUT_PULLUP);
-  pinMode(CHRG_PIN, INPUT_PULLUP);
-  pinMode(STDBY_PIN, INPUT_PULLUP);
-  pinMode(A_BUTTON, INPUT_PULLUP);
-  pinMode(B_BUTTON, INPUT_PULLUP);
-  pinMode(X_BUTTON, INPUT_PULLUP);
-  pinMode(SPKR_PIN, OUTPUT);
-
-  ledcAttach(SPKR_PIN, 5000, 8);
-  ledcWriteTone(SPKR_PIN, 0);     // start silent
-
-  Serial.begin(921600);
-  Serial.println("begun serial at 921600 baudrate! hello world!");
-  analogReadResolution(12);
-
-  Wire.begin(SDA_ALT, SCL_ALT);
-
-  Serial.println("begun i2c! beginning to initialise peripherals...");
-
-  initDisplay();
+  initPins(); // set pinModes
+  initPeripherals(); // begin serial, i2c, etc
+  initDisplay(); // initialise display, clear it, set text color to white (i always forget to do this).
+  
 }
 
 void loop() {

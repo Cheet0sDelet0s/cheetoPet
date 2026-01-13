@@ -16,6 +16,7 @@ constexpr int SCL_ALT = 8;               // default 9. alternate i2c SCL/SCK (i2
 // ---- PERIPHERALS ----
 constexpr int SPKR_PIN = 3;              // default 3. pin connected to speaker (must be pwm)
 constexpr int MPU_ADDRESS = 0x69;        // default 0x69 (nice). if ADDR is pulled high, its 0x69, otherwise its 0x68. 0x68 will most likely conflict with DS3231 so dont make it that. lol
+constexpr int SERIAL_BAUDRATE = 921600;  // default 921600. sets baudrate of serial. make sure serial monitor baudrate is the same.
 
 // ---- BATTERY CHARGER ----
 constexpr int CHRG_PIN = 4; // default 4. the CHRG pin of the TP4056 (battery charger).
@@ -32,7 +33,7 @@ constexpr int EEPROM_ADDRESS = 0x50;     // default 0x57, check your chip if uns
 constexpr int EEPROM_SIZE = 4096;        // default 4096. size in bytes. AT24C32 = 4KB
 
 // ---- BUTTONS/SWITCHES ----
-constexpr int SWITCH_PIN = GPIO_NUM_10;   // default 0. write as GPIO_NUM_{pin}
+constexpr gpio_num_t SWITCH_PIN = GPIO_NUM_10;   // default 0. write as GPIO_NUM_{pin}
 constexpr int B_BUTTON = 5;       // default 5. left button / B button pin
 constexpr int X_BUTTON = 6;     // default 6. middle button / X button pin
 constexpr int A_BUTTON = 7;      // default 7. right button / A button pin
