@@ -9,6 +9,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
 #include <functional>
+#include "Picopixel.h"
 
 // ---- CHEETOPET FILES ----
 #include <hardware.h>

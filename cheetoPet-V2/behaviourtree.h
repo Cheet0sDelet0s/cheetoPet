@@ -17,6 +17,6 @@ public:
   virtual NodeStatus tick() = 0;
 };
 
-Node* tree;
+extern DRAM_ATTR Node* tree;
 
 #endif

@@ -37,7 +37,7 @@ extern DRAM_ATTR bool previousMiddleState;
 extern DRAM_ATTR bool previousRightState;
 
 //gyro
-extern DRAM_ATTR float totalG;
+DRAM_ATTR inline float totalG = 0.0;
 extern DRAM_ATTR float angleX;
 extern DRAM_ATTR float angleY;
 extern DRAM_ATTR float angleZ;

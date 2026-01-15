@@ -24,9 +24,9 @@ inline float petMood = 50;
 inline float money = 40.00;
 inline int userPet = 0;
 
-DRAM_ATTR extern String currentPetMessage;
-DRAM_ATTR extern int messageDisplayTime;
-DRAM_ATTR extern int messageMaxTime;
+DRAM_ATTR inline String currentPetMessage = "";
+DRAM_ATTR inline int messageDisplayTime = 0;
+DRAM_ATTR inline int messageMaxTime = 0;
 
 // PET MOVEMENT
 DRAM_ATTR inline int petX = 64;
@@ -41,6 +41,16 @@ DRAM_ATTR inline int petDir = 1;
 DRAM_ATTR inline int petSitTimer = 0;
 DRAM_ATTR inline int petSitType = 0;
 DRAM_ATTR inline int petStatus = 0;
+DRAM_ATTR inline bool movingPet = false;
+
+DRAM_ATTR inline int currentArea = 0;
+
+DRAM_ATTR inline int placedFood[10] = {};
+DRAM_ATTR inline int amountFoodPlaced = 0;
+DRAM_ATTR inline int placedFoodX[10] = {};
+DRAM_ATTR inline int placedFoodY[10] = {};
+
+DRAM_ATTR inline std::vector<ItemList>* currentAreaPtr = nullptr;
 
 //TIMING
 inline const long interval = 50; // interval for pet movement? i think??
@@ -57,6 +67,12 @@ struct Pet {
   int walk2ID; // bitmap for walking animation frame 2
   int sitID;   // bitmap for sitting
   int marshmellowID;  // bitmap for marshmellow roasting
+};
+
+const inline Pet pets[] = {
+  {"goose", 1, 21, 23, 26, 28},
+  {"hedgehog", 43, 45, 47, 51, 49},
+  {"bird", 53, 55, 57, 59, 61}
 };
 
 struct SaveGame {
@@ -83,6 +99,13 @@ void killPet(String deathReason);
 void updatePetMovement();
 void startMovingPet(int x, int y, int speed);
 void petMessage(String message);
+bool checkItemIsPlaced(int item);
+int findIndexByType(const std::vector<ItemList>& vec, uint8_t type);
+void sitPet(int time, int type);
+void updateAreaPointers();
+bool removeFromList(int list[], int& itemCount, int index);
 
+void updatePet();
+void drawPetHome();
 
 #endif

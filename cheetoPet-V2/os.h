@@ -21,5 +21,6 @@ void handleMenuButtons();
 void loadSavedGame();
 void createNewGame();
 void temporaryGame();
+void beginOS();
 
 #endif

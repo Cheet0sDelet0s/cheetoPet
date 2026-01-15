@@ -20,16 +20,19 @@ String currentMenuName = "main menu";
 Menu* currentMenu = &fileMenu;
 
 void loadSavedGame() {
-  //showPopup("load save game", 2000);
+  showPopup("load save game", 1000);
   // loadGameFromEEPROM();
+  beginOS();
 }
 
 void createNewGame() {
-  showPopup("create new game", 2000);
+  showPopup("create new game", 1000);
+  beginOS();
 }
 
 void temporaryGame() {
-  showPopup("temporary game", 2000);
+  showPopup("temporary game", 1000);
+  beginOS();
 }
 
 void handleMenuButtons() {
@@ -87,6 +90,16 @@ void osStartup() {
     
     display.display();
     delay(20);
+  }
+}
+
+void beginOS() {
+  while (1) {
+    updatePet();
+    display.clearDisplay();
+    drawPetHome();
+    display.display();
+    delay(5);
   }
 }
 
