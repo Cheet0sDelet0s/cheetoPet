@@ -10,6 +10,7 @@ DateTime tempDateTime;
 MPU9250_asukiaaa mpu(MPU_ADDRESS);
 AT24C04 eepromChip(EEPROM_ADDRESS);
 
+// ---- buttons ----
 DRAM_ATTR bool leftButtonState = false;
 DRAM_ATTR bool middleButtonState = false;
 DRAM_ATTR bool rightButtonState = false;
@@ -17,6 +18,56 @@ DRAM_ATTR bool powerSwitchState = false;
 DRAM_ATTR bool previousLeftState = false;
 DRAM_ATTR bool previousMiddleState = false;
 DRAM_ATTR bool previousRightState = false;
+
+
+
+// Tone queue
+#define MAX_TONES 100
+DRAM_ATTR Note noteQueue[MAX_TONES];
+int toneCount = 0;  // number of tones currently in the queue
+
+// Playback state
+unsigned long lastStepTime = 0;
+int currentTone = 0;
+bool isPlaying = false;
+DRAM_ATTR int playTime = 50;
+
+/* ----------SONGS----------
+
+write your own songs and put them here and in the songs[] array!
+the syntax for each note is: { note frequency (hz) , note duration (ms) }
+
+*/
+
+Note odeToJoy[15] = {
+  {329.63, 500}, {329.63, 500}, {349.23, 500}, {392.00, 500}, {392.00, 500}, {349.23, 500}, {329.63, 500},
+  {293.66, 500}, {261.63, 500}, {261.63, 500}, {293.66, 500}, {329.63, 500}, {329.63, 750}, {293.66, 500},
+  {293.66, 1000}
+};
+
+Note maryLamb[14] = { //written by AI
+  {329.63, 500}, {293.66, 500}, {261.63, 500}, {293.66, 500}, {329.63, 500}, {329.63, 500}, {329.63, 1000},
+  {293.66, 500}, {293.66, 500}, {293.66, 1000}, {329.63, 500}, {392.00, 500}, {392.00, 1000}, {329.63, 1000}
+};
+
+Note happyBirthday[25] = { //written by AI
+  {264.00, 250}, {264.00, 250}, {297.00, 500}, {264.00, 500}, {352.00, 500}, {330.00, 1000}, 
+  {264.00, 250}, {264.00, 250}, {297.00, 500}, {264.00, 500}, {396.00, 500}, {352.00, 1000},
+  {264.00, 250}, {264.00, 250}, {528.00, 500}, {440.00, 500}, {352.00, 500}, {330.00, 500}, {297.00, 1000},
+  {466.00, 250}, {466.00, 250}, {440.00, 500}, {352.00, 500}, {396.00, 500}, {352.00, 1000}
+};
+
+Song songs[] = {
+  {odeToJoy, sizeof(odeToJoy) / sizeof(odeToJoy[0])},
+  {maryLamb, sizeof(maryLamb) / sizeof(maryLamb[0])},
+  {happyBirthday, sizeof(happyBirthday) / sizeof(happyBirthday[0])}
+};
+
+int numSongs = sizeof(songs) / sizeof(songs[0]);
+
+// ---- screen recording ----
+DRAM_ATTR unsigned long lastDump = 0;  // keeps track of the last time we dumped hahahah get it
+bool screenRecording = false;
 
 void updateButtonStates() {
   leftButtonState = digitalRead(B_BUTTON) == LOW;
@@ -30,6 +81,7 @@ void initDisplay() {
   display.clearDisplay();
   display.display();
   display.setTextColor(SH110X_WHITE);
+  display.setContrast(25);
 }
 
 void initPins() {
@@ -97,7 +149,7 @@ void prepareForSleepyTime() {
   mpu9250_sleep();
 }
 
-void lightSleep() {
+void lightSleep(int type) {
   prepareForSleepyTime();
 
   esp_sleep_enable_gpio_wakeup();
@@ -111,6 +163,10 @@ void lightSleep() {
   
   esp_light_sleep_start();  // sleepy time! program will resume after wake up
   mpu9250_wake();
+
+  if (type == 1) {
+    esp_restart();
+  }
 }
 
 // ---- BATTERY ----
@@ -170,31 +226,15 @@ void batteryManagement() {
     display.display();
     delay(2000);
 
-    lightSleep();
+    lightSleep(0);
   }
 }
 
 void eepromWriteByte(uint16_t addr, uint8_t data) {
   eepromChip.put(addr, data);
-  // Wire.beginTransmission(EEPROM_ADDRESS);
-  // Wire.write((addr >> 8) & 0xFF); // MSB
-  // Wire.write(addr & 0xFF);        // LSB
-  // Wire.write(data);
-  // Wire.endTransmission();
-  // delay(5); // EEPROM write cycle
 }
 
 uint8_t eepromReadByte(uint16_t addr) {
-  // Wire.beginTransmission(EEPROM_ADDRESS);
-  // Wire.write((addr >> 8) & 0xFF);
-  // Wire.write(addr & 0xFF);
-  // Wire.endTransmission();
-
-  // Wire.requestFrom(EEPROM_ADDRESS, 1);
-  // if (Wire.available()) {
-  //   return Wire.read();
-  // }
-  // return 0xFF; // Default on fail
   int readData;
   eepromChip.get(addr, readData);
   return readData;
@@ -249,4 +289,189 @@ uint16_t loadVectorFromEEPROM(uint16_t addr, std::vector<ItemList> &vec) {
     vec.push_back(item);
   }
   return addr;
+}
+
+void bootMenu() {
+  Serial.println("showing boot option menu");
+  display.clearDisplay();
+  drawCenteredText("A to boot", 60); // when powering on cheetoPet after power loss or reset, allow the user to choose whether to boot to OS
+  display.display();
+  bool shouldBoot = false;
+  for (int i = 1; i < 255; i++) {
+    updateButtonStates();
+    if (rightButtonState) {
+      Serial.println("user pressed A, booting!");
+      shouldBoot = true;
+      break;
+    }
+    delay(20);
+  }
+
+  if (!shouldBoot) { // go to sleep since user did not press A to boot. wake up when switch changes state
+    lightSleep(0);
+  }
+}
+
+void dumpBufferASCII() {
+  uint8_t *buffer = display.getBuffer();
+  const int w = display.width();
+  const int h = display.height();
+  const int rowsPerChunk = 8;  // how many rows to print at once
+  char chunk[w * rowsPerChunk + rowsPerChunk + 1]; // +1 for final null, +rowsPerChunk for line breaks
+
+  for (int y = 0; y < h; y += rowsPerChunk) {
+    int chunkIndex = 0;
+
+    for (int row = 0; row < rowsPerChunk && (y + row) < h; row++) {
+      for (int x = 0; x < w; x++) {
+        int byteIndex = x + ((y + row) / 8) * w;
+        int bitMask = 1 << ((y + row) & 7);
+        chunk[chunkIndex++] = (buffer[byteIndex] & bitMask) ? '#' : '.';
+      }
+      chunk[chunkIndex++] = '\n'; // add newline at end of row
+    }
+
+    chunk[chunkIndex] = '\0';  // null-terminate the chunk
+    Serial.print(chunk);        // print multiple rows at once
+  }
+
+  Serial.println(); // final empty line to signal end of frame
+}
+
+void screenRecord() {
+  if (millis() - lastDump >= 100 && screenRecording) {
+      lastDump = millis();
+      dumpBufferASCII();
+  }
+}
+
+void waitForSelectRelease() {
+  const unsigned long debounceDelay = 50;  // milliseconds
+  unsigned long lastStableTime = millis();
+
+  // Wait until the button is released and stable
+  while (true) {
+    if (digitalRead(A_BUTTON) == HIGH) {
+      // Button is released, check how long it's been stable
+      if (millis() - lastStableTime >= debounceDelay) {
+        break;  // Released and stable
+      }
+    } else {
+      // Button pressed again — reset the timer
+      lastStableTime = millis();
+    }
+  }
+  updateButtonStates();
+}
+
+void updateGyro() {
+  mpu.gyroUpdate();
+  mpu.accelUpdate();
+
+  int gyroX = round((mpu.gyroY() + gyroYOffset) / 2) * 2 * -1;  //x value is inverted since gyro is upside down in hardware NOT IN PCB!!
+  int gyroY = round((mpu.gyroX() + gyroXOffset) / 2) * 2 * -1;
+  int gyroZ = round((mpu.gyroZ() + gyroZOffset) / 2) * 2;
+
+  int accelX = round(mpu.accelY() + accelXOffset);
+  int accelY = round(mpu.accelX() + accelYOffset);
+  int accelZ = round(mpu.accelZ() + accelZOffset);
+
+  // Serial.printf("X: %f, Y: %f, Z: %f\n", accelX, accelY, accelZ);
+
+  totalG = sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
+
+  unsigned long updateNow = millis();
+  float deltaTime = (updateNow - lastUpdate) / 1000.0;
+  lastUpdate = updateNow;
+
+  angleX += gyroX * deltaTime;
+  angleY += gyroY * deltaTime;
+  angleZ += gyroZ * deltaTime;
+
+  posX += gyroX * deltaTime;
+  posY += gyroY * deltaTime;
+  posZ += gyroZ * deltaTime;
+}
+
+void clearTones() {
+  toneCount = 0;
+  ledcWrite(SPKR_PIN, 0);
+}
+
+void queueTone(float freq, uint16_t length) {
+  if (toneCount < MAX_TONES) {
+    noteQueue[toneCount] = { freq, length };
+    toneCount++;
+  }
+}
+
+void priorityQueueTone(float freq, int length) {
+  if (toneCount < MAX_TONES) {
+    // Shift elements to the right
+    for (int i = MAX_TONES - 1; i > 0; i--) {
+      noteQueue[i] = noteQueue[i - 1];
+    }
+
+    Note newNote = {freq, length};
+
+    // Insert at the start
+    noteQueue[0] = newNote;
+    toneCount++;
+  }
+}
+
+void audioEngine() {
+  if (toneCount > 0 && spkrEnable) {
+    if (!isPlaying) {
+      // Start playing first note
+      currentTone = noteQueue[0].freq;
+      playTime = noteQueue[0].length;
+      ledcWriteTone(SPKR_PIN, currentTone);
+
+      //Serial.print("Tone: "); Serial.print(currentTone);
+      //Serial.print(" Length: "); Serial.println(playTime);
+
+      lastStepTime = millis();
+      isPlaying = true;
+    } else if (millis() - lastStepTime >= playTime) {
+      // Shift queue down by 1
+      for (int i = 1; i < toneCount; i++) {
+        noteQueue[i - 1] = noteQueue[i];
+      }
+      toneCount--;
+
+      if (toneCount > 0) {
+        // Play next note
+        currentTone = noteQueue[0].freq;
+        playTime = noteQueue[0].length;
+        ledcWriteTone(SPKR_PIN, currentTone);
+
+        //Serial.print("Tone: "); Serial.print(currentTone);
+        //Serial.print(" Length: "); Serial.println(playTime);
+
+        lastStepTime = millis();
+      } else {
+        // Finished all notes
+        ledcWriteTone(SPKR_PIN, 0);
+        isPlaying = false;
+      }
+    }
+  } else if (!spkrEnable) {
+    ledcWrite(SPKR_PIN, 0);
+  }
+}
+
+void playRandomSong() {
+  clearTones();
+
+  int songIndex = random(numSongs); // Pick random song
+  Song chosen = songs[songIndex];
+
+  playSong(chosen);
+}
+
+void playSong(Song song) {
+  for (int i = 0; i < song.length; i++) {
+    queueTone(song.notes[i].freq, song.notes[i].length);
+  }
 }

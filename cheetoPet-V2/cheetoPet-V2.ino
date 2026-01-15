@@ -19,6 +19,8 @@
 #include "hardwareConfig.h"
 #include "hardware.h"
 #include "graphics.h"
+#include "bitmaps.h"
+#include "os.h"
 
 /* ---- INFO ----
   FLASH AND DRAM:
@@ -33,7 +35,11 @@ void setup() {
   initPins(); // set pinModes
   initPeripherals(); // begin serial, i2c, etc
   initDisplay(); // initialise display, clear it, set text color to white (i always forget to do this).
+  batteryManagement();
   
+  bootMenu(); // allow user to decide whether they want to boot into os
+  // esp will sleep here if user doesnt decide to boot, will resume when power switch is toggled
+  osStartup();
 }
 
 void loop() {

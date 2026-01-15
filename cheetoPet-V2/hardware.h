@@ -36,14 +36,59 @@ extern DRAM_ATTR bool previousLeftState;
 extern DRAM_ATTR bool previousMiddleState;
 extern DRAM_ATTR bool previousRightState;
 
+//gyro
+extern DRAM_ATTR float totalG;
+extern DRAM_ATTR float angleX;
+extern DRAM_ATTR float angleY;
+extern DRAM_ATTR float angleZ;
+extern DRAM_ATTR float posX;
+extern DRAM_ATTR float posY;
+extern DRAM_ATTR float posZ;
+
+extern float gyroXOffset;
+extern float gyroYOffset;
+extern float gyroZOffset;
+extern float accelXOffset;
+extern float accelYOffset;
+extern float accelZOffset;
+
+extern DRAM_ATTR unsigned long lastUpdate;
+
+extern int numSongs;
+
+struct Note {
+  float freq; // hz
+  uint16_t length; // ms
+};
+
+// Song metadata wrapper
+struct Song {
+  Note* notes;
+  int length;
+};
+
+extern Song songs[];
+
 void initDisplay();
 void initPins();
 void initPeripherals();
 void batteryManagement();
-void lightSleep();
+void lightSleep(int type);
 int getBatteryPercentage();
 float getBatteryVoltage();
 int getBatteryStatus();
+void bootMenu();
+void dumpBufferASCII();
+void screenRecord();
+void waitForSelectRelease();
+void updateButtonStates();
+void updateGyro();
+void playSong(Song song);
+void playRandomSong();
+void audioEngine();
+void priorityQueueTone(float freq, int length);
+void queueTone(float freq, uint16_t length);
+void clearTones();
 
 void eepromWriteByte(uint16_t addr, uint8_t data);
 uint8_t eepromReadByte(uint16_t addr);

@@ -41,5 +41,6 @@ constexpr int A_BUTTON = 7;      // default 7. right button / A button pin
 // ---- MISC ----
 constexpr int OFFSET = 4;   // screen recording offset, adjust until it lines up. prolly dont need to change this anyway
 
+inline bool spkrEnable = true;
 
 #endif

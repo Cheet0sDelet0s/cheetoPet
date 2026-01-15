@@ -142,6 +142,10 @@ struct BitmapInfo {
   uint16_t height;
 };
 
+struct ItemList {
+  uint8_t type, x, y;
+};
+
 extern const BitmapInfo bitmaps[];
 
 extern String displayNames[];
