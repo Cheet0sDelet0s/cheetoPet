@@ -1,4 +1,7 @@
+#include "pet.h"
 #include "os.h"
+
+bool readyToStart = false;
 
 unsigned long lastButtonTime = 0;
 const unsigned long debounceMs = 300;
@@ -10,29 +13,65 @@ MenuItem fileMenuItems[4] = {
   { "go to sleep", [](){ lightSleep(1); } }
 };
 
+MenuItem mainMenuItems[3] = {
+  { "pet", [](){ setCurrentMenu("pet"); } },
+  { "games", [](){ setCurrentMenu("games"); } },
+  { "settings", [](){ setCurrentMenu("settings"); } }
+};
+
+MenuItem petMenuItems[5] = {
+  { "back", [](){ setCurrentMenu("pet"); } },
+  { "food", [](){ setCurrentMenu("food"); } },
+  { "items", [](){ setCurrentMenu("items"); } },
+  { "edit", [](){ setCurrentMenu("edit"); } },
+  { "shop", [](){ setCurrentMenu("shop"); } }
+};
+
 Menu fileMenu = {
   fileMenuItems,
   sizeof(fileMenuItems) / sizeof(fileMenuItems[0]),
-  "File"
+  "file"
+};
+
+Menu mainMenu = {
+  mainMenuItems,
+  sizeof(mainMenuItems) / sizeof(mainMenuItems[0]),
+  "main menu"
+};
+
+Menu petMenu = {
+  petMenuItems,
+  sizeof(petMenuItems) / sizeof(petMenuItems[0]),
+  "pet menu"
 };
 
 String currentMenuName = "main menu";
 Menu* currentMenu = &fileMenu;
 
+void setCurrentMenu(String name) {
+  currentMenuName = name;
+
+  if (currentMenuName == "main menu") {
+    currentMenu = &mainMenu;
+  } else if (currentMenuName == "pet menu") {
+    currentMenu = &petMenu;
+  }
+}
+
 void loadSavedGame() {
   showPopup("load save game", 1000);
   // loadGameFromEEPROM();
-  beginOS();
+  readyToStart = true;
 }
 
 void createNewGame() {
   showPopup("create new game", 1000);
-  beginOS();
+  readyToStart = true;
 }
 
 void temporaryGame() {
   showPopup("temporary game", 1000);
-  beginOS();
+  readyToStart = true;
 }
 
 void handleMenuButtons() {
@@ -59,7 +98,7 @@ void osStartup() {
   display.clearDisplay();
   display.setCursor(0, 0);
   display.setTextSize(2);
-  drawCenteredText("cheetoPet V2", 0);
+  drawCenteredText("cheetoPet", 0);
   display.setTextSize(1);
   drawCenteredText("booting into OS...", 20);
   drawCenteredText("by @Cheet0sDelet0s", 29);
@@ -82,22 +121,36 @@ void osStartup() {
     delay(3000);
   }
 
-  bool readyToStart = false;
   while (!readyToStart) {
     display.clearDisplay();
     handleMenuButtons();
     drawMenu(currentMenu, currentMenu->length, "game select");
     
+    updatePreviousStates();
     display.display();
     delay(20);
   }
 }
 
 void beginOS() {
+  updateButtonStates();
+  setCurrentMenu("pet");
   while (1) {
+    batteryManagement();
+    
     updatePet();
     display.clearDisplay();
-    drawPetHome();
+
+    if (currentMenuName == "pet") {
+      handlePetButtons();
+      drawPetHome();
+    } else if (currentMenuName == "main menu" || currentMenuName == "pet menu") {
+      drawMenu(currentMenu, currentMenu->length, currentMenuName);
+      handleMenuButtons();
+    }
+
+    updatePreviousStates();
+    
     display.display();
     delay(5);
   }

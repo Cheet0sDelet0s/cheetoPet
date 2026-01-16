@@ -22,5 +22,6 @@ void loadSavedGame();
 void createNewGame();
 void temporaryGame();
 void beginOS();
+void setCurrentMenu(String name);
 
 #endif

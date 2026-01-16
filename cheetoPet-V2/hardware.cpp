@@ -475,3 +475,33 @@ void playSong(Song song) {
     queueTone(song.notes[i].freq, song.notes[i].length);
   }
 }
+
+bool buttonPressedThisFrame(int num) { // num is what button was pressed
+  updateButtonStates();
+  bool* button;
+  bool* prevState;
+  switch (num) {
+    case 1:
+      button = &leftButtonState;
+      prevState = &previousLeftState; break;
+    case 2:
+      prevState = &previousMiddleState;
+      button = &middleButtonState; break;
+    case 3:
+      prevState = &rightButtonState;
+      button = &rightButtonState; break;
+  }
+  bool pressed = false;
+  if (*button == true && &button != &prevState) {
+    pressed = true;
+  }
+
+  if (pressed) return true;
+  return false;
+}
+
+void updatePreviousStates() {
+  previousLeftState = leftButtonState;
+  previousMiddleState = middleButtonState;
+  previousRightState = rightButtonState;
+}

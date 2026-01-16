@@ -89,6 +89,8 @@ void audioEngine();
 void priorityQueueTone(float freq, int length);
 void queueTone(float freq, uint16_t length);
 void clearTones();
+void updatePreviousStates();
+bool buttonPressedThisFrame(int num);
 
 void eepromWriteByte(uint16_t addr, uint8_t data);
 uint8_t eepromReadByte(uint16_t addr);

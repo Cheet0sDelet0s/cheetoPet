@@ -11,6 +11,7 @@
 #include <bitmaps.h>
 #include <behaviourtree.h>
 #include <petLines.h>
+#include <os.h>
 
 #pragma once
 
@@ -104,6 +105,7 @@ int findIndexByType(const std::vector<ItemList>& vec, uint8_t type);
 void sitPet(int time, int type);
 void updateAreaPointers();
 bool removeFromList(int list[], int& itemCount, int index);
+void handlePetButtons();
 
 void updatePet();
 void drawPetHome();

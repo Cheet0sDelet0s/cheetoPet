@@ -40,8 +40,12 @@ void setup() {
   bootMenu(); // allow user to decide whether they want to boot into os
   // esp will sleep here if user doesnt decide to boot, will resume when power switch is toggled
   osStartup();
+
+  beginOS();
 }
 
 void loop() {
-
+  // code will never reach loop unless something has gone terribly wrong. delay and debug here just in case
+  Serial.println("CODE HAS REACHED LOOP() SOMEHOW. PROGRAM WILL DO NOTHING NOW :DD");
+  delay(500);
 }

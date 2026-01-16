@@ -461,6 +461,14 @@ void drawPet(int petNumber, int drawX, int drawY) {
   }
 }
 
+void handlePetButtons() {
+  if (buttonPressedThisFrame(1)) {
+    setCurrentMenu("main menu");
+  } else if (buttonPressedThisFrame(3)) {
+    setCurrentMenu("pet menu");
+  }
+}
+
 void drawEmotionUI() {
   display.setCursor(0, -2);
   display.setTextSize(1);
