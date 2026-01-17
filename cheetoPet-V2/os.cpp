@@ -26,8 +26,15 @@ MenuItem petMenuItems[4] = {
   { "shop", [](){ setCurrentMenu("shop"); } }
 };
 
-MenuItem shopMenuItems[12] = {
+MenuItem shopMenuItems[4] = {
   { "back", [](){ setCurrentMenu("pet menu"); }},
+  { "construction", [](){ setCurrentMenu("construction shop"); }},
+  { "food", [](){ setCurrentMenu("food shop"); }},
+  { "games", [](){ setCurrentMenu("games shop"); }}
+};
+
+MenuItem constructionShopItems[12] = {
+  { "back", [](){ setCurrentMenu("shop"); }},
   { "couch - $5.00", [](){ purchaseItem(3, 5); } },
   { "stool - $2.50", [](){ purchaseItem(4, 2.50); } },
   { "fireplace - $7.50", [](){ purchaseItem(5, 7.50); } },
@@ -41,11 +48,17 @@ MenuItem shopMenuItems[12] = {
   { "grass 2 - $1.00", [](){ purchaseItem(35, 1); } }
 };
 
+MenuItem foodShopItems[3] = {
+  { "back", [](){ setCurrentMenu("shop"); }},
+  { "apple - $1.00", [](){ purchaseItem(16, 1); }},
+  { "banana - $1.00", [](){ purchaseItem(18, 1); }}
+};
+
 MenuItem settingsItems[5] = {
   { "back", [](){ setCurrentMenu("main menu"); }},
   { "brightness", [](){ setCurrentMenu("brightness"); }},
   { "sound", [](){ setCurrentMenu("sound"); }},
-  { "gyro", [](){ setCurrentMenu("gyro"); }},
+  { "calibrate gyro", [](){ calibrateGyro(); }},
   { "restart", [](){ esp_restart(); }},
 };
 
@@ -81,6 +94,18 @@ Menu shopMenu = {
   "shop"
 };
 
+Menu constructionShop = {
+  constructionShopItems,
+  sizeof(constructionShopItems) / sizeof(constructionShopItems[0]),
+  "construction"
+};
+
+Menu foodShop = {
+  foodShopItems,
+  sizeof(foodShopItems) / sizeof(foodShopItems[0]),
+  "food"
+};
+
 Menu settingsMenu = {
   settingsItems,
   sizeof(settingsItems) / sizeof(settingsItems[0]),
@@ -95,6 +120,8 @@ Menu brightnessMenu = {
 
 String currentMenuName = "main menu";
 Menu* currentMenu = &fileMenu;
+
+String standardMenus[7] = {"main menu", "pet menu", "shop", "settings", "brightness", "construction shop", "food shop"};
 
 bool addToList(int list[], int& itemCount, int maxSize, int value) {
   if (itemCount < maxSize) {
@@ -115,6 +142,10 @@ void setCurrentMenu(String name) {
     currentMenu = &petMenu;
   } else if (name == "shop") {
     currentMenu = &shopMenu;
+  } else if (name == "construction shop") {
+    currentMenu = &constructionShop;
+  } else if (name == "food shop") {
+    currentMenu = &foodShop;
   } else if (name == "settings") {
     currentMenu = &settingsMenu;
   } else if (name == "brightness") {
@@ -167,6 +198,16 @@ bool removeFromList(int list[], int& itemCount, int index) {
   }
 
   return true;  // Success
+}
+
+bool isInArray(String item, String arr[]) { // check if item is in array (non vector)
+  int arrSize = sizeof(arr) / sizeof(arr[0]);
+  for (int i = 0; i < arrSize; i++) {
+    if (arr[i] == item) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void handleMenuButtons() {
@@ -326,11 +367,11 @@ void beginOS() {
     if (currentMenuName == "pet") {
       handlePetButtons();
       drawPetHome();
-    } else if (currentMenuName == "main menu" || currentMenuName == "pet menu" || currentMenuName == "shop" || currentMenuName == "settings" || currentMenuName == "brightness") {
-      drawMenu(currentMenu, currentMenu->length, currentMenuName);
-      handleMenuButtons();
     } else if (currentMenuName == "inventory") {
       drawInventory();
+      handleMenuButtons();
+    } else {
+      drawMenu(currentMenu, currentMenu->length, currentMenuName);
       handleMenuButtons();
     }
 

@@ -4,6 +4,9 @@ int saveFileVersion = 3;
 
 int petTypes = sizeof(pets) / sizeof(pets[0]);
 
+int foods[2] = {16, 18};
+int foodTypes = sizeof(foods) / sizeof(foods[0]);
+
 // AREA VARIABLES
 std::vector<ItemList> homePlot = {
   {7, 98, 4}
@@ -422,8 +425,12 @@ void handlePetButtons() {
     } else if (itemToPackUp != -1) {
       updateAreaPointers();
       ItemList item = (*currentAreaPtr)[itemToPackUp];
+      
       int id = item.type;
-      addToList(inventory, inventoryItems, 16, id);
+      if (id != 38) {  // only add to inventory if item isnt poop
+        addToList(inventory, inventoryItems, 16, id);
+      }
+
       currentAreaPtr->erase(currentAreaPtr->begin() + itemToPackUp); // holy shit this is really bad
       itemToPackUp = -1;
     }    
@@ -481,6 +488,15 @@ void drawEmotionUI() {
   display.setFont(NULL);
 }
 
+bool checkIfIsFood(int id) {
+  for (int i = 0; i < foodTypes; i++) {
+    if (id == foods[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void handleItemPlacing() {
   updateGyro();
   
@@ -493,16 +509,28 @@ void handleItemPlacing() {
   drawBitmapFromList(cursorX, cursorY, 1, itemBeingPlaced, SH110X_WHITE);
 
   if (buttonPressedThisFrame(3)) {
-    updateAreaPointers();
+    
+    if (checkIfIsFood(itemBeingPlaced)) {
+      int placedCount = amountFoodPlaced;
 
-    ItemList newItem = {
-      itemBeingPlaced,
-      cursorX,
-      (itemBeingPlaced == 5 ? 27 : cursorY)
-    };
+      addToList(placedFood, placedCount, 10, itemBeingPlaced);
+      placedCount = amountFoodPlaced;
+      addToList(placedFoodX, placedCount, 10, cursorX);
+      placedCount = amountFoodPlaced;
+      addToList(placedFoodY, placedCount, 10, cursorY);
 
-    currentAreaPtr->push_back({newItem});
+      amountFoodPlaced++;
+    } else {
+      updateAreaPointers();
 
+      ItemList newItem = {
+        itemBeingPlaced,
+        cursorX,
+        (itemBeingPlaced == 5 ? 27 : cursorY)
+      };
+
+      currentAreaPtr->push_back({newItem});
+    }
     itemBeingPlaced = -1;
   }
 }
@@ -542,9 +570,9 @@ void drawPetHome() {
 
   if (itemBeingPlaced != -1) {
     handleItemPlacing();
-  } else if (messageDisplayTime < messageMaxTime) {
+  } else if (messageDisplayTime < messageMaxTime && itemToPackUp == -1) {
       drawPetMessage(); // draw speech bubble on pet if it hasn't expired
-  }                   // AND not currently placing an item.
+  }                   // AND not currently placing or packing up an item.
   
   drawPet(userPet, petX, petY); // draw the pet to the display in its current state
   

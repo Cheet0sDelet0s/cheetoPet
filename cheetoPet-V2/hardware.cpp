@@ -510,3 +510,68 @@ void updatePreviousStates() {
   previousMiddleState = middleButtonState;
   previousRightState = rightButtonState;
 }
+void calibrateGyro() {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.setTextColor(SH110X_WHITE);
+  display.println("press A, then,");
+  display.println("lay device flat on a surface.");
+  display.println("wait 3 seconds, and the gyro");
+  display.println("will start calibrating.");
+  display.println("do not touch while calibrating");
+  display.display();
+
+  updateButtonStates();
+  
+  while (rightButtonState) {
+    updateButtonStates();
+    delay(10);
+  }
+
+  while (!rightButtonState) {
+    updateButtonStates();
+    delay(10);
+  }
+
+  waitForSelectRelease();
+
+  updateButtonStates();
+
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("calibrating in 3 seconds...");
+  display.display();
+
+  delay(3000);
+
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("calibrating...");
+  display.print("do not touch!!!");
+  display.display();
+
+  const int samples = 50;
+  
+  float xValues;
+  float yValues;
+  float zValues;
+
+  for (int count = 0; count < samples; count++) {
+    mpu.gyroUpdate();
+    xValues += mpu.gyroX();
+    yValues += mpu.gyroY();
+    zValues += mpu.gyroZ();
+    delay(5);
+  }
+
+  gyroXOffset = xValues / samples * -1; // get mean drift of each axis, apply offset in opposite direction! so simple! and its terrible!
+  gyroYOffset = yValues / samples * -1;
+  gyroZOffset = zValues / samples * -1;
+
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("done! you can pick me up");
+  display.display();
+
+  delay(3000);
+}
