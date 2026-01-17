@@ -23,5 +23,9 @@ void createNewGame();
 void temporaryGame();
 void beginOS();
 void setCurrentMenu(String name);
+bool addToList(int list[], int& itemCount, int maxSize, int value);
+int indexOf(ItemList array[], int length, int targetType);
+bool removeFromList(int list[], int& itemCount, int index);
+int indexOfList(int array[], int length, int target);
 
 #endif

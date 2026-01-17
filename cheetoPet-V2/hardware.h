@@ -38,21 +38,24 @@ extern DRAM_ATTR bool previousRightState;
 
 //gyro
 DRAM_ATTR inline float totalG = 0.0;
-extern DRAM_ATTR float angleX;
-extern DRAM_ATTR float angleY;
-extern DRAM_ATTR float angleZ;
-extern DRAM_ATTR float posX;
-extern DRAM_ATTR float posY;
-extern DRAM_ATTR float posZ;
+DRAM_ATTR inline float angleX;
+DRAM_ATTR inline float angleY;
+DRAM_ATTR inline float angleZ;
+DRAM_ATTR inline float posX;
+DRAM_ATTR inline float posY;
+DRAM_ATTR inline float posZ;
 
-extern float gyroXOffset;
-extern float gyroYOffset;
-extern float gyroZOffset;
-extern float accelXOffset;
-extern float accelYOffset;
-extern float accelZOffset;
+inline float gyroXOffset = 0;
+inline float gyroYOffset = 0;
+inline float gyroZOffset = 0;
+inline float accelXOffset = 0;
+inline float accelYOffset = 0;
+inline float accelZOffset = 0;
 
-extern DRAM_ATTR unsigned long lastUpdate;
+DRAM_ATTR inline float currentBatteryVoltage = 3.7;
+DRAM_ATTR inline int currentBatteryPercentage = 100;
+
+DRAM_ATTR inline unsigned long lastUpdate = 0;
 
 extern int numSongs;
 

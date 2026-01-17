@@ -17,27 +17,39 @@ std::vector<ItemList> outsidePlot = {
     {42, 29, 25}
 };
 
-//item inventory
-DRAM_ATTR int inventory[8] = {};
-DRAM_ATTR int inventoryItems = 0;
-
-DRAM_ATTR int itemBeingPlaced = -1;
-DRAM_ATTR bool startHandlingPlacing = false;
-
-//food inventory
-DRAM_ATTR int foodInventory[8] = { 18 };
-DRAM_ATTR int foodInventoryItems = 1;
-
-DRAM_ATTR bool handleFoodPlacing = false;
+int itemBeingPlaced = -1;
+bool startHandlingPlacing = false;
 
 DateTime now;
 DRAM_ATTR int lastSecond = -1;
 
 //game library
-DRAM_ATTR int gameLibrary[8] = { 0 };
-DRAM_ATTR int gameLibraryCount = 1;
+int gameLibrary[8] = { 0 };
+int gameLibraryCount = 1;
 //                             0        1           2             3           4
 const String gameNames[5] = {"pong", "shooty", "flappy bur", "bubblebox", "3d test"};
+
+void placeItemFromInventory(int id) {
+  int index = indexOfList(inventory, inventoryItems, id);
+
+  if (index != -1) {
+    removeFromList(inventory, inventoryItems, index);
+    inventoryItems--;
+  }
+
+  itemBeingPlaced = id;
+  startHandlingPlacing = true;
+
+  setCurrentMenu("pet");
+}
+
+void purchaseItem(int id, float price) {
+  if (money >= price) {
+    addToList(inventory, inventoryItems, 8, id);
+    money -= price;
+    showPopup("added to inventory!", 1000);
+  }
+}
 
 void petMessage(String message) {
   message.replace("{PETNAME}", petName);
@@ -63,19 +75,6 @@ void petMessage(String message) {
     float vy = sin(angle) * speed; // Velocity in y direction
     createParticle(3, petX + 8 * petDir, petY + 4, vx, vy, random(16, 24)); // Spawn particle near pet's mouth
   }
-}
-
-bool removeFromList(int list[], int& itemCount, int index) {
-  if (index < 0 || index >= itemCount) {
-    return false;  // Invalid index
-  }
-
-  // Shift elements left to fill the gap
-  for (int i = index; i < itemCount - 1; i++) {
-    list[i] = list[i + 1];
-  }
-
-  return true;  // Success
 }
 
 void updateAreaPointers() {
@@ -243,7 +242,6 @@ void drawAreaItems() {
   updateAreaPointers();
   updateButtonStates();
 
-
   for (int i = 0; i < currentAreaPtr->size(); i++) {
     ItemList currentItem = (*currentAreaPtr)[i];
 
@@ -260,50 +258,15 @@ void drawAreaItems() {
       display.fillRect(x + 6, y, 3, -27, SH110X_WHITE);
     }
 
-    // if (detectCursorTouch(x, y, bmp.width, bmp.height) && currentItem.type != 36 && currentItem.type != 42) {
-    //   if (rightButtonState && loadIndicator > 9) {
-    //     addToList(inventory, inventoryItems, 8, currentItem.type);
-    //     currentAreaPtr->erase(currentAreaPtr->begin()+i);
-    //     loadIndicator = 0;
-    //   } else if (rightButtonState) {
-    //     loadIndicator++;
-    //   }
-    // }
-    
-    // if (detectCursorTouch(x, y, bmp.width, bmp.height) && currentItem.type == 42) {
-    //   if (rightButtonState && loadIndicator > 9) {
-    //     openNews();
-    //     loadIndicator = 0;
-    //   } else if (rightButtonState) {
-    //     loadIndicator++;
-    //   }
-    // }
+    if (itemToPackUp == i) {
+      display.drawRoundRect(x - 2, y - 2, bmp.width + 4, bmp.height + 4, 2, SH110X_WHITE);
+    }
   }
-
-  // updateDoorDimensions(exitLocations[currentArea]);
-
-  // if (exitLocations[currentArea] != 0) {
-  //   display.fillRect(doorX, doorY, doorW, doorH, SH110X_WHITE);
-  // }
-
-  // if (detectCursorTouch(doorX, doorY, doorW, doorH)) {
-  //   if (rightButtonState && loadIndicator > 9) {
-  //     currentArea = exitLinks[currentArea];
-  //     loadIndicator = 0;
-  //     arrowAnimation();
-  //     updateDoorDimensions(exitLocations[currentArea]);
-  //     petX = doorX;
-  //     petY = doorY;
-  //   } else if (rightButtonState) {
-  //     loadIndicator++;
-  //   }
-  // }
 
   for (int i = 0; i < amountFoodPlaced; i++) {
     const BitmapInfo& bmp = bitmaps[placedFood[i]];
     display.drawBitmap(placedFoodX[i], placedFoodY[i], bmp.data, bmp.width, bmp.height, SH110X_WHITE);
   }
-
 }
 
 void drawPetMessage() { 
@@ -399,25 +362,6 @@ void drawPetMessage() {
   messageDisplayTime++;
 
   updateButtonStates();
-
-  // if (detectCursorTouch(bubbleX - (bubbleDirection == 1 ? 0 : bubbleWidth), bubbleY - bubbleHeight, bubbleWidth, bubbleHeight) && rightButtonState) {
-  //   messageDisplayTime = messageMaxTime + 1; // close bubble
-
-  //   float speed = 2; // particle speed, adjust as needed
-  //   int topLeftX = bubbleDirection == 1 ? bubbleX : bubbleX - bubbleWidth;
-  //   int topLeftY = bubbleY - bubbleHeight;
-  //   int topRightX = bubbleDirection == 1 ? bubbleX + bubbleWidth : bubbleX;
-  //   int topRightY = bubbleY - bubbleHeight;
-  //   int bottomLeftX = bubbleDirection == 1 ? bubbleX : bubbleX - bubbleWidth;
-  //   int bottomLeftY = bubbleY - 3; // bottom edge
-  //   int bottomRightX = bubbleDirection == 1 ? bubbleX + bubbleWidth : bubbleX;
-  //   int bottomRightY = bubbleY - 3;
-
-  //   createParticle(3, topLeftX, topLeftY, -speed, -speed, 5);
-  //   createParticle(3, topRightX, topRightY, speed, -speed, 5);
-  //   createParticle(3, bottomLeftX, bottomLeftY, -speed, speed, 5);
-  //   createParticle(3, bottomRightX, bottomRightY, speed, speed, 5);
-  // }
 }
 
 void drawPet(int petNumber, int drawX, int drawY) {
@@ -437,35 +381,52 @@ void drawPet(int petNumber, int drawX, int drawY) {
           drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].stillID, SH110X_WHITE);
           break;
       }
-      // drawBitmapFromList(drawX - 1, drawY - 1, petDir, petSitType + 1, SH110X_BLACK);
-      // drawBitmapFromList(drawX, drawY, petDir, petSitType, SH110X_WHITE);
       petSitTimer--;
     } else {
       drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].stillID + 1, SH110X_BLACK);
       drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].stillID, SH110X_WHITE);
-      // drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseStillBigMask, 18, 28, SH110X_BLACK);
-      // drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseStillBig, 16, 26, SH110X_WHITE);
     }
   } else {
     if (petMoveAnim < 3) {
       drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].walk1ID + 1, SH110X_BLACK);
       drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].walk1ID, SH110X_WHITE);
-      // drawBitmapWithDirection(drawX - 1, drawY - 1, petDir, pet_gooseWalkMask, 18, 27, SH110X_BLACK);
-      // drawBitmapWithDirection(drawX, drawY, petDir, pet_gooseWalk, 16, 26, SH110X_WHITE);
     } else {
       drawBitmapFromList(drawX - 1, drawY - 1, petDir, pets[petNumber].walk2ID + 1, SH110X_BLACK);
       drawBitmapFromList(drawX, drawY, petDir, pets[petNumber].walk2ID, SH110X_WHITE);
-      // drawBitmapWithDirection(drawX - 1, drawY, petDir, pet_gooseWalk2Mask, 19, 26, SH110X_BLACK);
-      // drawBitmapWithDirection(drawX, drawY+1, petDir, pet_gooseWalk2, 17, 25, SH110X_WHITE);
     }
   }
 }
 
 void handlePetButtons() {
   if (buttonPressedThisFrame(1)) {
-    setCurrentMenu("main menu");
+    if (itemToPackUp == -1) { // if not in edit mode just go to main menu when B pressed
+      setCurrentMenu("main menu");
+    } else {
+      itemToPackUp--;
+      if (itemToPackUp < 0) {
+        itemToPackUp = currentAreaPtr->size() - 1;
+      }
+    }    
+  } else if (buttonPressedThisFrame(2)) { 
+    if (itemToPackUp == -1) {
+
+    } else {
+      itemToPackUp++;
+      if (itemToPackUp > currentAreaPtr->size() - 1) {
+        itemToPackUp = 0;
+      }
+    }
   } else if (buttonPressedThisFrame(3)) {
-    setCurrentMenu("pet menu");
+    if (itemBeingPlaced == -1 && itemToPackUp == -1) {
+      setCurrentMenu("pet menu");
+    } else if (itemToPackUp != -1) {
+      updateAreaPointers();
+      ItemList item = (*currentAreaPtr)[itemToPackUp];
+      int id = item.type;
+      addToList(inventory, inventoryItems, 16, id);
+      currentAreaPtr->erase(currentAreaPtr->begin() + itemToPackUp); // holy shit this is really bad
+      itemToPackUp = -1;
+    }    
   }
 }
 
@@ -520,6 +481,32 @@ void drawEmotionUI() {
   display.setFont(NULL);
 }
 
+void handleItemPlacing() {
+  updateGyro();
+  
+  angleX = constrain(angleX, -32, 32);
+  angleY = constrain(angleY, -32, 32);
+
+  int cursorX = angleX * 2 + 64;
+  int cursorY = angleY * 2 + 64;
+
+  drawBitmapFromList(cursorX, cursorY, 1, itemBeingPlaced, SH110X_WHITE);
+
+  if (buttonPressedThisFrame(3)) {
+    updateAreaPointers();
+
+    ItemList newItem = {
+      itemBeingPlaced,
+      cursorX,
+      (itemBeingPlaced == 5 ? 27 : cursorY)
+    };
+
+    currentAreaPtr->push_back({newItem});
+
+    itemBeingPlaced = -1;
+  }
+}
+
 void updatePet() {
 
   if (totalG > 11) {   //kinda funny but annoying. kills the pet if the device experiences over 11 g's of force. hard to do on accident unless you're in a fighter jet or something
@@ -552,14 +539,23 @@ void updatePet() {
 
 void drawPetHome() {
   drawAreaItems();
+
+  if (itemBeingPlaced != -1) {
+    handleItemPlacing();
+  } else if (messageDisplayTime < messageMaxTime) {
+      drawPetMessage(); // draw speech bubble on pet if it hasn't expired
+  }                   // AND not currently placing an item.
   
   drawPet(userPet, petX, petY); // draw the pet to the display in its current state
   
-  if (messageDisplayTime < messageMaxTime) {
-    drawPetMessage(); // draw speech bubble on pet if it hasn't expired
-  }
-  
-  drawEmotionUI();
+  drawEmotionUI(); // draw pet stats in top left (hunger sleep etc)
 
-  drawParticles();
+  drawParticles(); // render particles on screen, updating particles is seperate
+
+  if (itemToPackUp != -1) {
+    display.setFont(NULL);
+    display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+    display.setTextSize(1);
+    drawCenteredText("choose item to pick up", 0);
+  }
 }

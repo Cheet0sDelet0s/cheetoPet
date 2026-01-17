@@ -1887,7 +1887,7 @@ void drawPet(int petNumber, int drawX, int drawY) {
     if (rightButtonState) {
       showPetMenu = !showPetMenu;
       waitForSelectRelease();
-    }
+    }\
   }  
 }
 

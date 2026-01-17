@@ -811,9 +811,9 @@ String displayNames[] = {
   { "goose" },          //1
   { "goose" },          //2
   { "couch" },          //3
-  { "table" },          //4
+  { "stool" },          //4
   { "fireplace" },      //5
-  { "big table" },      //6
+  { "table" },      		//6
   { "window" },         //7
   { "menuIcon" },       //8
   { "pencilIcon" },     //9

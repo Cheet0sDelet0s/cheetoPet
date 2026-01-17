@@ -8,10 +8,11 @@
 
 // ---- CHEETOPET FILES ----
 #include <hardware.h>
-#include <bitmaps.h>
+#include <graphics.h>
 #include <behaviourtree.h>
 #include <petLines.h>
 #include <os.h>
+#include <bitmaps.h>
 
 #pragma once
 
@@ -25,9 +26,9 @@ inline float petMood = 50;
 inline float money = 40.00;
 inline int userPet = 0;
 
-DRAM_ATTR inline String currentPetMessage = "";
-DRAM_ATTR inline int messageDisplayTime = 0;
-DRAM_ATTR inline int messageMaxTime = 0;
+inline String currentPetMessage = "";
+inline int messageDisplayTime = 0;
+inline int messageMaxTime = 0;
 
 // PET MOVEMENT
 DRAM_ATTR inline int petX = 64;
@@ -35,27 +36,32 @@ DRAM_ATTR inline int petY = 32;
 
 DRAM_ATTR inline int petMoveX = 64;
 DRAM_ATTR inline int petMoveY = 32;
-DRAM_ATTR inline int petMoveSpeed = 0;
-DRAM_ATTR inline bool movePet = false;
-DRAM_ATTR inline int petMoveAnim = 0;
-DRAM_ATTR inline int petDir = 1;
-DRAM_ATTR inline int petSitTimer = 0;
-DRAM_ATTR inline int petSitType = 0;
-DRAM_ATTR inline int petStatus = 0;
-DRAM_ATTR inline bool movingPet = false;
+inline int petMoveSpeed = 0;
+inline bool movePet = false;
+inline int petMoveAnim = 0;
+inline int petDir = 1;
+inline int petSitTimer = 0;
+inline int petSitType = 0;
+inline int petStatus = 0;
+inline bool movingPet = false;
 
-DRAM_ATTR inline int currentArea = 0;
+inline int currentArea = 0;
 
-DRAM_ATTR inline int placedFood[10] = {};
-DRAM_ATTR inline int amountFoodPlaced = 0;
-DRAM_ATTR inline int placedFoodX[10] = {};
-DRAM_ATTR inline int placedFoodY[10] = {};
+inline int placedFood[10] = {};
+inline int amountFoodPlaced = 0;
+inline int placedFoodX[10] = {};
+inline int placedFoodY[10] = {};
 
-DRAM_ATTR inline std::vector<ItemList>* currentAreaPtr = nullptr;
+inline std::vector<ItemList>* currentAreaPtr = nullptr;
+
+inline int inventory[16] = {};
+inline int inventoryItems = 0;
+
+inline int itemToPackUp = -1;
 
 //TIMING
 inline const long interval = 50; // interval for pet movement? i think??
-inline unsigned long previousMillis = 0; // previous millis() value
+DRAM_ATTR inline unsigned long previousMillis = 0; // previous millis() value
 
 struct Door {
   uint8_t x, y, area, type;
@@ -104,8 +110,10 @@ bool checkItemIsPlaced(int item);
 int findIndexByType(const std::vector<ItemList>& vec, uint8_t type);
 void sitPet(int time, int type);
 void updateAreaPointers();
-bool removeFromList(int list[], int& itemCount, int index);
 void handlePetButtons();
+void purchaseItem(int id, float price);
+void placeItemFromInventory(int id);
+void handleItemPlacing();
 
 void updatePet();
 void drawPetHome();

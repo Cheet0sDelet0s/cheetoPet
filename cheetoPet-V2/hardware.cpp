@@ -180,6 +180,8 @@ float getBatteryVoltage() {
   // Compensate for divider (2x)
   float batteryVoltage = rawVoltage * 2.0;
 
+  currentBatteryVoltage = batteryVoltage;
+
   return batteryVoltage; // 3 decimal places
 }
 
@@ -191,7 +193,9 @@ int getBatteryPercentage() {
   if (batteryVoltage < 3.0) batteryVoltage = 3.0;
 
   // Map voltage to percentage (linear between 3.0V = 0% and 4.2V = 100%)
-  return (int)((batteryVoltage - 3.0) / (4.2 - 3.0) * 100.0);
+  int percentage = (int)((batteryVoltage - 3.0) / (4.2 - 3.0) * 100.0);
+  currentBatteryPercentage = percentage;
+  return percentage;
 }
 
 /* STATUSES:  (CHRG + STDBY)
@@ -488,11 +492,11 @@ bool buttonPressedThisFrame(int num) { // num is what button was pressed
       prevState = &previousMiddleState;
       button = &middleButtonState; break;
     case 3:
-      prevState = &rightButtonState;
+      prevState = &previousRightState;
       button = &rightButtonState; break;
   }
   bool pressed = false;
-  if (*button == true && &button != &prevState) {
+  if (*button == true && *button != *prevState) {
     pressed = true;
   }
 
@@ -501,6 +505,7 @@ bool buttonPressedThisFrame(int num) { // num is what button was pressed
 }
 
 void updatePreviousStates() {
+  updateButtonStates();
   previousLeftState = leftButtonState;
   previousMiddleState = middleButtonState;
   previousRightState = rightButtonState;

@@ -42,10 +42,12 @@ void drawBitmapFlippedX(int16_t x, int16_t y,
                                 uint16_t color);
 void drawCenteredText(const String &text, int16_t y);
 void drawTextCenteredX(const char *text, int16_t centerX, int16_t y);
+void drawTextRightAligned(int16_t y, String text);
 void showPopup(String text, int time);
 void spiralFill(uint16_t color);
-
+void drawLiveData();
 void drawMenu(Menu* menu, uint8_t menuLength, const String& menuName);
+void drawInventory();
 
 // particle system
 void updateParticles();

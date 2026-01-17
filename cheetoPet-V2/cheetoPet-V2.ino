@@ -4,22 +4,22 @@
 
 // ---- LIBRARIES ----
 #include <Arduino.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SH110X.h>
-#include <RTClib.h>
-#include <MPU9250_asukiaaa.h>
-#include <Adafruit_ADS1X15.h>
-#include "esp_sleep.h"
-#include "driver/rtc_io.h"
-#include "vector"
-#include "Picopixel.h"
+// #include <Wire.h>
+// #include <Adafruit_GFX.h>
+// #include <Adafruit_SH110X.h>
+// #include <RTClib.h>
+// #include <MPU9250_asukiaaa.h>
+// #include <Adafruit_ADS1X15.h>
+// #include "esp_sleep.h"
+// #include "driver/rtc_io.h"
+// #include "vector"
+// #include "Picopixel.h"
 
 // ---- CHEETOPET FILES ----
-#include "hardwareConfig.h"
+//#include "hardwareConfig.h"
 #include "hardware.h"
-#include "graphics.h"
-#include "bitmaps.h"
+//#include "graphics.h"
+//#include "bitmaps.h"
 #include "os.h"
 
 /* ---- INFO ----

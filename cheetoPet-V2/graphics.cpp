@@ -77,6 +77,21 @@ void showPopup(String text, int time) {
   display.setTextColor(SH110X_WHITE);
 }
 
+void drawTextRightAligned(int16_t y, String text) {
+  int16_t x1, y1;
+  uint16_t w, h;
+
+  // Measure text bounds at (0, 0)
+  display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
+
+  // Calculate right-aligned X position
+  int16_t x = display.width() - w;
+
+  // Draw text
+  display.setCursor(x, y);
+  display.print(text);
+}
+
 void spiralFill(uint16_t color) {
   int x0 = 0;
   int y0 = 0;
@@ -116,10 +131,47 @@ void spiralFill(uint16_t color) {
   }
 }
 
+void drawLiveData() {
+  display.setTextColor(SH110X_WHITE);
+  display.setFont(&Picopixel);
+  DateTime now = rtc.now();
+  String data = "";
+  data += String(now.hour());
+  data += ":";
+  if (now.minute() < 10) {
+    data += "0";
+    data += String(now.minute());
+  } else {
+    data += String(now.minute());
+  }
+  drawTextRightAligned(5, data);
+  data = String(now.day()); data += "/"; data += String(now.month());
+  drawTextRightAligned(11, data);
+
+  int status = getBatteryStatus();
+
+  if (status == 0) { // discharging
+    data = String(currentBatteryPercentage) + "%";
+  } else if (status == 1) { // charging
+    data = "CHARGE";
+  } else if (status == 2) { // finished charging
+    data = "FINISH";
+  } else if (status == 3) { // error
+    data = "BAT ERROR";
+  }
+
+  drawTextRightAligned(17, data);
+  drawTextRightAligned(23, String(currentBatteryVoltage) + "V");
+
+  display.setFont(NULL);
+}
+
 void drawMenu(Menu* menu, uint8_t menuLength, const String& menuName) {
   const uint8_t ROW_HEIGHT = 10;
   const uint8_t HEADER_HEIGHT = 16;
   const uint8_t VISIBLE_ROWS = (SCREEN_HEIGHT - HEADER_HEIGHT) / ROW_HEIGHT;
+
+  drawLiveData();
 
   if (currentMenuItem < 0) { // wrap selected item
     currentMenuItem = menuLength - 1;
@@ -164,6 +216,64 @@ void drawMenu(Menu* menu, uint8_t menuLength, const String& menuName) {
     display.fillTriangle(120, 120, 124, 120, 122, 124, SH110X_WHITE);
   }
 }
+
+void drawInventory() {
+  const uint8_t ROW_HEIGHT = 10;
+  const uint8_t HEADER_HEIGHT = 16;
+  const uint8_t VISIBLE_ROWS = ((SCREEN_HEIGHT - HEADER_HEIGHT) / ROW_HEIGHT);
+
+  const uint8_t TOTAL_ITEMS = inventoryItems + 1; // +1 for "Back"
+
+  drawLiveData();
+
+  if (currentMenuItem < 0) {
+    currentMenuItem = TOTAL_ITEMS - 1;
+  } else if (currentMenuItem >= TOTAL_ITEMS) {
+    currentMenuItem = 0;
+  }
+
+  if (currentMenuItem < menuScroll) {
+    menuScroll = currentMenuItem;
+  } else if (currentMenuItem >= menuScroll + VISIBLE_ROWS) {
+    menuScroll = currentMenuItem - VISIBLE_ROWS + 1;
+  }
+
+  display.setTextSize(1);
+  display.setTextColor(SH110X_WHITE);
+
+  // Header
+  display.setCursor(0, 0);
+  display.println("inventory");
+
+  // Draw visible menu entries
+  for (uint8_t i = 0; i < VISIBLE_ROWS; i++) {
+    uint8_t menuItemIndex = menuScroll + i;
+    if (menuItemIndex >= TOTAL_ITEMS) break;
+
+    display.setCursor(0, HEADER_HEIGHT + (i * ROW_HEIGHT));
+
+    if (menuItemIndex == currentMenuItem) {
+      display.print("> ");
+    } else {
+      display.print("  ");
+    }
+
+    if (menuItemIndex == 0) {
+      display.println("back");
+    } else {
+      display.println(displayNames[inventory[menuItemIndex - 1]]);
+    }
+  }
+
+  // Scroll indicators
+  if (menuScroll > 0) {
+    display.fillTriangle(120, 18, 124, 18, 122, 14, SH110X_WHITE);
+  }
+  if (menuScroll + VISIBLE_ROWS < TOTAL_ITEMS) {
+    display.fillTriangle(120, 120, 124, 120, 122, 124, SH110X_WHITE);
+  }
+}
+
 
 // PARTICLES
 
