@@ -48,6 +48,7 @@ void spiralFill(uint16_t color);
 void drawLiveData();
 void drawMenu(Menu* menu, uint8_t menuLength, const String& menuName);
 void drawInventory();
+void drawCheckerboard(uint8_t squareSize);
 
 // particle system
 void updateParticles();

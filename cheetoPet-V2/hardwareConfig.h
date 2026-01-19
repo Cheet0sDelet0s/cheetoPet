@@ -1,6 +1,8 @@
 #ifndef HARDWARE_CONFIG_H
 #define HARDWARE_CONFIG_H
 
+#include <Arduino.h>
+
 // ---- PINS AND DEFINITIONS ----
 
 /* ---- INFO ----

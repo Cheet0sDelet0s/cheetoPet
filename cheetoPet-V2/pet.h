@@ -57,6 +57,10 @@ inline std::vector<ItemList>* currentAreaPtr = nullptr;
 inline int inventory[16] = {};
 inline int inventoryItems = 0;
 
+//game library
+inline int gameLibrary[8] = { 0 };
+inline int gameLibraryCount = 1;
+
 inline int itemToPackUp = -1;
 
 //TIMING

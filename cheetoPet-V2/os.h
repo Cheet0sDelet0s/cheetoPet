@@ -15,6 +15,8 @@
 #include "hardware.h"
 #include "graphics.h"
 #include "bitmaps.h"
+#include "pet.h"
+#include "games.h"
 
 void osStartup();
 void handleMenuButtons();
@@ -27,6 +29,8 @@ bool addToList(int list[], int& itemCount, int maxSize, int value);
 int indexOf(ItemList array[], int length, int targetType);
 bool removeFromList(int list[], int& itemCount, int index);
 int indexOfList(int array[], int length, int target);
-bool isInArray(String item, int arr[]);
+bool isInArray(int item, int arr[]);
+int promptDifficulty();
+void handleSleepMode();
 
 #endif

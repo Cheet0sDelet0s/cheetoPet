@@ -26,9 +26,7 @@ bool startHandlingPlacing = false;
 DateTime now;
 DRAM_ATTR int lastSecond = -1;
 
-//game library
-int gameLibrary[8] = { 0 };
-int gameLibraryCount = 1;
+
 //                             0        1           2             3           4
 const String gameNames[5] = {"pong", "shooty", "flappy bur", "bubblebox", "3d test"};
 

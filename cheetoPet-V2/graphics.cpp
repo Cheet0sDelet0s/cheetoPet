@@ -92,6 +92,20 @@ void drawTextRightAligned(int16_t y, String text) {
   display.print(text);
 }
 
+void drawCheckerboard(uint8_t squareSize) {
+  bool color;
+  for (uint8_t y = 0; y < 128; y += squareSize) {
+    color = (y / squareSize) % 2;  // Alternate row start
+    for (uint8_t x = 0; x < 128; x += squareSize) {
+      display.fillRect(x, y, squareSize, squareSize, color ? SH110X_WHITE : SH110X_BLACK);
+      color = !color;  // Alternate color for each square
+      }
+    display.display();
+  }
+  display.display();
+  delay(300);
+}
+
 void spiralFill(uint16_t color) {
   int x0 = 0;
   int y0 = 0;

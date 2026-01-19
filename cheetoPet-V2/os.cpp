@@ -3,6 +3,8 @@
 
 bool readyToStart = false;
 
+int selectedDifficulty = 1;
+
 //unsigned long lastButtonTime = 0;
 //const unsigned long debounceMs = 300;
 
@@ -24,6 +26,12 @@ MenuItem petMenuItems[4] = {
   { "inventory", [](){ setCurrentMenu("inventory"); } },
   { "edit", [](){ itemToPackUp = 0; setCurrentMenu("pet"); } },
   { "shop", [](){ setCurrentMenu("shop"); } }
+};
+
+MenuItem gamesMenuItems[3] = {
+  { "back", [](){ setCurrentMenu("main menu"); }},
+  { "pong", [](){ pong(); } },
+  { "safe crack", [](){ safeCrack(); } }
 };
 
 MenuItem shopMenuItems[4] = {
@@ -70,6 +78,12 @@ MenuItem brightnessItems[5] = {
   { "5", [](){ display.setContrast(255); setCurrentMenu("settings"); }}
 };
 
+MenuItem difficultyItems[3] = {
+  { "easy", [](){ selectedDifficulty = 1; readyToStart = true; }},
+  { "medium", [](){ selectedDifficulty = 2; readyToStart = true; }},
+  { "hard", [](){ selectedDifficulty = 3; readyToStart = true; }}
+};
+
 Menu fileMenu = {
   fileMenuItems,
   sizeof(fileMenuItems) / sizeof(fileMenuItems[0]),
@@ -92,6 +106,12 @@ Menu shopMenu = {
   shopMenuItems,
   sizeof(shopMenuItems) / sizeof(shopMenuItems[0]),
   "shop"
+};
+
+Menu gamesMenu = {
+  gamesMenuItems,
+  sizeof(gamesMenuItems) / sizeof(gamesMenuItems[0]),
+  "games"
 };
 
 Menu constructionShop = {
@@ -118,10 +138,40 @@ Menu brightnessMenu = {
   "brightness"
 };
 
+Menu difficultyMenu = {
+  difficultyItems,
+  sizeof(difficultyItems) / sizeof(difficultyItems[0]),
+  "difficulty"
+};
+
 String currentMenuName = "main menu";
 Menu* currentMenu = &fileMenu;
 
-String standardMenus[7] = {"main menu", "pet menu", "shop", "settings", "brightness", "construction shop", "food shop"};
+int promptDifficulty() {
+  readyToStart = false;
+  setCurrentMenu("difficulty");
+
+  while (rightButtonState) {
+    updateButtonStates();
+    delay(20);
+  }
+
+  while (!readyToStart) {
+    batteryManagement();
+    updatePet();
+    display.clearDisplay();
+    drawMenu(currentMenu, currentMenu->length, currentMenuName);
+    handleMenuButtons();
+    updatePreviousStates();
+    display.display();
+    handleSleepMode();
+    delay(5);
+  }
+
+  setCurrentMenu("games");
+
+  return selectedDifficulty;
+}
 
 bool addToList(int list[], int& itemCount, int maxSize, int value) {
   if (itemCount < maxSize) {
@@ -150,6 +200,10 @@ void setCurrentMenu(String name) {
     currentMenu = &settingsMenu;
   } else if (name == "brightness") {
     currentMenu = &brightnessMenu;
+  } else if (name == "games") {
+    currentMenu = &gamesMenu;
+  } else if (name == "difficulty") {
+    currentMenu = &difficultyMenu;
   }
 }
 
@@ -200,7 +254,7 @@ bool removeFromList(int list[], int& itemCount, int index) {
   return true;  // Success
 }
 
-bool isInArray(String item, String arr[]) { // check if item is in array (non vector)
+bool isInArray(int item, int arr[]) { // check if item is in array (non vector)
   int arrSize = sizeof(arr) / sizeof(arr[0]);
   for (int i = 0; i < arrSize; i++) {
     if (arr[i] == item) {
