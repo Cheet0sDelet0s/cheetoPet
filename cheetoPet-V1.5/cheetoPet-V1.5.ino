@@ -1,5 +1,5 @@
  /***********************************\
- | cheetoPet V2 - by olly jeffery :) |
+ | cheetoPet V1.5 - by olly jeffery :) |
  \***********************************/
 
 // ---- LIBRARIES ----
