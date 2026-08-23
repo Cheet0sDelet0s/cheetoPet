@@ -10,5 +10,6 @@
         "any": "cpp",
         "*.inc": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "cmake.sourceDirectory": "/home/cheeto/Arduino/cheetoPet/cheetoPet-V2"
 }
