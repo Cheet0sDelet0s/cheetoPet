@@ -7,56 +7,59 @@ int main()
 {
     rtc::RTCHost clock;
     clock.begin();
-    DisplaySDL2 display("cheetoPet display", 3);
+    DisplaySDL2 display("cheetoPet display", 4);
 
     if (!display.begin())
         return 1;
 
     display.fillScreen(BLACK); 
 
-    display.drawRect(
-        10, 10,
-        220, 260,
-        WHITE
-    );
+    // display.drawRect(
+    //     10, 10,
+    //     220, 260,
+    //     WHITE
+    // );
 
-    display.fillRoundRect(
-        30, 30,
-        180, 80,
-        12,
-        BLUE
-    );
+    // display.fillRoundRect(
+    //     30, 30,
+    //     180, 80,
+    //     12,
+    //     BLUE
+    // );
 
-    display.drawCircle(
-        120, 160,
-        50,
-        RED
-    );
+    // display.drawCircle(
+    //     120, 160,
+    //     50,
+    //     RED
+    // );
 
-    display.fillCircle(
-        120, 160,
-        40,
-        YELLOW
-    );
+    // display.fillCircle(
+    //     120, 160,
+    //     40,
+    //     YELLOW
+    // );
 
-    display.drawLine(
-        0, 0,
-        239, 279,
-        GREEN
-    );
+    // display.drawLine(
+    //     0, 0,
+    //     239, 279,
+    //     GREEN
+    // );
 
-    display.drawTriangle(
-        120, 180,
-        70, 240,
-        170, 240,
-        MAGENTA
-    );
+    // display.drawTriangle(
+    //     120, 180,
+    //     70, 240,
+    //     170, 240,
+    //     MAGENTA
+    // );
 
     display.setFont(fonts::Font5x7);
     display.setTextColor(WHITE);
-    display.setTextSize(2);
-    display.setCursor(20, 120);
-    display.print("The Quick Brown Fox");
+    display.setTextSize(1);
+    display.setCursor(0, 30);
+    display.println("the quick brown fox jumps over the lazy dog.");
+    display.setCursor(0, 50);
+    display.println("THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG!");
+    display.println("!?$%^&*():;@#/|-_~");
 
     display.present();
 

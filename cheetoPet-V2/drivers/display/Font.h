@@ -3,6 +3,20 @@
 #include <cstdint>
 #include "Font.h"
 
+/* glyph template
+
+GLYPH(glyph_X,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+);
+
+*/
+
 namespace display {
 
 struct Glyph
