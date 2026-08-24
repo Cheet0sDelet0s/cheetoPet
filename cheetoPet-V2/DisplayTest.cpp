@@ -1,15 +1,22 @@
-#include "drivers/display/pc/DisplaySDL2.h"
-#include "drivers/rtc/pc/RTCHost.h"
+#include "drivers/Platform.h"
+
 #include "drivers/display/fonts/Font5x7.h"
+
 using namespace display;
 
 int main()
 {
-    rtc::RTCHost clock;
-    clock.begin();
-    DisplaySDL2 display("cheetoPet display", 4);
+    platform::RTC clock;
+    platform::Display display;
+    platform::Input buttons;
 
     if (!display.begin())
+        return 1;
+    
+    if (!buttons.begin())
+        return 1;
+
+    if (!clock.begin())
         return 1;
 
     display.fillScreen(BLACK); 
@@ -65,14 +72,16 @@ int main()
 
     while (display.processEvents())
     {
+        buttons.update();
+
         static int x = 0;
         static int y = 0;
 
-        x++;
-        if (x > 239) {
-            x = 0;
-            y++;
-        }
+        if (buttons.isPressed(input::Button::Up)) y -= 1;
+        if (buttons.isPressed(input::Button::Down)) y += 1;
+        if (buttons.isPressed(input::Button::X)) x += 1;
+        if (buttons.isPressed(input::Button::A)) x -= 1;
+        
         display.drawPixel(x, y, RED);
         display.fillCircle(100, 100, 10, RED);
         display.present();
