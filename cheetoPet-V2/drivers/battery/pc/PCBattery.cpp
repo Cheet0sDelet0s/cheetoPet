@@ -19,6 +19,16 @@ void PCBattery::read()
     PCBattery::percentage = getBatteryPercentage(PCBattery::voltage);
 }
 
+bool PCBattery::getChargingState()
+{
+    return false;
+}
+
+float PCBattery::getVoltage()
+{
+    return PCBattery::voltage;
+}
+
 float PCBattery::getPercentage()
 {
     return PCBattery::percentage;

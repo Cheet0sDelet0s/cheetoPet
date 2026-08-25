@@ -6,12 +6,16 @@
     #include "input/pc/InputSDL2.h"
     #include "rtc/pc/RTCHost.h"
     #include "battery/pc/PCBattery.h"
+    #include "imu/pc/IMUHost.h"
+    #include "audio/pc/AudioSDL2.h"
 
     namespace platform {
         using Display = display::DisplaySDL2;
         using Input = input::InputSDL2;
         using RTC = rtc::RTCHost;
         using Battery = battery::PCBattery;
+        using IMU = imu::IMUHost;
+        using Audio = audio::AudioSDL2;
     }
 
 #elif defined(PLATFORM_ESP32)

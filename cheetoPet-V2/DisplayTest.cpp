@@ -1,8 +1,18 @@
 #include "drivers/Platform.h"
+#include "ui/Ui.h"
+#include "ui/Menu.h"
 
 #include "drivers/display/fonts/Font5x7.h"
 
+#include <algorithm>
+
 using namespace display;
+
+void thing1() {printf("thing 1");}
+
+void thing2() {printf("thing 2");}
+
+void thing3() {printf("thing 3");}
 
 int main()
 {
@@ -10,6 +20,8 @@ int main()
     platform::Display display;
     platform::Input buttons;
     platform::Battery bat;
+    platform::IMU imu;
+    platform::Audio audio;
 
     if (!display.begin())
         return 1;
@@ -23,33 +35,111 @@ int main()
     if (!bat.begin())
         return 1;
 
+    if (!imu.begin())
+        return 1;
+    
+    if (!audio.begin())
+        return 1;
+
+    audio.setVolume(0.5f);
+    audio.tone(440,200);
+    
+    imu.setMouseControlEnabled(true);
+
     display.fillScreen(BLACK); 
 
     display.setFont(fonts::Font5x7);
     display.setTextColor(WHITE);
     display.setTextSize(1);
-    display.setCursor(0, 30);
-    display.println("the quick brown fox jumps over the lazy dog.");
-    display.setCursor(0, 50);
-    display.println("THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG!");
-    display.println("!?$%^&*():;@#/|-_~");
+    
+    ui::Menu mainMenu(
+        20,     // x
+        30,     // y
+        200,    // width
+        40,     // item height
+        5       // spacing
+    );
+
+    mainMenu.addItem(
+        "Thing 1",
+        thing1
+    );
+
+    mainMenu.addItem(
+        "Thing 2",
+        thing2
+    );
+
+    mainMenu.addItem(
+        "Thing 3",
+        thing3
+    );
+
+    ui::Ui ui(
+        display,
+        buttons
+    );
+
+    ui.setMenu(&mainMenu);
 
     display.present();
 
     while (display.processEvents())
     {
         buttons.update();
+        imu.update();
+        ui.update();
 
-        static int x = 0;
-        static int y = 0;
+        auto gyro = imu.gyro();
+        auto accel = imu.acceleration();
 
-        if (buttons.isPressed(input::Button::Up)) y -= 1;
-        if (buttons.isPressed(input::Button::Down)) y += 1;
-        if (buttons.isPressed(input::Button::X)) x += 1;
-        if (buttons.isPressed(input::Button::A)) x -= 1;
+        display.fillScreen(BLACK);
+
+        ui.draw();
+
+        // display.fillRoundRect(100, 200, 80, 40, 5, GREEN);
+        // display.drawPixel(100, 200, RED);
+        // display.drawPixel(180, 240, RED);
+
+        printf(
+            "gyro: %.2f %.2f %.2f\n",
+            gyro.x,
+            gyro.y,
+            gyro.z
+        );
+
+        printf(
+            "accel: %.2f %.2f %.2f\n",
+            accel.x,
+            accel.y,
+            accel.z
+        );
+
+        static int etchX = 0;
+        static int etchY = 0;
+
+        static int circleX = 64;
+        static int circleY = 64;
+
+        static int frequency = 200;
+
+        if (buttons.isPressed(input::Button::Up)) etchY -= 1;
+        if (buttons.isPressed(input::Button::Down)) etchY += 1;
+        if (buttons.isPressed(input::Button::X)) etchX += 1;
+        if (buttons.isPressed(input::Button::A)) etchX -= 1;
+
+        if (buttons.wasPressed(input::Button::B))
+        {
+            frequency += 30;
+            if (frequency > 2000) frequency = 200;
+            audio.tone(frequency, 200);
+        }
+
+        circleX = std::clamp(int(circleX + accel.z / 2), 0, 240);
+        circleY = std::clamp(int(circleY + accel.x / 2), 0, 280);
         
-        display.drawPixel(x, y, RED);
-        display.fillCircle(100, 100, 10, RED);
+        display.drawPixel(etchX, etchY, RED);
+        display.fillCircle(circleX, circleY, 10, GREEN);
 
         rtc::DateTime now;
 

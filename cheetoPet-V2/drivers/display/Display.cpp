@@ -562,65 +562,62 @@ void Display::fillRoundRect(
 
     if (radius == 0)
     {
-        fillRect(
-            x,
-            y,
-            w,
-            h,
-            color
-        );
-
+        fillRect(x, y, w, h, color);
         return;
     }
 
-    /*
-     * Fill the centre rectangle first.
-     */
-    fillRect(
-        x + radius,
-        y,
-        w - 2 * radius,
-        h,
-        color
-    );
-
-    /*
-     * Then fill each scanline of the rounded ends.
-     *
-     * This deliberately uses the same reliable scanline method
-     * as fillCircle().
-     */
     const int radiusSquared = radius * radius;
 
-    for (int dy = -radius; dy <= radius; ++dy)
+    for (int row = 0; row < h; ++row)
     {
-        const int yy = dy * dy;
+        int dy;
+
+        if (row < radius)
+        {
+            // Distance from the top corner circle centre.
+            dy = radius - row;
+        }
+        else if (row >= h - radius)
+        {
+            // Distance from the bottom corner circle centre.
+            dy = row - (h - radius - 1);
+        }
+        else
+        {
+            // Middle section has no rounded corners.
+            drawFastHLine(
+                x,
+                y + row,
+                w,
+                color
+            );
+
+            continue;
+        }
 
         const int remaining =
-            radiusSquared - yy;
+            radiusSquared - dy * dy;
 
-        const int dx = static_cast<int>(
+        int dx = static_cast<int>(
             std::sqrt(
                 static_cast<double>(remaining)
             )
         );
 
-        const int lineY = y + radius + dy;
+        // Make sure the rounded edge stays inside
+        // the requested rectangle.
+        dx = std::min(dx, radius);
+
+        const int left =
+            x + radius - dx;
+
+        const int right =
+            x + w - radius + dx - 1;
 
         drawFastHLine(
-            x + radius - dx,
-            lineY,
-            w - 2 * radius + 2 * dx,
-            color
-        );
-
-        const int bottomY =
-            y + h - radius - 1 - dy;
-
-        drawFastHLine(
-            x + radius - dx,
-            bottomY,
-            w - 2 * radius + 2 * dx,
+            left,
+            y + row,
+            right - left + 1,
             color
         );
     }

@@ -18,6 +18,9 @@ public:
     virtual bool begin() = 0;
     virtual void read() = 0;
     
+    virtual bool getChargingState() = 0;
+
+    virtual float getVoltage() = 0;
     virtual float getPercentage() = 0;
 protected:
     float getBatteryPercentage(float measuredVoltage);
