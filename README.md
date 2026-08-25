@@ -1,5 +1,7 @@
 # cheetoPet
-<strong>an esp32 c3 based tamagotchi</strong>
+<strong>an esp32 s3 based tamagotchi</strong>
+<br><br>
+<strong>project is being completely reworked check back later okay bye</strong>
 <br><br>
 
 ![main image](photos/main.jpg)
