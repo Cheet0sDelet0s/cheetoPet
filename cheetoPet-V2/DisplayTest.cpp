@@ -9,6 +9,7 @@ int main()
     platform::RTC clock;
     platform::Display display;
     platform::Input buttons;
+    platform::Battery bat;
 
     if (!display.begin())
         return 1;
@@ -18,46 +19,11 @@ int main()
 
     if (!clock.begin())
         return 1;
+    
+    if (!bat.begin())
+        return 1;
 
     display.fillScreen(BLACK); 
-
-    // display.drawRect(
-    //     10, 10,
-    //     220, 260,
-    //     WHITE
-    // );
-
-    // display.fillRoundRect(
-    //     30, 30,
-    //     180, 80,
-    //     12,
-    //     BLUE
-    // );
-
-    // display.drawCircle(
-    //     120, 160,
-    //     50,
-    //     RED
-    // );
-
-    // display.fillCircle(
-    //     120, 160,
-    //     40,
-    //     YELLOW
-    // );
-
-    // display.drawLine(
-    //     0, 0,
-    //     239, 279,
-    //     GREEN
-    // );
-
-    // display.drawTriangle(
-    //     120, 180,
-    //     70, 240,
-    //     170, 240,
-    //     MAGENTA
-    // );
 
     display.setFont(fonts::Font5x7);
     display.setTextColor(WHITE);
@@ -84,7 +50,6 @@ int main()
         
         display.drawPixel(x, y, RED);
         display.fillCircle(100, 100, 10, RED);
-        display.present();
 
         rtc::DateTime now;
 
@@ -92,14 +57,21 @@ int main()
             display.fillRect(0, 0, 175, 16, BLACK);
             display.setTextColor(WHITE);
             display.setCursor(0, 0);
-            display.print("TIME: ");
+            display.print("time: ");
             display.print(now.hour);
             display.print(":");
             display.print(now.minute);
             display.print(":");
             display.print(now.second);
         }
-        SDL_Delay(16);
+
+        bat.read();
+
+        display.print("  |  battery: ");
+        display.print(bat.getPercentage() / 100);
+        display.print("%");
+
+        display.present();
     }
 
     return 0;

@@ -5,11 +5,13 @@
     #include "display/pc/DisplaySDL2.h"
     #include "input/pc/InputSDL2.h"
     #include "rtc/pc/RTCHost.h"
+    #include "battery/pc/PCBattery.h"
 
     namespace platform {
         using Display = display::DisplaySDL2;
         using Input = input::InputSDL2;
         using RTC = rtc::RTCHost;
+        using Battery = battery::PCBattery;
     }
 
 #elif defined(PLATFORM_ESP32)
