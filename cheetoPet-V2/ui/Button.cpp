@@ -2,25 +2,6 @@
 
 namespace ui {
 
-namespace {
-
-constexpr display::Color COLOR_BACKGROUND =
-    display::Color(0x0000);
-
-constexpr display::Color COLOR_BUTTON =
-    display::Color(0x7BEF);
-
-constexpr display::Color COLOR_FOCUSED =
-    display::Color(0x07E0);
-
-constexpr display::Color COLOR_TEXT =
-    display::Color(0xFFFF);
-
-constexpr display::Color COLOR_DISABLED =
-    display::Color(0x4208);
-
-}
-
 Button::Button()
     : Widget(0, 0, 0, 0),
       text_(nullptr),
@@ -66,7 +47,7 @@ void Button::draw(
 
     if (!enabled_)
     {
-        background = COLOR_DISABLED;
+        background = background_color;
     }
     else if (focused_)
     {

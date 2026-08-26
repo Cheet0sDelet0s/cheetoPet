@@ -6,7 +6,8 @@ Widget::Widget(
     int x,
     int y,
     int width,
-    int height)
+    int height
+    )
     : x_(x),
       y_(y),
       width_(width),

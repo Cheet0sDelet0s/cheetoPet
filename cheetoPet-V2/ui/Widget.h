@@ -5,6 +5,14 @@
 
 namespace ui {
 
+struct Theme {
+    display::Color background_color;
+    display::Color button_color;
+    display::Color focused_color;
+    display::Color text_color;
+    display::Color disabled_color;
+};
+
 class Widget
 {
 public:
@@ -12,7 +20,8 @@ public:
         int x,
         int y,
         int width,
-        int height
+        int height,
+        Theme theme
     );
 
     virtual ~Widget() = default;
