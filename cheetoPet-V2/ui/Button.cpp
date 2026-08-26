@@ -92,23 +92,15 @@ void Button::draw(
 
     display.setTextSize(1);
 
-    /*
-     * Basic centering.
-     *
-     * The current font system can be extended later with
-     * textWidth(), at which point this can be made exact
-     * for variable-width fonts.
-     */
-    int textWidth =
-        static_cast<int>(
-            text_ ? __builtin_strlen(text_) : 0
-        ) * 6;
+    // center text
+
+    int textWidth = display.textWidth(text_);
 
     int textX =
         x_ + (width_ - textWidth) / 2;
 
-    int textY =
-        y_ + (height_ - 8) / 2;
+    const int textY =
+        y_ + (height_ - display.fontHeight()) / 2;
 
     display.setCursor(
         textX,

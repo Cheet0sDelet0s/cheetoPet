@@ -55,8 +55,8 @@ int main()
     ui::Menu mainMenu(
         20,     // x
         30,     // y
-        200,    // width
-        40,     // item height
+        100,    // width
+        15,     // item height
         5       // spacing
     );
 

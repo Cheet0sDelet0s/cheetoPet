@@ -1170,6 +1170,53 @@ const Font& Display::getFont() const
     return *font_;
 }
 
+uint8_t Display::fontHeight() const
+{
+    return font_->height;
+}
+
+int Display::textWidth(const char* text) const
+{
+    if (!text)
+        return 0;
+
+    return textWidth(text, *font_);
+}
+
+int Display::textWidth(
+    const char* text,
+    const Font& font) const
+{
+    if (!text)
+        return 0;
+
+    int width = 0;
+
+    while (*text)
+    {
+        const uint8_t character =
+            static_cast<uint8_t>(*text);
+
+        const Glyph* glyph =
+            findGlyph(
+                font,
+                character
+            );
+
+        if (glyph)
+        {
+            width += glyph->advanceX;
+        }
+
+        ++text;
+    }
+
+    /*
+     * Text size scales the entire glyph.
+     */
+    return width * textSize_;
+}
+
 // ================================================================
 // println()
 // ================================================================

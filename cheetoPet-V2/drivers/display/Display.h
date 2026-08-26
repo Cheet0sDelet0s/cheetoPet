@@ -205,7 +205,7 @@ public:
     );
 
     void setTextSize(uint8_t size);
-
+    
     void setCursor(
         int x,
         int y
@@ -258,6 +258,15 @@ public:
     void setFont(const Font& font);
 
     const Font& getFont() const;
+
+    uint8_t fontHeight() const;
+
+    int textWidth(const char* text) const;
+    
+    int textWidth(
+        const char* text,
+        const Font& font
+    ) const;
     
     // ------------------------------------------------------------
     // Clipping
