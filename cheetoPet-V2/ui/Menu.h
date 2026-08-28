@@ -39,6 +39,9 @@ public:
 
     void setSelectedIndex(int index);
 
+    void setTheme(const Theme& theme);
+    const Theme* theme_;
+    
     Button* item(int index);
     const Button* item(int index) const;
 

@@ -2,16 +2,9 @@
 
 #include "../drivers/display/Display.h"
 #include "../drivers/input/Input.h"
+#include "Theme.h"
 
 namespace ui {
-
-struct Theme {
-    display::Color background_color;
-    display::Color button_color;
-    display::Color focused_color;
-    display::Color text_color;
-    display::Color disabled_color;
-};
 
 class Widget
 {
@@ -20,8 +13,7 @@ public:
         int x,
         int y,
         int width,
-        int height,
-        Theme theme
+        int height
     );
 
     virtual ~Widget() = default;
@@ -52,6 +44,9 @@ public:
         int height
     );
 
+    void setTheme(const Theme& theme);
+    const Theme& theme() const;
+
     int x() const;
     int y() const;
     int width() const;
@@ -59,6 +54,7 @@ public:
 
     bool isFocused() const;
     bool isEnabled() const;
+
     void setEnabled(bool enabled);
 
 protected:
@@ -69,6 +65,8 @@ protected:
 
     bool focused_;
     bool enabled_;
+
+    const Theme* theme_;
 };
 
 } // namespace ui

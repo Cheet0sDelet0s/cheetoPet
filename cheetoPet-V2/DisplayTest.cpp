@@ -14,6 +14,17 @@ void thing2() {printf("thing 2");}
 
 void thing3() {printf("thing 3");}
 
+const ui::Theme themey = {
+    .background = display::Color(0x0000),
+    .primary = display::Color(0xfb40),
+    .focused = display::Color(0x05FF),
+    .text = display::Color(0xFFFF),
+    .disabled = display::Color(0x4208),
+    .border = display::Color(0x6b59),
+    .focusedBorder = display::Color(0xFFFF),
+    .cornerRadius = 6
+};
+
 int main()
 {
     platform::RTC clock;
@@ -55,25 +66,20 @@ int main()
     ui::Menu mainMenu(
         20,     // x
         30,     // y
-        100,    // width
-        15,     // item height
+        200,    // width
+        20,     // item height
         5       // spacing
     );
 
-    mainMenu.addItem(
-        "Thing 1",
-        thing1
-    );
+    for (int i = 1; i < 10; i++)
+    {
+        mainMenu.addItem(
+            "Thingy mabob",
+            thing1
+        );
+    }
 
-    mainMenu.addItem(
-        "Thing 2",
-        thing2
-    );
-
-    mainMenu.addItem(
-        "Thing 3",
-        thing3
-    );
+    mainMenu.setTheme(themey);
 
     ui::Ui ui(
         display,

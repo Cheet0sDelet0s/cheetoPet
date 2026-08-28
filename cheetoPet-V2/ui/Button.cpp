@@ -43,19 +43,25 @@ void Button::update(
 void Button::draw(
     display::Display& display)
 {
+    const Theme& t = theme();
+
     display::Color background;
+    display::Color border;
 
     if (!enabled_)
     {
-        background = background_color;
+        background = t.disabled;
+        border = t.border; 
     }
     else if (focused_)
     {
-        background = COLOR_FOCUSED;
+        background = t.focused;
+        border = t.focusedBorder;
     }
     else
     {
-        background = COLOR_BUTTON;
+        background = t.primary;
+        border = t.border;
     }
 
     display.fillRoundRect(
@@ -63,21 +69,29 @@ void Button::draw(
         y_,
         width_,
         height_,
-        5,
+        t.cornerRadius,
         background
     );
 
+    display.drawRoundRect(
+        x_,
+        y_,
+        width_,
+        height_,
+        t.cornerRadius,
+        border
+    );
+
     display.setTextColor(
-        COLOR_TEXT
+        t.text
     );
 
     display.setTextSize(1);
 
-    // center text
+    const int textWidth =
+        display.textWidth(text_);
 
-    int textWidth = display.textWidth(text_);
-
-    int textX =
+    const int textX =
         x_ + (width_ - textWidth) / 2;
 
     const int textY =

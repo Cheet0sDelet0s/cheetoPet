@@ -8,7 +8,8 @@ Menu::Menu(
     int width,
     int itemHeight,
     int spacing)
-    : x_(x),
+    : theme_(nullptr),
+      x_(x),
       y_(y),
       width_(width),
       itemHeight_(itemHeight),
@@ -40,6 +41,11 @@ bool Menu::addItem(
         text,
         callback
     );
+
+    if (theme_)
+    {
+        items_[index].setTheme(*theme_);
+    }
 
     ++itemCount_;
 
@@ -167,6 +173,16 @@ void Menu::selectPrevious()
         previous = itemCount_ - 1;
 
     setSelectedIndex(previous);
+}
+
+void Menu::setTheme(const Theme& theme)
+{
+    theme_ = &theme;
+
+    for (int i = 0; i < itemCount_; ++i)
+    {
+        items_[i].setTheme(theme);
+    }
 }
 
 } // namespace ui

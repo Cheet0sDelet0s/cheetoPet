@@ -2,19 +2,44 @@
 
 namespace ui {
 
+namespace {
+
+const ui::Theme DefaultTheme = {
+    .background = display::Color(0x0000),
+    .primary = display::Color(0x39E7),
+    .focused = display::Color(0x05FF),
+    .text = display::Color(0xFFFF),
+    .disabled = display::Color(0x4208),
+    .border = display::Color(0x7BEF),
+    .focusedBorder = display::Color(0xFFFF),
+    .cornerRadius = 6
+};
+
+}
+
 Widget::Widget(
     int x,
     int y,
     int width,
-    int height
-    )
+    int height)
     : x_(x),
       y_(y),
       width_(width),
       height_(height),
       focused_(false),
-      enabled_(true)
+      enabled_(true),
+      theme_(&DefaultTheme)
 {
+}
+
+void Widget::setTheme(const Theme& theme)
+{
+    theme_ = &theme;
+}
+
+const Theme& Widget::theme() const
+{
+    return *theme_;
 }
 
 void Widget::update(input::Input&)
