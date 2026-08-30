@@ -1,0 +1,4 @@
+FIXES NEEDED FOR PCB:
+
+X button pulls the pin low, it should pull it high - DONE
+vias under esp32 chip should probably be moved away to improve durability
