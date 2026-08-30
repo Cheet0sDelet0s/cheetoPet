@@ -1,12 +1,11 @@
 #pragma once
 
+#include "Screen.h"
 #include "Button.h"
-
-#include <cstddef>
 
 namespace ui {
 
-class Menu
+class Menu : public Screen
 {
 public:
     static constexpr int MAX_ITEMS = 16;
@@ -15,6 +14,7 @@ public:
         int x,
         int y,
         int width,
+        int height,
         int itemHeight = 32,
         int spacing = 4
     );
@@ -26,11 +26,15 @@ public:
 
     void update(
         input::Input& input
-    );
+    ) override;
 
     void draw(
         display::Display& display
-    );
+    ) override;
+
+    void setTheme(
+        const Theme& theme
+    ) override;
 
     void clear();
 
@@ -39,15 +43,18 @@ public:
 
     void setSelectedIndex(int index);
 
-    void setTheme(const Theme& theme);
-    const Theme* theme_;
-    
     Button* item(int index);
     const Button* item(int index) const;
+
+    void setWrapNavigation(bool enabled);
+
+    bool wrapNavigation() const;
 
 private:
     void selectNext();
     void selectPrevious();
+
+    void updateScroll();
 
     int x_;
     int y_;
@@ -60,6 +67,12 @@ private:
 
     int itemCount_;
     int selectedIndex_;
+
+    int scrollOffset_;
+
+    bool wrapNavigation_;
+
+    const Theme* theme_;
 };
 
 } // namespace ui

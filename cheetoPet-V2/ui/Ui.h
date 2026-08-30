@@ -1,12 +1,14 @@
 #pragma once
 
-#include "Menu.h"
+#include "Screen.h"
 
 namespace ui {
 
 class Ui
 {
 public:
+    static constexpr int MAX_SCREENS = 8;
+
     Ui(
         display::Display& display,
         input::Input& input
@@ -15,16 +17,29 @@ public:
     void update();
     void draw();
 
-    void setMenu(Menu* menu);
+    bool push(Screen* screen);
+    bool pop();
 
-    Menu* menu();
-    const Menu* menu() const;
+    void clear();
+
+    Screen* current();
+    const Screen* current() const;
+
+    int screenCount() const;
+
+    void setTheme(const Theme& theme);
+
+    const Theme& theme() const;
 
 private:
     display::Display& display_;
     input::Input& input_;
 
-    Menu* menu_;
+    Screen* screens_[MAX_SCREENS];
+
+    int screenCount_;
+
+    const Theme* theme_;
 };
 
 } // namespace ui

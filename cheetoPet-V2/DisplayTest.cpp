@@ -71,10 +71,36 @@ int main()
         5       // spacing
     );
 
-    for (int i = 1; i < 10; i++)
+    ui::Menu settingsMenu(
+        20,
+        30,
+        200,
+        20,
+        5
+    );
+
+    for (int i = 1; i < 5; i++)
     {
         mainMenu.addItem(
-            "Thingy mabob",
+            "This is the main menu",
+            thing1
+        );
+
+        mainMenu.addItem(
+            "It is quite main",
+            thing1
+        );
+    }
+
+    for (int i = 1; i < 5; i++)
+    {
+        settingsMenu.addItem(
+            "This is the settings menu",
+            thing1
+        );
+
+        settingsMenu.addItem(
+            "It is quite setty",
             thing1
         );
     }
@@ -102,10 +128,6 @@ int main()
         display.fillScreen(BLACK);
 
         ui.draw();
-
-        // display.fillRoundRect(100, 200, 80, 40, 5, GREEN);
-        // display.drawPixel(100, 200, RED);
-        // display.drawPixel(180, 240, RED);
 
         printf(
             "gyro: %.2f %.2f %.2f\n",

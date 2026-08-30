@@ -2,41 +2,150 @@
 
 namespace ui {
 
+namespace {
+
+const Theme DefaultTheme = {
+    display::Color(0x0000),
+    display::Color(0x7BEF),
+    display::Color(0x07E0),
+    display::Color(0xFFFF),
+    display::Color(0x4208)
+};
+
+}
+
 Ui::Ui(
     display::Display& display,
     input::Input& input)
     : display_(display),
       input_(input),
-      menu_(nullptr)
+      screenCount_(0),
+      theme_(&DefaultTheme)
 {
+    for (int i = 0;
+         i < MAX_SCREENS;
+         ++i)
+    {
+        screens_[i] = nullptr;
+    }
 }
 
 void Ui::update()
 {
-    if (menu_)
-        menu_->update(input_);
+    if (screenCount_ == 0)
+        return;
+
+    if (input_.wasPressed(
+        input::Button::B))
+    {
+        pop();
+
+        return;
+    }
+
+    screens_[screenCount_ - 1]
+        ->update(input_);
 }
 
 void Ui::draw()
 {
-    if (menu_)
-        menu_->draw(display_);
+    if (screenCount_ == 0)
+        return;
+
+    Screen* screen =
+        screens_[screenCount_ - 1];
+
+    /*
+     * The UI owns the background.
+     */
+    display_.fillScreen(
+        theme_->background
+    );
+
+    screen->draw(display_);
 }
 
-void Ui::setMenu(
-    Menu* menu)
+bool Ui::push(Screen* screen)
 {
-    menu_ = menu;
+    if (!screen)
+        return false;
+
+    if (screenCount_ >= MAX_SCREENS)
+        return false;
+
+    screens_[screenCount_] = screen;
+
+    ++screenCount_;
+
+    screen->setTheme(*theme_);
+    screen->onEnter();
+
+    return true;
 }
 
-Menu* Ui::menu()
+bool Ui::pop()
 {
-    return menu_;
+    if (screenCount_ <= 1)
+        return false;
+
+    Screen* currentScreen =
+        screens_[screenCount_ - 1];
+
+    currentScreen->onExit();
+
+    --screenCount_;
+
+    screens_[screenCount_] = nullptr;
+
+    return true;
 }
 
-const Menu* Ui::menu() const
+void Ui::clear()
 {
-    return menu_;
+    while (screenCount_ > 0)
+    {
+        screens_[screenCount_ - 1]->onExit();
+
+        --screenCount_;
+    }
+}
+
+Screen* Ui::current()
+{
+    if (screenCount_ == 0)
+        return nullptr;
+
+    return screens_[screenCount_ - 1];
+}
+
+const Screen* Ui::current() const
+{
+    if (screenCount_ == 0)
+        return nullptr;
+
+    return screens_[screenCount_ - 1];
+}
+
+int Ui::screenCount() const
+{
+    return screenCount_;
+}
+
+void Ui::setTheme(
+    const Theme& theme)
+{
+    theme_ = &theme;
+
+    if (screenCount_ > 0)
+    {
+        screens_[screenCount_ - 1]
+            ->setTheme(theme);
+    }
+}
+
+const Theme& Ui::theme() const
+{
+    return *theme_;
 }
 
 } // namespace ui
