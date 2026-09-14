@@ -1,4 +1,5 @@
 #include "Menu.h"
+#include "Ui.h"
 
 #include <algorithm>
 
@@ -14,13 +15,15 @@ Menu::Menu(
     : x_(x),
       y_(y),
       width_(width),
+      height_(height),
       itemHeight_(itemHeight),
       spacing_(spacing),
       itemCount_(0),
       selectedIndex_(-1),
       scrollOffset_(0),
       wrapNavigation_(true),
-      theme_(nullptr)
+      theme_(nullptr),
+      ui_(nullptr)
 {
 }
 
@@ -33,14 +36,9 @@ bool Menu::addItem(
 
     const int index = itemCount_;
 
-    const int itemY =
-        y_ +
-        index *
-        (itemHeight_ + spacing_);
-
     items_[index] = Button(
         x_,
-        itemY,
+        y_,
         width_,
         itemHeight_,
         text,
@@ -73,25 +71,24 @@ void Menu::update(
         input::Button::Up))
     {
         selectPrevious();
+        return;
     }
 
     if (input.wasPressed(
         input::Button::Down))
     {
         selectNext();
+        return;
     }
 
-    /*
-     * B acts as "back".
-     *
-     * The actual pop is handled by Ui.
-     * We don't do it here because Menu doesn't know
-     * which Ui instance owns it.
-     */
-
-    if (selectedIndex_ >= 0)
+    if (input.wasPressed(
+        input::Button::A))
     {
-        items_[selectedIndex_].update(input);
+        if (selectedIndex_ >= 0 &&
+            ui_)
+        {
+            items_[selectedIndex_].press(*ui_);
+        }
     }
 }
 
@@ -101,39 +98,31 @@ void Menu::draw(
     if (itemCount_ == 0)
         return;
 
-    /*
-     * Determine which items are visible.
-     */
-    const int visibleHeight =
-        display.height() - y_;
-
     const int itemStep =
         itemHeight_ + spacing_;
 
+    /*
+     * How many complete items fit in the viewport?
+     */
     const int visibleItems =
-        (visibleHeight + spacing_) /
-        itemStep;
-
-    const int firstItem =
-        scrollOffset_;
+        std::max(
+            1,
+            (height_ + spacing_) / itemStep
+        );
 
     const int lastItem =
         std::min(
             itemCount_,
-            firstItem + visibleItems
+            scrollOffset_ + visibleItems
         );
 
-    /*
-     * Position and draw only visible items.
-     */
-    for (int i = firstItem;
+    for (int i = scrollOffset_;
          i < lastItem;
          ++i)
     {
         const int itemY =
             y_ +
-            (i - scrollOffset_) *
-            itemStep;
+            (i - scrollOffset_) * itemStep;
 
         items_[i].setPosition(
             x_,
@@ -155,6 +144,12 @@ void Menu::setTheme(
     {
         items_[i].setTheme(theme);
     }
+}
+
+void Menu::setUi(
+    Ui* ui)
+{
+    ui_ = ui;
 }
 
 void Menu::clear()
@@ -184,9 +179,7 @@ void Menu::setSelectedIndex(
     }
 
     if (selectedIndex_ >= 0)
-    {
         items_[selectedIndex_].onBlur();
-    }
 
     selectedIndex_ = index;
 
@@ -195,7 +188,8 @@ void Menu::setSelectedIndex(
     updateScroll();
 }
 
-Button* Menu::item(int index)
+Button* Menu::item(
+    int index)
 {
     if (index < 0 ||
         index >= itemCount_)
@@ -206,7 +200,8 @@ Button* Menu::item(int index)
     return &items_[index];
 }
 
-const Button* Menu::item(int index) const
+const Button* Menu::item(
+    int index) const
 {
     if (index < 0 ||
         index >= itemCount_)
@@ -277,17 +272,23 @@ void Menu::updateScroll()
     const int visibleItems =
         std::max(
             1,
-            (itemHeight_ + spacing_) /
-            itemStep
+            (height_ + spacing_) / itemStep
         );
 
+    /*
+     * Selected item is above the viewport.
+     */
     if (selectedIndex_ < scrollOffset_)
     {
-        scrollOffset_ = selectedIndex_;
+        scrollOffset_ =
+            selectedIndex_;
     }
 
-    if (selectedIndex_ >=
-        scrollOffset_ + visibleItems)
+    /*
+     * Selected item is below the viewport.
+     */
+    else if (selectedIndex_ >=
+             scrollOffset_ + visibleItems)
     {
         scrollOffset_ =
             selectedIndex_ -
@@ -295,6 +296,9 @@ void Menu::updateScroll()
             1;
     }
 
+    /*
+     * Don't scroll past the end.
+     */
     const int maxScroll =
         std::max(
             0,
@@ -305,6 +309,12 @@ void Menu::updateScroll()
         std::min(
             scrollOffset_,
             maxScroll
+        );
+
+    scrollOffset_ =
+        std::max(
+            scrollOffset_,
+            0
         );
 }
 

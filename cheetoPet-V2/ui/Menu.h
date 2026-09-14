@@ -5,6 +5,8 @@
 
 namespace ui {
 
+class Ui;
+
 class Menu : public Screen
 {
 public:
@@ -36,17 +38,30 @@ public:
         const Theme& theme
     ) override;
 
+    void setUi(
+        Ui* ui
+    ) override;
+
     void clear();
 
     int itemCount() const;
     int selectedIndex() const;
 
-    void setSelectedIndex(int index);
+    void setSelectedIndex(
+        int index
+    );
 
-    Button* item(int index);
-    const Button* item(int index) const;
+    Button* item(
+        int index
+    );
 
-    void setWrapNavigation(bool enabled);
+    const Button* item(
+        int index
+    ) const;
+
+    void setWrapNavigation(
+        bool enabled
+    );
 
     bool wrapNavigation() const;
 
@@ -59,6 +74,7 @@ private:
     int x_;
     int y_;
     int width_;
+    int height_;
 
     int itemHeight_;
     int spacing_;
@@ -68,11 +84,16 @@ private:
     int itemCount_;
     int selectedIndex_;
 
+    /*
+     * Index of the first item currently visible.
+     */
     int scrollOffset_;
 
     bool wrapNavigation_;
 
     const Theme* theme_;
+
+    Ui* ui_;
 };
 
 } // namespace ui

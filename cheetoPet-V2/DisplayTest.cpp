@@ -5,14 +5,37 @@
 #include "drivers/display/fonts/Font5x7.h"
 
 #include <algorithm>
+#include <iostream>
 
 using namespace display;
 
-void thing1() {printf("thing 1");}
+ui::Menu mainMenu(
+    20,     // x
+    30,     // y
+    200,    // width
+    240,    // height
+    32,     // item height
+    5       // spacing
+);
 
-void thing2() {printf("thing 2");}
+ui::Menu settingsMenu(
+    20,     // x
+    30,     // y
+    200,    // width
+    240,    // height
+    32,     // item height
+    5       // spacing
+);
 
-void thing3() {printf("thing 3");}
+void openSettings(ui::Ui& ui)
+{
+    ui.push(&settingsMenu);
+}
+
+void openMainMenu(ui::Ui& ui)
+{
+    ui.push(&mainMenu);
+}
 
 const ui::Theme themey = {
     .background = display::Color(0x0000),
@@ -28,11 +51,16 @@ const ui::Theme themey = {
 int main()
 {
     platform::RTC clock;
-    platform::Display display;
-    platform::Input buttons;
     platform::Battery bat;
     platform::IMU imu;
     platform::Audio audio;
+    platform::Display display;
+    platform::Input buttons;
+
+    ui::Ui ui(
+        display,
+        buttons
+    );
 
     if (!display.begin())
         return 1;
@@ -62,33 +90,17 @@ int main()
     display.setFont(fonts::Font5x7);
     display.setTextColor(WHITE);
     display.setTextSize(1);
-    
-    ui::Menu mainMenu(
-        20,     // x
-        30,     // y
-        200,    // width
-        20,     // item height
-        5       // spacing
-    );
-
-    ui::Menu settingsMenu(
-        20,
-        30,
-        200,
-        20,
-        5
-    );
 
     for (int i = 1; i < 5; i++)
     {
         mainMenu.addItem(
             "This is the main menu",
-            thing1
+            openSettings
         );
 
         mainMenu.addItem(
             "It is quite main",
-            thing1
+            openSettings
         );
     }
 
@@ -96,23 +108,18 @@ int main()
     {
         settingsMenu.addItem(
             "This is the settings menu",
-            thing1
+            openMainMenu
         );
 
         settingsMenu.addItem(
             "It is quite setty",
-            thing1
+            openMainMenu
         );
     }
 
     mainMenu.setTheme(themey);
 
-    ui::Ui ui(
-        display,
-        buttons
-    );
-
-    ui.setMenu(&mainMenu);
+    ui.push(&mainMenu);
 
     display.present();
 

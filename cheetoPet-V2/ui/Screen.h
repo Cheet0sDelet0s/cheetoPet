@@ -6,6 +6,8 @@
 
 namespace ui {
 
+class Ui;
+
 class Screen
 {
 public:
@@ -21,6 +23,10 @@ public:
 
     virtual void setTheme(
         const Theme& theme
+    ) = 0;
+
+    virtual void setUi(
+        Ui* ui
     ) = 0;
 
     virtual void onEnter() {}

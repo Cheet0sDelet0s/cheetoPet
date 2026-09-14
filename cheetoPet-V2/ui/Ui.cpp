@@ -39,7 +39,6 @@ void Ui::update()
         input::Button::B))
     {
         pop();
-
         return;
     }
 
@@ -77,6 +76,7 @@ bool Ui::push(Screen* screen)
 
     ++screenCount_;
 
+    screen->setUi(this);
     screen->setTheme(*theme_);
     screen->onEnter();
 

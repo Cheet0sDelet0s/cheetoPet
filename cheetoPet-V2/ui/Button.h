@@ -4,11 +4,15 @@
 
 namespace ui {
 
-using ButtonCallback = void (*)();
+class Ui;
+
+using ButtonCallback = void (*)(Ui&);
 
 class Button : public Widget
 {
 public:
+    Button();
+
     Button(
         int x,
         int y,
@@ -26,14 +30,19 @@ public:
         display::Display& display
     ) override;
 
-    void setText(const char* text);
+    void setText(
+        const char* text
+    );
+
     const char* text() const;
 
-    void setCallback(ButtonCallback callback);
+    void setCallback(
+        ButtonCallback callback
+    );
 
-    void press();
-
-    Button();
+    void press(
+        Ui& ui
+    );
 
 private:
     const char* text_;

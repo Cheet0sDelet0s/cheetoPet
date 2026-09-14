@@ -1,4 +1,5 @@
 #include "Button.h"
+#include "Ui.h"
 
 namespace ui {
 
@@ -30,14 +31,14 @@ Button::Button(
 void Button::update(
     input::Input& input)
 {
-    if (!enabled_)
-        return;
-
-    if (focused_ &&
-        input.wasPressed(input::Button::Select))
-    {
-        press();
-    }
+    /*
+     * The Ui reference is supplied when press()
+     * is called by Menu.
+     *
+     * Button itself doesn't have to know about Ui
+     * during normal input processing.
+     */
+    (void)input;
 }
 
 void Button::draw(
@@ -46,22 +47,18 @@ void Button::draw(
     const Theme& t = theme();
 
     display::Color background;
-    display::Color border;
 
     if (!enabled_)
     {
         background = t.disabled;
-        border = t.border; 
     }
     else if (focused_)
     {
         background = t.focused;
-        border = t.focusedBorder;
     }
     else
     {
         background = t.primary;
-        border = t.border;
     }
 
     display.fillRoundRect(
@@ -71,15 +68,6 @@ void Button::draw(
         height_,
         t.cornerRadius,
         background
-    );
-
-    display.drawRoundRect(
-        x_,
-        y_,
-        width_,
-        height_,
-        t.cornerRadius,
-        border
     );
 
     display.setTextColor(
@@ -123,10 +111,11 @@ void Button::setCallback(
     callback_ = callback;
 }
 
-void Button::press()
+void Button::press(
+    Ui& ui)
 {
     if (callback_)
-        callback_();
+        callback_(ui);
 }
 
 } // namespace ui
