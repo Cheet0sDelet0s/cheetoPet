@@ -6556,14 +6556,14 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "EasyEDA:KMR223GLFG"
+		(symbol "EasyEDA:KMR621NGLFS"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
 			(property "Reference" "SW"
-				(at 0 7.62 0)
+				(at 0 6.35 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
@@ -6572,8 +6572,8 @@
 					)
 				)
 			)
-			(property "Value" "KMR223GLFG"
-				(at 0 -10.16 0)
+			(property "Value" "KMR621NGLFS"
+				(at 0 -8.89 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
@@ -6582,8 +6582,8 @@
 					)
 				)
 			)
-			(property "Footprint" "EasyEDA:SW-SMD_5P-L4.2-W2.8-P1.60-LS4.6-TR"
-				(at 0 -12.7 0)
+			(property "Footprint" "EasyEDA:KEY-SMD_4P-L4.2-W2.8-P1.60-LS4.6"
+				(at 0 -11.43 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -6593,8 +6593,8 @@
 					)
 				)
 			)
-			(property "Datasheet" "https://www.lcsc.com/datasheet/C221678.pdf"
-				(at 0 -15.24 0)
+			(property "Datasheet" "https://www.lcsc.com/datasheet/C221692.pdf"
+				(at 0 -13.97 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -6616,7 +6616,7 @@
 				)
 			)
 			(property "Manufacturer" "C&K"
-				(at 0 -17.78 0)
+				(at 0 -16.51 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -6626,8 +6626,8 @@
 					)
 				)
 			)
-			(property "MPN" "KMR223GLFG"
-				(at 0 -20.32 0)
+			(property "MPN" "KMR621NGLFS"
+				(at 0 -19.05 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -6637,8 +6637,8 @@
 					)
 				)
 			)
-			(property "LCSC Part" "C221678"
-				(at 0 -22.86 0)
+			(property "LCSC Part" "C221692"
+				(at 0 -21.59 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -6659,10 +6659,10 @@
 					)
 				)
 			)
-			(symbol "KMR223GLFG_0_1"
+			(symbol "KMR621NGLFS_0_1"
 				(polyline
 					(pts
-						(xy -2.54 0) (xy 2.54 0)
+						(xy -0.25 -0.25) (xy -1.02 -2.29)
 					)
 					(stroke
 						(width 0)
@@ -6674,31 +6674,7 @@
 				)
 				(polyline
 					(pts
-						(xy -2.54 -5.08) (xy 2.54 -5.08)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -0.25 -1.78) (xy -0.76 -3.3)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 0) (xy 0 -1.52)
+						(xy 0 0) (xy 0 1.27) (xy 0 1.27)
 					)
 					(stroke
 						(width 0)
@@ -6709,7 +6685,7 @@
 					)
 				)
 				(circle
-					(center 0 -1.78)
+					(center 0 -0.25)
 					(radius 0.25)
 					(stroke
 						(width 0)
@@ -6720,7 +6696,7 @@
 					)
 				)
 				(circle
-					(center 0 -3.3)
+					(center 0 -2.29)
 					(radius 0.25)
 					(stroke
 						(width 0)
@@ -6732,7 +6708,31 @@
 				)
 				(polyline
 					(pts
-						(xy 0 -5.08) (xy 0 -3.56) (xy 0 -3.56)
+						(xy 0 -3.81) (xy 0 -2.54) (xy 0 -2.54)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 5.08 1.27) (xy -5.08 1.27)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 5.08 -3.81) (xy -5.08 -3.81)
 					)
 					(stroke
 						(width 0)
@@ -6743,7 +6743,7 @@
 					)
 				)
 				(pin unspecified line
-					(at 5.08 0 180)
+					(at -7.62 1.27 0)
 					(length 2.54)
 					(name "1"
 						(effects
@@ -6761,7 +6761,7 @@
 					)
 				)
 				(pin unspecified line
-					(at 5.08 -5.08 180)
+					(at 7.62 1.27 180)
 					(length 2.54)
 					(name "2"
 						(effects
@@ -6779,7 +6779,7 @@
 					)
 				)
 				(pin unspecified line
-					(at -5.08 -5.08 0)
+					(at -7.62 -3.81 0)
 					(length 2.54)
 					(name "3"
 						(effects
@@ -6797,7 +6797,7 @@
 					)
 				)
 				(pin unspecified line
-					(at -5.08 0 0)
+					(at 7.62 -3.81 180)
 					(length 2.54)
 					(name "4"
 						(effects
@@ -6807,24 +6807,6 @@
 						)
 					)
 					(number "4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin unspecified line
-					(at 5.08 2.54 180)
-					(length 5.08)
-					(name "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -12675,6 +12657,12 @@
 		(uuid "01c2ca78-2325-4b10-8736-d46484ee3290")
 	)
 	(junction
+		(at 106.68 308.61)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "03115590-46b1-4a46-8db6-602a87633093")
+	)
+	(junction
 		(at 160.02 118.11)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -13047,6 +13035,12 @@
 		(uuid "944d6c94-7eba-4774-b424-395b208efb25")
 	)
 	(junction
+		(at 85.09 139.7)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "99cc4a2e-3922-48d1-9777-a9baf1995ca7")
+	)
+	(junction
 		(at 92.71 303.53)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -13119,12 +13113,6 @@
 		(uuid "c19c9f70-b827-4c65-8961-f6100c7d164b")
 	)
 	(junction
-		(at 85.09 139.7)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "c6283c6d-c9ff-4370-8bbb-8ab2204f4b60")
-	)
-	(junction
 		(at 158.75 165.1)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -13153,6 +13141,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "cf6613ee-fa57-4b8a-8a0e-c39fff18e14a")
+	)
+	(junction
+		(at 71.12 308.61)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d135f2df-4be1-4a00-ab20-3c6d75fb9b3f")
 	)
 	(junction
 		(at 57.15 297.18)
@@ -13225,20 +13219,12 @@
 		(uuid "0297cf2c-6c6c-4c22-abe0-561b4e1fd9a7")
 	)
 	(no_connect
-		(at 106.68 154.94)
-		(uuid "05bcf4f9-c1ab-4d23-a159-19444dfe722c")
-	)
-	(no_connect
 		(at 107.95 58.42)
 		(uuid "0c480552-1980-4a9e-a291-bc30afeaf6a8")
 	)
 	(no_connect
-		(at 95.25 132.08)
-		(uuid "1c6038f0-6399-402b-b789-d66e6f8d3fa7")
-	)
-	(no_connect
-		(at 228.6 271.78)
-		(uuid "1dc8f635-002a-40dd-80e7-088ec625403b")
+		(at 100.33 134.62)
+		(uuid "1027bbe3-f740-4a1b-b462-585b3a0f7ce0")
 	)
 	(no_connect
 		(at 165.1 175.26)
@@ -13251,10 +13237,6 @@
 	(no_connect
 		(at 213.36 214.63)
 		(uuid "29366923-ea3d-459b-8e07-21894cef3200")
-	)
-	(no_connect
-		(at 87.63 160.02)
-		(uuid "2a935a2d-e899-44a4-bd8f-7b97d54b0468")
 	)
 	(no_connect
 		(at 95.25 236.22)
@@ -13275,10 +13257,6 @@
 	(no_connect
 		(at 195.58 214.63)
 		(uuid "3aedf269-e9fe-4d2b-8e53-01285fc2f44e")
-	)
-	(no_connect
-		(at 87.63 152.4)
-		(uuid "3d63278e-4352-44fb-8b29-fa90fc8fd48f")
 	)
 	(no_connect
 		(at 193.04 214.63)
@@ -13305,16 +13283,16 @@
 		(uuid "5784226b-5844-445e-9069-102d44c580fe")
 	)
 	(no_connect
-		(at 87.63 175.26)
-		(uuid "595ef91f-8480-4d10-8c0a-7520eea49e67")
-	)
-	(no_connect
 		(at 139.7 214.63)
 		(uuid "5e5d800e-214e-46bd-94c0-8c2542aeb71f")
 	)
 	(no_connect
 		(at 182.88 214.63)
 		(uuid "64a61616-2ea7-46fb-852d-23c403ab78d9")
+	)
+	(no_connect
+		(at 100.33 139.7)
+		(uuid "68f17647-2eb7-4968-a2bc-03a23769302d")
 	)
 	(no_connect
 		(at 205.74 214.63)
@@ -13357,14 +13335,6 @@
 		(uuid "8f4b0773-dc45-4b4c-a989-2b03b68d0993")
 	)
 	(no_connect
-		(at 106.68 152.4)
-		(uuid "8f921edd-dec2-4b11-9394-0b2845e0fa98")
-	)
-	(no_connect
-		(at 95.25 139.7)
-		(uuid "920f7f4c-30d8-4b6b-a764-1a9e1e48d97e")
-	)
-	(no_connect
 		(at 203.2 214.63)
 		(uuid "ab2fb49d-a644-42d4-b7f4-472ad7539531")
 	)
@@ -13373,12 +13343,8 @@
 		(uuid "b0b58d88-4a22-4478-bfdc-4387fbd23d4a")
 	)
 	(no_connect
-		(at 87.63 172.72)
-		(uuid "b455aaa3-0950-4ae5-9ee4-bfb033bda5e7")
-	)
-	(no_connect
-		(at 228.6 274.32)
-		(uuid "b4818568-2fbf-497b-a486-f672bc31796d")
+		(at 123.19 158.75)
+		(uuid "b3c21875-7b2b-45a0-9e4b-cf5df69a10c6")
 	)
 	(no_connect
 		(at 200.66 214.63)
@@ -13413,24 +13379,16 @@
 		(uuid "cda14995-1d17-48b4-aa6e-6380d08fe24d")
 	)
 	(no_connect
-		(at 87.63 180.34)
-		(uuid "ce7206ae-eba7-4af3-9c06-699c348229e4")
+		(at 123.19 153.67)
+		(uuid "cfa04d2e-051d-45a7-844a-5c277d2fb2aa")
 	)
 	(no_connect
 		(at 220.98 214.63)
 		(uuid "d3f86269-4b39-4922-b9d4-48291264fe8b")
 	)
 	(no_connect
-		(at 95.25 134.62)
-		(uuid "d567e727-fbe4-4ea6-817a-15504a5d1fa3")
-	)
-	(no_connect
 		(at 205.74 175.26)
 		(uuid "d742bf05-a20f-4dd9-b9ad-afd9f603675a")
-	)
-	(no_connect
-		(at 106.68 160.02)
-		(uuid "e63ad64f-d89b-4b22-87a7-2cfb833648af")
 	)
 	(no_connect
 		(at 165.1 214.63)
@@ -13447,10 +13405,6 @@
 	(no_connect
 		(at 95.25 233.68)
 		(uuid "fc1c2285-c827-4018-b142-dc70b240782d")
-	)
-	(no_connect
-		(at 87.63 154.94)
-		(uuid "fed583b6-dc19-4410-9c13-0f533c2edb2e")
 	)
 	(wire
 		(pts
@@ -17016,6 +16970,30 @@
 			)
 		)
 	)
+	(global_label "MPU_INT2"
+		(shape input)
+		(at 228.6 274.32 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 0.762 0.762)
+			)
+			(justify left)
+		)
+		(uuid "3a29d4b1-d200-4a7b-9b87-9b4cab8c0069")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 235.8707 274.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+	)
 	(global_label "LATCH_EN"
 		(shape input)
 		(at 147.32 59.69 180)
@@ -17306,7 +17284,7 @@
 	)
 	(global_label "ROCK_L"
 		(shape input)
-		(at 96.52 182.88 270)
+		(at 107.95 182.88 270)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -17316,7 +17294,7 @@
 		)
 		(uuid "5f6a7958-2425-44e0-aa98-b444da59f3a5")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 96.52 193.0014 90)
+			(at 107.95 193.0014 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17784,6 +17762,30 @@
 			)
 		)
 	)
+	(global_label "MPU_INT1"
+		(shape input)
+		(at 228.6 271.78 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 0.762 0.762)
+			)
+			(justify left)
+		)
+		(uuid "96798e24-393a-4f3d-b36c-3bf4e2c3fd9a")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 235.8707 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+	)
 	(global_label "SCL"
 		(shape input)
 		(at 130.81 309.88 270)
@@ -17810,7 +17812,7 @@
 	)
 	(global_label "B"
 		(shape input)
-		(at 96.52 154.94 180)
+		(at 107.95 153.67 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -17820,7 +17822,7 @@
 		)
 		(uuid "99479c2b-626b-4922-b46a-d5712dfc3179")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 92.2648 154.94 0)
+			(at 103.6948 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18098,7 +18100,7 @@
 	)
 	(global_label "ROCK_SW"
 		(shape input)
-		(at 101.6 182.88 270)
+		(at 113.03 182.88 270)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -18108,7 +18110,7 @@
 		)
 		(uuid "afdf3881-d86e-4c4a-9b87-87451cb49872")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 101.6 194.6342 90)
+			(at 113.03 194.6342 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18578,7 +18580,7 @@
 	)
 	(global_label "ROCK_R"
 		(shape input)
-		(at 104.14 182.88 270)
+		(at 115.57 182.88 270)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -18588,7 +18590,7 @@
 		)
 		(uuid "f45d8137-743d-429e-a067-9291fcd9219e")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 104.14 193.2433 90)
+			(at 115.57 193.2433 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18649,6 +18651,83 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GND")
+		(at 71.12 308.61 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "01e2d012-9962-41d8-a595-ac18c906b688")
+		(property "Reference" "#PWR084"
+			(at 77.47 308.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 74.422 308.61 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.508 0.508)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 71.12 308.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 71.12 308.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 71.12 308.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "8b67c367-d909-4465-917a-99649477fe8c")
+		)
+		(instances
+			(project "cheetoPet"
+				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
+					(reference "#PWR084")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 232.41 165.1 90)
 		(unit 1)
@@ -18679,7 +18758,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 232.41 166.878 90)
 			(hide yes)
 			(show_name no)
@@ -19429,7 +19508,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 152.0952 154.94 0)
 			(hide yes)
 			(show_name no)
@@ -19739,7 +19818,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 240.03 168.402 90)
 			(hide yes)
 			(show_name no)
@@ -19963,6 +20042,244 @@
 		)
 	)
 	(symbol
+		(lib_id "EasyEDA:KMR621NGLFS")
+		(at 85.09 156.21 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "0e8d0b98-fd0d-4aab-8a38-3755a985e364")
+		(property "Reference" "SW2"
+			(at 85.09 149.86 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "BTN"
+			(at 85.09 152.4 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "EasyEDA:KEY-SMD_4P-L4.2-W2.8-P1.60-LS4.6"
+			(at 85.09 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.lcsc.com/datasheet/C221692.pdf"
+			(at 85.09 170.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 85.09 156.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer" "C&K"
+			(at 85.09 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "KMR621NGLFS"
+			(at 85.09 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part" "C221692"
+			(at 85.09 177.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "4"
+			(uuid "46f38ca0-38b2-43a5-bfbb-f39e2cbb3fcb")
+		)
+		(pin "3"
+			(uuid "744a3791-d513-4b51-af7f-70ac7e08b568")
+		)
+		(pin "1"
+			(uuid "7dedba6a-044c-4069-be00-35070b76b570")
+		)
+		(pin "2"
+			(uuid "10062e69-c3a1-48ee-b7d5-70d0dfa2de0c")
+		)
+		(instances
+			(project "cheetoPet"
+				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
+					(reference "SW2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "EasyEDA:KMR621NGLFS")
+		(at 92.71 135.89 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "0e9d093c-836a-44e0-b5ec-ccf655dafb5f")
+		(property "Reference" "SW1"
+			(at 92.71 129.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "BTN"
+			(at 92.71 132.08 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "EasyEDA:KEY-SMD_4P-L4.2-W2.8-P1.60-LS4.6"
+			(at 92.71 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.lcsc.com/datasheet/C221692.pdf"
+			(at 92.71 149.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 92.71 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer" "C&K"
+			(at 92.71 152.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "KMR621NGLFS"
+			(at 92.71 154.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part" "C221692"
+			(at 92.71 157.48 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "4"
+			(uuid "82ac8a55-9a68-4f21-888e-2649766afd09")
+		)
+		(pin "3"
+			(uuid "57393af5-d041-43d4-9622-d2676a434693")
+		)
+		(pin "1"
+			(uuid "0ba338ae-8180-4cb7-9ead-e7cbf3d404e9")
+		)
+		(pin "2"
+			(uuid "4e4b5588-064e-4c00-95a7-33921a06f638")
+		)
+		(instances
+			(project "cheetoPet"
+				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
+					(reference "SW1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:+3V3")
 		(at 248.92 228.6 0)
 		(unit 1)
@@ -20111,6 +20428,125 @@
 			(project "cheetoPet"
 				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
 					(reference "#PWR060")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "EasyEDA:KMR621NGLFS")
+		(at 115.57 154.94 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "145df516-42c4-479e-be4e-5ccfdf71c155")
+		(property "Reference" "SW3"
+			(at 115.57 148.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "BTN"
+			(at 115.57 151.13 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "EasyEDA:KEY-SMD_4P-L4.2-W2.8-P1.60-LS4.6"
+			(at 115.57 166.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.lcsc.com/datasheet/C221692.pdf"
+			(at 115.57 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 115.57 154.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer" "C&K"
+			(at 115.57 171.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "KMR621NGLFS"
+			(at 115.57 173.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part" "C221692"
+			(at 115.57 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "4"
+			(uuid "205a420c-a7b9-490b-960a-484f4625117a")
+		)
+		(pin "3"
+			(uuid "d7142ebe-a17c-4354-a811-737ac7d3a73b")
+		)
+		(pin "1"
+			(uuid "db838e8d-3136-4c70-b381-8a63553e9732")
+		)
+		(pin "2"
+			(uuid "6600d886-77f1-43a5-a039-d4402dbf8705")
+		)
+		(instances
+			(project "cheetoPet"
+				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
+					(reference "SW3")
 					(unit 1)
 				)
 			)
@@ -20302,7 +20738,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 147.32 142.748 90)
 			(hide yes)
 			(show_name no)
@@ -20436,7 +20872,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 205.74 259.08 0)
 			(hide yes)
 			(show_name no)
@@ -20878,7 +21314,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 106.68 182.88 0)
+		(at 118.11 182.88 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -20888,7 +21324,7 @@
 		(dnp no)
 		(uuid "1e448b4b-379c-4cd1-b561-c634edf1a319")
 		(property "Reference" "#PWR067"
-			(at 106.68 189.23 0)
+			(at 118.11 189.23 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20899,7 +21335,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 106.68 187.96 90)
+			(at 118.11 187.96 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -20909,7 +21345,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 106.68 182.88 0)
+			(at 118.11 182.88 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20920,7 +21356,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 106.68 182.88 0)
+			(at 118.11 182.88 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20931,7 +21367,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 106.68 182.88 0)
+			(at 118.11 182.88 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21062,7 +21498,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 48.26 260.858 90)
 			(hide yes)
 			(show_name no)
@@ -21564,7 +22000,7 @@
 	)
 	(symbol
 		(lib_id "EasyEDA:WS-003DB")
-		(at 101.6 175.26 0)
+		(at 113.03 175.26 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -21572,10 +22008,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "248d84cc-3187-45bd-a237-da249a64a4bc")
 		(property "Reference" "U9"
-			(at 113.03 171.4549 0)
+			(at 114.046 164.084 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21586,7 +22021,7 @@
 			)
 		)
 		(property "Value" "WS-003DB"
-			(at 113.03 173.9949 0)
+			(at 114.046 166.624 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21597,7 +22032,7 @@
 			)
 		)
 		(property "Footprint" "EasyEDA:SW-SMD_WS-003DB"
-			(at 101.6 190.5 0)
+			(at 113.03 190.5 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21608,7 +22043,7 @@
 			)
 		)
 		(property "Datasheet" "https://www.lcsc.com/datasheet/C46598198.pdf"
-			(at 101.6 193.04 0)
+			(at 113.03 193.04 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21619,7 +22054,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 101.6 175.26 0)
+			(at 113.03 175.26 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21630,7 +22065,7 @@
 			)
 		)
 		(property "Manufacturer" "HANBO(汉博)"
-			(at 101.6 195.58 0)
+			(at 113.03 195.58 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21641,7 +22076,7 @@
 			)
 		)
 		(property "MPN" "WS-003DB"
-			(at 101.6 198.12 0)
+			(at 113.03 198.12 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21652,7 +22087,7 @@
 			)
 		)
 		(property "LCSC Part" "C46598198"
-			(at 101.6 200.66 0)
+			(at 113.03 200.66 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21663,7 +22098,7 @@
 			)
 		)
 		(property "Description_1" ""
-			(at 101.6 175.26 0)
+			(at 113.03 175.26 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21674,7 +22109,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 101.6 175.26 0)
+			(at 113.03 175.26 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21685,7 +22120,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 101.6 175.26 0)
+			(at 113.03 175.26 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21696,7 +22131,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 101.6 175.26 0)
+			(at 113.03 175.26 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21839,7 +22274,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 248.92 161.5948 0)
 			(hide yes)
 			(show_name no)
@@ -22307,7 +22742,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 247.3452 125.73 0)
 			(hide yes)
 			(show_name no)
@@ -22443,7 +22878,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 157.48 217.17 0)
 			(hide yes)
 			(show_name no)
@@ -22578,7 +23013,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 51.562 252.73 90)
 			(hide yes)
 			(show_name no)
@@ -22712,7 +23147,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 239.7252 125.73 0)
 			(hide yes)
 			(show_name no)
@@ -22849,7 +23284,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 84.328 130.81 90)
 			(hide yes)
 			(show_name no)
@@ -23062,7 +23497,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 195.58 289.56 0)
 			(hide yes)
 			(show_name no)
@@ -23197,7 +23632,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 50.8 230.378 90)
 			(hide yes)
 			(show_name no)
@@ -23489,7 +23924,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 53.34 225.298 90)
 			(hide yes)
 			(show_name no)
@@ -23935,7 +24370,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 151.13 233.68 0)
 			(hide yes)
 			(show_name no)
@@ -24224,7 +24659,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 261.62 218.7448 0)
 			(hide yes)
 			(show_name no)
@@ -24516,7 +24951,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 191.4652 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -24856,7 +25291,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 96.52 160.02 0)
+		(at 107.95 158.75 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -24867,7 +25302,7 @@
 		(fields_autoplaced yes)
 		(uuid "43fa9eb6-a91f-46f6-a61d-c8bb9cbf04aa")
 		(property "Reference" "#PWR054"
-			(at 96.52 166.37 0)
+			(at 107.95 165.1 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -24878,7 +25313,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 96.52 165.1 0)
+			(at 107.95 163.83 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -24888,7 +25323,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 96.52 160.02 0)
+			(at 107.95 158.75 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -24899,7 +25334,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 96.52 160.02 0)
+			(at 107.95 158.75 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -24910,7 +25345,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 96.52 160.02 0)
+			(at 107.95 158.75 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -24963,7 +25398,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 104.14 260.858 90)
 			(hide yes)
 			(show_name no)
@@ -25175,7 +25610,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 149.86 68.58 0)
 			(hide yes)
 			(show_name no)
@@ -25311,7 +25746,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 150.8252 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -25766,7 +26201,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 160.9852 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -25902,7 +26337,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 171.1452 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -26000,172 +26435,6 @@
 			(project "cheetoPet"
 				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
 					(reference "C4")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "EasyEDA:KMR223GLFG")
-		(at 82.55 154.94 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "532aa678-0d1f-4864-addd-b28ba0e2f6b1")
-		(property "Reference" "SW8"
-			(at 82.55 147.32 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "A"
-			(at 82.55 149.86 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "EasyEDA:SW-SMD_5P-L4.2-W2.8-P1.60-LS4.6-TR"
-			(at 82.55 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://www.lcsc.com/datasheet/C221678.pdf"
-			(at 82.55 170.18 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 82.55 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "C&K"
-			(at 82.55 172.72 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MPN" "KMR223GLFG"
-			(at 82.55 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part" "C221678"
-			(at 82.55 177.8 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description_1" ""
-			(at 82.55 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 82.55 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "PARTREV" ""
-			(at 82.55 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "STANDARD" ""
-			(at 82.55 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "4"
-			(uuid "9a4c1055-d3cd-4bbf-ae54-7d1fb1375443")
-		)
-		(pin "5"
-			(uuid "f57740f4-6100-4d9f-9d4c-4f0b4ef0c0af")
-		)
-		(pin "3"
-			(uuid "b36370a3-872c-4a52-b2fc-5ae64ea1629d")
-		)
-		(pin "2"
-			(uuid "424e6fcd-a508-4bd6-b9ff-cb21aaf2df9c")
-		)
-		(pin "1"
-			(uuid "40903dcb-5e64-47c5-a4d2-3b28a97b420f")
-		)
-		(instances
-			(project "cheetoPet"
-				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
-					(reference "SW8")
 					(unit 1)
 				)
 			)
@@ -26282,7 +26551,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 276.098 232.41 90)
 			(hide yes)
 			(show_name no)
@@ -26380,172 +26649,6 @@
 			(project "cheetoPet"
 				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
 					(reference "R20")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "EasyEDA:KMR223GLFG")
-		(at 101.6 154.94 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "5498f1a5-cf81-48a4-9c73-f78d9ca58e0c")
-		(property "Reference" "SW7"
-			(at 101.6 147.32 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "B"
-			(at 101.6 149.86 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "EasyEDA:SW-SMD_5P-L4.2-W2.8-P1.60-LS4.6-TR"
-			(at 101.6 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://www.lcsc.com/datasheet/C221678.pdf"
-			(at 101.6 170.18 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 101.6 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "C&K"
-			(at 101.6 172.72 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MPN" "KMR223GLFG"
-			(at 101.6 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part" "C221678"
-			(at 101.6 177.8 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description_1" ""
-			(at 101.6 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 101.6 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "PARTREV" ""
-			(at 101.6 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "STANDARD" ""
-			(at 101.6 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "4"
-			(uuid "32f83178-e529-4af9-9f2f-1c3a04f1bd03")
-		)
-		(pin "5"
-			(uuid "d0acc4fe-c167-4968-96ee-8b7c13480ebf")
-		)
-		(pin "3"
-			(uuid "a1570130-9524-487a-b907-18588acbf2fb")
-		)
-		(pin "2"
-			(uuid "892646fc-7924-4e82-b69f-d0260333ae5e")
-		)
-		(pin "1"
-			(uuid "c4d6b487-5722-400a-8798-f3a7891543cd")
-		)
-		(instances
-			(project "cheetoPet"
-				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
-					(reference "SW7")
 					(unit 1)
 				)
 			)
@@ -26876,7 +26979,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 48.26 263.398 90)
 			(hide yes)
 			(show_name no)
@@ -27166,7 +27269,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 160.02 217.17 0)
 			(hide yes)
 			(show_name no)
@@ -27425,6 +27528,83 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GND")
+		(at 106.68 308.61 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "63ccaa0e-72c7-430e-a45e-1721e1657ed3")
+		(property "Reference" "#PWR085"
+			(at 113.03 308.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 109.982 308.61 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.508 0.508)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 106.68 308.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 106.68 308.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 106.68 308.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "6713770f-eddd-456b-9ba3-500ed2606706")
+		)
+		(instances
+			(project "cheetoPet"
+				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
+					(reference "#PWR085")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C")
 		(at 255.27 74.93 0)
 		(unit 1)
@@ -27457,7 +27637,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 256.2352 78.74 0)
 			(hide yes)
 			(show_name no)
@@ -27793,7 +27973,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 226.06 147.828 90)
 			(hide yes)
 			(show_name no)
@@ -28062,7 +28242,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 54.61 292.1 0)
 			(hide yes)
 			(show_name no)
@@ -28398,172 +28578,6 @@
 		)
 	)
 	(symbol
-		(lib_id "EasyEDA:KMR223GLFG")
-		(at 90.17 134.62 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "6ee35fa1-eeac-4222-8a63-e104c326920e")
-		(property "Reference" "SW10"
-			(at 90.17 127 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "RESET"
-			(at 90.17 129.54 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "EasyEDA:SW-SMD_5P-L4.2-W2.8-P1.60-LS4.6-TR"
-			(at 90.17 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://www.lcsc.com/datasheet/C221678.pdf"
-			(at 90.17 149.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 90.17 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "C&K"
-			(at 90.17 152.4 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MPN" "KMR223GLFG"
-			(at 90.17 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part" "C221678"
-			(at 90.17 157.48 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description_1" ""
-			(at 90.17 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 90.17 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "PARTREV" ""
-			(at 90.17 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "STANDARD" ""
-			(at 90.17 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "4"
-			(uuid "43673e2a-fb61-4740-85cf-34eb437a1cf7")
-		)
-		(pin "5"
-			(uuid "42f7e839-1e6b-408c-b6ec-7eb75893ebe9")
-		)
-		(pin "3"
-			(uuid "0a2e7ef4-5244-49cc-a77d-a8d08981c8e5")
-		)
-		(pin "2"
-			(uuid "82d7fc6e-3dfd-4dc1-8d6c-2179fa6e1de1")
-		)
-		(pin "1"
-			(uuid "bbef0476-822b-4d87-ba3e-bcc1667b2f55")
-		)
-		(instances
-			(project "cheetoPet"
-				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
-					(reference "SW10")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:+3V3")
 		(at 138.43 105.41 0)
 		(unit 1)
@@ -28672,7 +28686,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 243.84 255.27 0)
 			(hide yes)
 			(show_name no)
@@ -29009,7 +29023,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 142.24 306.07 0)
 			(hide yes)
 			(show_name no)
@@ -29145,7 +29159,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 181.3052 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -29499,7 +29513,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 197.612 152.4 90)
 			(hide yes)
 			(show_name no)
@@ -29635,7 +29649,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 255.27 232.41 0)
 			(hide yes)
 			(show_name no)
@@ -29769,7 +29783,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 151.13 238.76 0)
 			(hide yes)
 			(show_name no)
@@ -29903,7 +29917,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 104.14 263.398 90)
 			(hide yes)
 			(show_name no)
@@ -30037,7 +30051,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 248.92 151.4348 0)
 			(hide yes)
 			(show_name no)
@@ -30250,7 +30264,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 139.3952 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -30386,7 +30400,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 173.99 266.7 0)
 			(hide yes)
 			(show_name no)
@@ -30969,7 +30983,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 93.98 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -31223,7 +31237,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 111.76 37.338 90)
 			(hide yes)
 			(show_name no)
@@ -31359,7 +31373,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 261.62 63.8048 0)
 			(hide yes)
 			(show_name no)
@@ -32301,7 +32315,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 167.64 217.17 0)
 			(hide yes)
 			(show_name no)
@@ -32667,7 +32681,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 198.4248 110.49 0)
 			(hide yes)
 			(show_name no)
@@ -32801,7 +32815,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 111.76 50.8 0)
 			(hide yes)
 			(show_name no)
@@ -33013,172 +33027,6 @@
 			(project "cheetoPet"
 				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
 					(reference "CN2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "EasyEDA:KMR223GLFG")
-		(at 82.55 175.26 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "9ee2ffe5-e3b8-47a4-94cf-bcb42d3a6099")
-		(property "Reference" "SW9"
-			(at 82.55 167.64 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "X"
-			(at 82.55 170.18 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "EasyEDA:SW-SMD_5P-L4.2-W2.8-P1.60-LS4.6-TR"
-			(at 82.55 187.96 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://www.lcsc.com/datasheet/C221678.pdf"
-			(at 82.55 190.5 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 82.55 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "C&K"
-			(at 82.55 193.04 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MPN" "KMR223GLFG"
-			(at 82.55 195.58 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part" "C221678"
-			(at 82.55 198.12 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description_1" ""
-			(at 82.55 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 82.55 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "PARTREV" ""
-			(at 82.55 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "STANDARD" ""
-			(at 82.55 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "4"
-			(uuid "bc934515-3471-44dc-8358-dfe80568c3c6")
-		)
-		(pin "5"
-			(uuid "856a8327-71d1-40c0-b77b-c0a586cc0424")
-		)
-		(pin "3"
-			(uuid "5a7b6d07-2908-4116-9874-e91e75d968ab")
-		)
-		(pin "2"
-			(uuid "46930c76-d951-4cd3-b205-b7bab2ef8017")
-		)
-		(pin "1"
-			(uuid "f7690e40-e7cd-47b2-b604-03f5cc90f122")
-		)
-		(instances
-			(project "cheetoPet"
-				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
-					(reference "SW9")
 					(unit 1)
 				)
 			)
@@ -33448,7 +33296,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 222.25 80.518 90)
 			(hide yes)
 			(show_name no)
@@ -33660,7 +33508,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 259.08 85.598 90)
 			(hide yes)
 			(show_name no)
@@ -33872,7 +33720,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 80.9752 142.24 0)
 			(hide yes)
 			(show_name no)
@@ -34006,7 +33854,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 90.17 292.1 0)
 			(hide yes)
 			(show_name no)
@@ -34142,7 +33990,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 276.098 212.09 90)
 			(hide yes)
 			(show_name no)
@@ -34323,6 +34171,125 @@
 		)
 	)
 	(symbol
+		(lib_id "EasyEDA:KMR621NGLFS")
+		(at 85.09 176.53 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ad944399-ce44-41b6-9b9b-c1f313cc9aa8")
+		(property "Reference" "SW4"
+			(at 85.09 170.18 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "BTN"
+			(at 85.09 172.72 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "EasyEDA:KEY-SMD_4P-L4.2-W2.8-P1.60-LS4.6"
+			(at 85.09 187.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.lcsc.com/datasheet/C221692.pdf"
+			(at 85.09 190.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 85.09 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer" "C&K"
+			(at 85.09 193.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "KMR621NGLFS"
+			(at 85.09 195.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part" "C221692"
+			(at 85.09 198.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "4"
+			(uuid "0da90c97-8e26-4f61-aca5-8f55efda2c63")
+		)
+		(pin "3"
+			(uuid "aed16826-dcab-4335-ae9f-5a6fa90a6f90")
+		)
+		(pin "1"
+			(uuid "bd2777bc-0fc5-495a-8792-c8b481dbc617")
+		)
+		(pin "2"
+			(uuid "0b3ec2bc-b3e0-4b6c-9fd3-a56585214601")
+		)
+		(instances
+			(project "cheetoPet"
+				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
+					(reference "SW4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R_Small")
 		(at 151.13 52.07 180)
 		(unit 1)
@@ -34353,7 +34320,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 151.13 52.07 0)
 			(hide yes)
 			(show_name no)
@@ -34566,7 +34533,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 49.022 242.57 90)
 			(hide yes)
 			(show_name no)
@@ -35062,7 +35029,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 171.45 298.45 0)
 			(hide yes)
 			(show_name no)
@@ -35627,7 +35594,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 222.25 87.122 90)
 			(hide yes)
 			(show_name no)
@@ -35994,7 +35961,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 185.42 59.69 0)
 			(hide yes)
 			(show_name no)
@@ -36283,7 +36250,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 111.76 45.72 0)
 			(hide yes)
 			(show_name no)
@@ -36419,7 +36386,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 251.46 217.17 0)
 			(hide yes)
 			(show_name no)
@@ -36708,7 +36675,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 222.25 72.898 90)
 			(hide yes)
 			(show_name no)
@@ -37200,7 +37167,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 238.76 62.5348 0)
 			(hide yes)
 			(show_name no)
@@ -37335,7 +37302,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 58.42 222.758 90)
 			(hide yes)
 			(show_name no)
@@ -37625,7 +37592,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 170.18 217.17 0)
 			(hide yes)
 			(show_name no)
@@ -38039,7 +38006,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 99.06 182.88 0)
+		(at 110.49 182.88 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -38049,7 +38016,7 @@
 		(dnp no)
 		(uuid "ef19b18b-4a2e-4243-9366-ba0129a6bb33")
 		(property "Reference" "#PWR066"
-			(at 99.06 189.23 0)
+			(at 110.49 189.23 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -38060,7 +38027,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 99.06 187.96 90)
+			(at 110.49 187.96 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -38070,7 +38037,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 99.06 182.88 0)
+			(at 110.49 182.88 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -38081,7 +38048,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 99.06 182.88 0)
+			(at 110.49 182.88 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -38092,7 +38059,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 99.06 182.88 0)
+			(at 110.49 182.88 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -38223,7 +38190,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 111.76 39.878 90)
 			(hide yes)
 			(show_name no)
@@ -38357,7 +38324,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 253.238 97.79 90)
 			(hide yes)
 			(show_name no)
@@ -38685,7 +38652,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 248.92 223.52 0)
 			(hide yes)
 			(show_name no)
@@ -38819,7 +38786,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 227.838 95.25 90)
 			(hide yes)
 			(show_name no)
@@ -38953,7 +38920,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+		(property "Footprint" "customs:R_0805_2012Metric - CUSTOM TEXT"
 			(at 222.25 85.598 90)
 			(hide yes)
 			(show_name no)
@@ -39068,7 +39035,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "fc1c26d2-f7d4-4f12-af1f-b8bcf977bf5d")
-		(property "Reference" "SW1"
+		(property "Reference" "SW5"
 			(at 171.45 78.7399 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -39171,7 +39138,7 @@
 		(instances
 			(project "cheetoPet"
 				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
-					(reference "SW1")
+					(reference "SW5")
 					(unit 1)
 				)
 			)
@@ -39338,7 +39305,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "customs:C_0805_2012Metric - CUSTOM TEXT"
 			(at 248.92 156.5148 0)
 			(hide yes)
 			(show_name no)
