@@ -18074,6 +18074,30 @@
 			)
 		)
 	)
+	(global_label "BAT+"
+		(shape input)
+		(at 213.36 255.27 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "ae740ed2-c21a-44ae-a872-9794b5bba818")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 221.2438 255.27 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+	)
 	(global_label "A"
 		(shape input)
 		(at 63.5 220.98 90)
@@ -36974,83 +36998,6 @@
 			(project "cheetoPet"
 				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
 					(reference "#PWR039")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+3V3")
-		(at 213.36 255.27 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "e17af7fb-b008-4a39-ab4f-d5526921e4c9")
-		(property "Reference" "#PWR040"
-			(at 213.36 259.08 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 213.36 251.714 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 213.36 255.27 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 213.36 255.27 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+3V3\""
-			(at 213.36 255.27 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "c87cf7dd-6f75-4679-8515-8d277fb6f1d1")
-		)
-		(instances
-			(project "cheetoPet"
-				(path "/2746c69b-027c-4aec-b1d7-a024d4e17723"
-					(reference "#PWR040")
 					(unit 1)
 				)
 			)
